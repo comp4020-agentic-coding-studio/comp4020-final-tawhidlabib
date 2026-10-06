@@ -93,14 +93,17 @@ export function hasStarted(date: string, hour: number, tz: string, now = new Dat
   return wallTimeToUtc(date, hour, tz).getTime() <= now.getTime();
 }
 
-/** "Tue 8 Jan". */
+/** "Tue 8 Jan". Built from parts: en-AU's own format puts a comma after the
+ *  weekday, and the grid header splits this on spaces. */
 export function dayLabel(date: string): string {
-  return new Intl.DateTimeFormat("en-AU", {
+  const parts = new Intl.DateTimeFormat("en-AU", {
     timeZone: "UTC",
     weekday: "short",
     day: "numeric",
     month: "short",
-  }).format(new Date(`${date}T00:00:00Z`));
+  }).formatToParts(new Date(`${date}T00:00:00Z`));
+  const part = (type: string) => parts.find((p) => p.type === type)?.value;
+  return `${part("weekday")} ${part("day")} ${part("month")}`;
 }
 
 /** "6pm", "12pm", "12am" for midnight (24). */
