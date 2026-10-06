@@ -36,8 +36,8 @@ FROM base
 
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/dist /app/dist
-# once there are migrations in drizzle/ to apply at boot, copy them too:
-# COPY --from=build /app/drizzle /app/drizzle
+# the committed migrations, applied at boot (see src/lib/db.ts)
+COPY --from=build /app/drizzle /app/drizzle
 
 # the SQLite file lives on the volume, so state survives reloads, restarts,
 # and redeploys
