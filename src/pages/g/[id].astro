@@ -129,10 +129,15 @@ const hangouts = plans.map((plan) => {
         You're {me.name}. In the group: {members.map((m) => m.name).join(", ")}.
       </p>
 
-      <label class="field card">
-        Invite link: anyone with it can join
-        <input type="url" readonly value={inviteUrl} id="invite" />
-      </label>
+      <div class="card invite">
+        <label class="field">
+          Invite link: anyone with it can join
+          <input type="url" readonly value={inviteUrl} id="invite" />
+        </label>
+        <button type="button" class="quiet" id="copy-invite" hidden>
+          Copy link
+        </button>
+      </div>
 
       <section aria-labelledby="free">
         <h2 id="free">When are you free?</h2>
@@ -199,12 +204,9 @@ const hangouts = plans.map((plan) => {
           </table>
           <div class="save-bar">
             <button type="submit">Save my free hours</button>
-            {Astro.url.searchParams.has("saved") && (
-              <span role="status" class="muted">
-                {" "}
-                Saved.
-              </span>
-            )}
+            <span role="status" class="muted" id="save-status">
+              {Astro.url.searchParams.has("saved") ? "Saved." : ""}
+            </span>
           </div>
         </form>
       </section>
@@ -316,3 +318,62 @@ const hangouts = plans.map((plan) => {
     </Base>
   )
 }
+
+<script>
+  // Enhancements only: everything here works without JS by plain form submit.
+
+  // Copy the invite link in one tap.
+  const invite = document.querySelector<HTMLInputElement>("#invite");
+  const copy = document.querySelector<HTMLButtonElement>("#copy-invite");
+  if (invite && copy && navigator.clipboard) {
+    copy.hidden = false;
+    copy.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(invite.value);
+      copy.textContent = "Copied";
+      setTimeout(() => (copy.textContent = "Copy link"), 2000);
+    });
+  }
+
+  // Say when the grid has changes that aren't saved yet.
+  const grid = document.querySelector<HTMLTableElement>("table.week");
+  const status = document.querySelector<HTMLElement>("#save-status");
+  const changed = () => {
+    if (status) status.textContent = "Unsaved changes";
+  };
+  grid?.addEventListener("change", changed);
+
+  // With a mouse, drag across hours to paint them all the way the first one
+  // is going. A plain click still toggles natively; touch keeps plain taps,
+  // so the grid still scrolls on a phone.
+  const boxIn = (target: EventTarget | null) =>
+    (target as Element | null)?.closest(".slot")?.querySelector<HTMLInputElement>("input");
+  let first: HTMLInputElement | null = null;
+  let painting = false;
+  let dragged = false;
+  grid?.addEventListener("pointerdown", (event) => {
+    const box = boxIn(event.target);
+    if (event.pointerType !== "mouse" || !box) return;
+    first = box;
+    painting = !box.checked;
+    dragged = false;
+  });
+  grid?.addEventListener("pointerover", (event) => {
+    const box = boxIn(event.target);
+    if (!first || !box || box === first) return;
+    dragged = true;
+    for (const b of [first, box]) {
+      if (b.checked !== painting) {
+        b.checked = painting;
+        changed();
+      }
+    }
+  });
+  // After a drag, a stray click must not toggle the last hour back.
+  grid?.addEventListener("click", (event) => {
+    if (dragged && boxIn(event.target)) event.preventDefault();
+  });
+  window.addEventListener("pointerup", () => {
+    first = null;
+    setTimeout(() => (dragged = false));
+  });
+</script>

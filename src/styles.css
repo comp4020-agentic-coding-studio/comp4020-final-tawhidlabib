@@ -344,3 +344,12 @@ ul.groups {
 .readme img {
   max-width: 100%;
 }
+
+.invite {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.invite button {
+  justify-self: start;
+}
