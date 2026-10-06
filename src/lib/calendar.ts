@@ -1,3 +1,6 @@
+import type { Group, Hangout } from "./schema";
+import { wallTimeToUtc } from "./time";
+
 // Getting a hangout into someone's calendar without signing them in to
 // anything: a pre-filled Google Calendar event they save with one click, and
 // an .ics file for Apple, Outlook and everything else. Both carry UTC
@@ -11,6 +14,18 @@ export type CalendarEvent = {
   description: string;
   url: string;
 };
+
+/** A hangout as a calendar event, its hours read in the group's timezone. */
+export function hangoutEvent(hangout: Hangout, group: Group, origin: string): CalendarEvent {
+  return {
+    uid: `hangout-${hangout.id}-${group.id}@hangout`,
+    title: hangout.title,
+    start: wallTimeToUtc(hangout.date, hangout.startHour, group.timezone),
+    end: wallTimeToUtc(hangout.date, hangout.endHour, group.timezone),
+    description: `With ${group.name}, planned on Hangout.`,
+    url: new URL(`/g/${group.id}`, origin).href,
+  };
+}
 
 /** 2030-01-08T08:00:00.000Z → 20300108T080000Z, the form both formats use. */
 const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");

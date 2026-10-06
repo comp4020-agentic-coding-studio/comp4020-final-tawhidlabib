@@ -1,16 +1,20 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { availabilityOn, getGroup, listMembers } from "../../lib/db";
+import { googleCalendarUrl, hangoutEvent } from "../../lib/calendar";
+import { availabilityOn, getGroup, listMembers, rsvpsFor, upcomingHangouts } from "../../lib/db";
 import { ERRORS } from "../../lib/forms";
 import { currentMember } from "../../lib/identity";
+import { recommend } from "../../lib/recommend";
 import {
   addDays,
   currentWeekStart,
   dayLabel,
   HOURS,
+  hasStarted,
   hourLabel,
   isDate,
   slotKey,
+  spanLabel,
   todayIn,
   weekDates,
   weekStartOf,
@@ -59,6 +63,31 @@ function cell(date: string, hour: number) {
     }`,
   };
 }
+
+const namesOf = (ids: number[]) =>
+  ids
+    .map((id) => (id === me?.id ? "you" : nameOf.get(id)))
+    .filter(Boolean)
+    .join(", ");
+const range = (from: number, to: number) => Array.from({ length: to - from }, (_, i) => from + i);
+
+const best =
+  group && me
+    ? recommend(members.length, free, dates, (date, hour) => hasStarted(date, hour, group.timezone))
+    : [];
+
+const plans = group && me ? upcomingHangouts(group.id, today) : [];
+const answers = rsvpsFor(plans.map((p) => p.id));
+const hangouts = plans.map((plan) => {
+  const mine = answers.filter((a) => a.hangoutId === plan.id);
+  return {
+    plan,
+    going: mine.filter((a) => a.response === "in").map((a) => a.memberId),
+    notGoing: mine.filter((a) => a.response === "out").map((a) => a.memberId),
+    myAnswer: mine.find((a) => a.memberId === me?.id)?.response,
+    google: group ? googleCalendarUrl(hangoutEvent(plan, group, Astro.url.origin)) : "",
+  };
+});
 ---
 
 {
@@ -178,6 +207,111 @@ function cell(date: string, hour: number) {
             )}
           </div>
         </form>
+      </section>
+
+      <section aria-labelledby="best">
+        <h2 id="best">Best times</h2>
+        {best.length === 0 ? (
+          <p class="muted">
+            Recommendations appear once at least two of you have marked hours you're both free
+            this week.
+          </p>
+        ) : (
+          best.map((rec, i) => (
+            <div class="card">
+              <p class="time">{spanLabel(rec.date, rec.start, rec.end)}</p>
+              <p class="who">
+                {rec.people.length === members.length ? (
+                  <span class="badge">Everyone</span>
+                ) : (
+                  `${rec.people.length} of ${members.length}`
+                )}{" "}
+                free: {namesOf(rec.people)}
+              </p>
+              <form method="post" action={`/api/groups/${group.id}/hangouts`} class="row">
+                <input type="hidden" name="date" value={rec.date} />
+                <label class="field" for={`start-${i}`}>
+                  From
+                  <select name="start" id={`start-${i}`}>
+                    {range(rec.start, rec.end).map((h) => (
+                      <option value={h} selected={h === rec.start}>
+                        {hourLabel(h)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label class="field" for={`end-${i}`}>
+                  Until
+                  <select name="end" id={`end-${i}`}>
+                    {range(rec.start + 1, rec.end + 1).map((h) => (
+                      <option value={h} selected={h === rec.end}>
+                        {hourLabel(h)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label class="field" for={`title-${i}`}>
+                  What's the plan?
+                  <input
+                    type="text"
+                    name="title"
+                    id={`title-${i}`}
+                    maxlength="80"
+                    placeholder="Dinner, a walk…"
+                  />
+                </label>
+                <button type="submit">Propose</button>
+              </form>
+            </div>
+          ))
+        )}
+      </section>
+
+      <section aria-labelledby="plans-heading" id="plans">
+        <h2 id="plans-heading">Hangouts</h2>
+        {hangouts.length === 0 ? (
+          <p class="muted">Nothing planned yet. Propose one of the best times above.</p>
+        ) : (
+          hangouts.map(({ plan, going, notGoing, myAnswer, google }) => (
+            <article class="card">
+              <p class="time">{spanLabel(plan.date, plan.startHour, plan.endHour)}</p>
+              <p>{plan.title}</p>
+              <p class="who">
+                In: {going.length ? namesOf(going) : "nobody yet"}
+                {notGoing.length > 0 && ` · Can't make it: ${namesOf(notGoing)}`}
+              </p>
+              <form method="post" action={`/api/hangouts/${plan.id}/rsvp`} class="row">
+                <button
+                  type="submit"
+                  name="response"
+                  value="in"
+                  aria-pressed={myAnswer === "in" ? "true" : "false"}
+                >
+                  I'm in
+                </button>
+                <button
+                  type="submit"
+                  name="response"
+                  value="out"
+                  class="quiet"
+                  aria-pressed={myAnswer === "out" ? "true" : "false"}
+                >
+                  Can't make it
+                </button>
+              </form>
+              {myAnswer === "in" && (
+                <div class="cal-links">
+                  <a class="button quiet" href={google} target="_blank" rel="noopener">
+                    Add to Google Calendar
+                  </a>
+                  <a class="button quiet" href={`/api/hangouts/${plan.id}.ics`}>
+                    Download .ics
+                  </a>
+                </div>
+              )}
+            </article>
+          ))
+        )}
       </section>
     </Base>
   )
