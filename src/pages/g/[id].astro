@@ -1,0 +1,184 @@
+---
+import Base from "../../layouts/Base.astro";
+import { availabilityOn, getGroup, listMembers } from "../../lib/db";
+import { ERRORS } from "../../lib/forms";
+import { currentMember } from "../../lib/identity";
+import {
+  addDays,
+  currentWeekStart,
+  dayLabel,
+  HOURS,
+  hourLabel,
+  isDate,
+  slotKey,
+  todayIn,
+  weekDates,
+  weekStartOf,
+} from "../../lib/time";
+
+const group = getGroup(Astro.params.id ?? "");
+if (!group) Astro.response.status = 404;
+
+const me = group && currentMember(Astro.cookies, group.id);
+const members = group ? listMembers(group.id) : [];
+const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
+const inviteUrl = group ? new URL(`/g/${group.id}`, Astro.url).href : "";
+
+// The week on show: ?week= when it names a Monday, otherwise this week.
+const asked = Astro.url.searchParams.get("week") ?? "";
+const thisWeek = group ? currentWeekStart(group.timezone) : "";
+const week = isDate(asked) && weekStartOf(asked) === asked ? asked : thisWeek;
+const dates = group ? weekDates(week) : [];
+const today = group ? todayIn(group.timezone) : "";
+
+// Who's free in each hour of the week, by slot key.
+const free = new Map<string, Set<number>>();
+if (group && me) {
+  for (const a of availabilityOn(group.id, dates)) {
+    const key = slotKey(a.date, a.hour);
+    if (!free.has(key)) free.set(key, new Set());
+    free.get(key)?.add(a.memberId);
+  }
+}
+const nameOf = new Map(members.map((m) => [m.id, m.name]));
+const others = me ? members.length - 1 : 0;
+
+function cell(date: string, hour: number) {
+  const key = slotKey(date, hour);
+  const here = free.get(key) ?? new Set<number>();
+  const elsewhere = [...here].filter((id) => id !== me?.id);
+  const names = elsewhere.map((id) => nameOf.get(id)).join(", ");
+  return {
+    key,
+    mine: me ? here.has(me.id) : false,
+    count: elsewhere.length,
+    // 0–4: how much of the rest of the group is free then
+    heat: others === 0 ? 0 : Math.ceil((elsewhere.length / others) * 4),
+    label: `${dayLabel(date)}, ${hourLabel(hour)}. ${
+      elsewhere.length ? `Also free: ${names}.` : "Nobody else free yet."
+    }`,
+  };
+}
+---
+
+{
+  !group ? (
+    <Base title="No group here · Hangout">
+      <h1>There's no group at this link</h1>
+      <p>
+        Check the link you were sent, or <a href="/">start a group of your own</a>.
+      </p>
+    </Base>
+  ) : !me ? (
+    <Base title={`Join ${group.name} · Hangout`}>
+      <h1>Join {group.name}</h1>
+      <p class="lede">
+        {members.length === 1
+          ? `${members[0].name} is finding a time to hang out.`
+          : `${members.length} people are finding a time to hang out.`}{" "}
+        Pick a name they'll recognise, then tap the hours you're free.
+      </p>
+      {error && (
+        <p class="error" role="alert">
+          {error}
+        </p>
+      )}
+      <form method="post" action={`/api/groups/${group.id}/join`} class="stack card">
+        <label class="field">
+          Your name
+          <input type="text" name="name" required maxlength="40" autocomplete="given-name" />
+        </label>
+        <div>
+          <button type="submit">Join the group</button>
+        </div>
+      </form>
+    </Base>
+  ) : (
+    <Base title={`${group.name} · Hangout`}>
+      <h1>{group.name}</h1>
+      <p class="muted">
+        You're {me.name}. In the group: {members.map((m) => m.name).join(", ")}.
+      </p>
+
+      <label class="field card">
+        Invite link: anyone with it can join
+        <input type="url" readonly value={inviteUrl} id="invite" />
+      </label>
+
+      <section aria-labelledby="free">
+        <h2 id="free">When are you free?</h2>
+        <nav class="week-nav" aria-label="week">
+          <a href={`?week=${addDays(week, -7)}`}>← Earlier</a>
+          <strong>
+            {week === thisWeek ? "This week" : `Week of ${dayLabel(week)}`}
+          </strong>
+          <a href={`?week=${addDays(week, 7)}`}>Later →</a>
+        </nav>
+        <p class="muted">
+          Tap every hour you could hang out, then save. Times are in {group.timezone}.
+        </p>
+        <div class="legend" aria-hidden="true">
+          <span>
+            <span class="swatch" style="border: 3px solid var(--you)" />
+            You're free
+          </span>
+          <span>
+            <span class="swatch" style="background: var(--heat-2)" />
+            Others are free (number = how many)
+          </span>
+        </div>
+
+        <form method="post" action={`/api/groups/${group.id}/availability`}>
+          <input type="hidden" name="week" value={week} />
+          <table class="week">
+            <caption class="vh">
+              Your free hours, week of {dayLabel(week)}
+            </caption>
+            <thead>
+              <tr>
+                <td />
+                {dates.map((date) => {
+                  const [weekday, day] = dayLabel(date).split(" ");
+                  return (
+                    <th scope="col" aria-current={date === today ? "date" : undefined}>
+                      {weekday}
+                      <span>{day}</span>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {HOURS.map((hour) => (
+                <tr>
+                  <th scope="row">{hourLabel(hour)}</th>
+                  {dates.map((date) => {
+                    const c = cell(date, hour);
+                    return (
+                      <td>
+                        <label class="slot" data-heat={c.heat}>
+                          <input type="checkbox" name="slot" value={c.key} checked={c.mine} />
+                          <span class="vh">{c.label}</span>
+                          <span aria-hidden="true">{c.count > 0 ? c.count : ""}</span>
+                        </label>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div class="save-bar">
+            <button type="submit">Save my free hours</button>
+            {Astro.url.searchParams.has("saved") && (
+              <span role="status" class="muted">
+                {" "}
+                Saved.
+              </span>
+            )}
+          </div>
+        </form>
+      </section>
+    </Base>
+  )
+}

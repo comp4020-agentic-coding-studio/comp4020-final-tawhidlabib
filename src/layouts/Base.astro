@@ -1,0 +1,33 @@
+---
+import "../styles.css";
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Hangout: tell your friend group when you're free this week, and find the time that works for the most of you."
+    />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="site">
+      <nav aria-label="site">
+        <a href="/" class="brand">Hangout</a>
+        <a href="/readme/">About</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>

@@ -1,22 +1,61 @@
 ---
-// A placeholder that proves the deploy path, and yours to replace with the app.
+import Base from "../layouts/Base.astro";
+import { ERRORS } from "../lib/forms";
+import { yourGroups } from "../lib/identity";
+import { DEFAULT_TIMEZONE } from "../lib/time";
+
+const groups = yourGroups(Astro.request.headers.get("cookie"));
+const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
 ---
 
-<!doctype html>
-<html lang="en-AU">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Placeholder</title>
-  </head>
-  <body>
-    <nav aria-label="site">
-      <a href="/">Home</a>
-      <a href="/readme/">About</a>
-    </nav>
-    <main>
-      <h1>Placeholder</h1>
-      <p>This placeholder shows the deploy path works. Replace it with your app.</p>
-    </main>
-  </body>
-</html>
+<Base title="Hangout: find a time your friends are free">
+  <h1>Find the time your friends are all free</h1>
+  <p class="lede">
+    Start a group, send everyone the link, and each of you taps the hours you're free this
+    week. Hangout finds the longest stretch that works for the most of you.
+  </p>
+
+  {
+    groups.length > 0 && (
+      <section aria-labelledby="your-groups">
+        <h2 id="your-groups">Your groups</h2>
+        <ul class="groups">
+          {groups.map(({ group, member }) => (
+            <li class="card">
+              <a href={`/g/${group.id}`}>{group.name}</a>
+              <span class="muted"> · you're {member.name}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <section aria-labelledby="start">
+    <h2 id="start">Start a group</h2>
+    {error && <p class="error" role="alert">{error}</p>}
+    <form method="post" action="/api/groups" class="stack card">
+      <label class="field">
+        Group name
+        <input type="text" name="group" required maxlength="60" placeholder="Friday dinner crew" />
+      </label>
+      <label class="field">
+        Your name
+        <input type="text" name="name" required maxlength="40" autocomplete="given-name" />
+      </label>
+      <input type="hidden" name="timezone" value={DEFAULT_TIMEZONE} id="timezone" />
+      <p class="muted">
+        No account, no password: anyone with the group's link can join, and this browser
+        remembers you.
+      </p>
+      <div><button type="submit">Start the group</button></div>
+    </form>
+  </section>
+</Base>
+
+<script is:inline>
+  // The group's hours are in its creator's timezone; without JS it's Sydney.
+  try {
+    document.getElementById("timezone").value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {}
+</script>
