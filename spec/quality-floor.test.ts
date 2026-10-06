@@ -1,7 +1,7 @@
 import axe from "axe-core";
 import { JSDOM } from "jsdom";
 import { beforeAll, describe, expect, inject, it } from "vitest";
-import { ROUTES } from "./routes";
+import { dynamicRoutes, ROUTES } from "./routes";
 
 // The quality floor, carried forward from crit 7: it runs against the RUNNING
 // app that spec/global-setup.ts finds at APP_URL and fetches each route over
@@ -13,17 +13,22 @@ import { ROUTES } from "./routes";
 // file. The routes they cover come from spec/routes.ts; keep it current.
 const baseUrl = inject("baseUrl");
 
-for (const route of ROUTES) {
-  describe(`invariants: ${route}`, () => {
+const pages = [
+  ...ROUTES.map((path) => ({ label: path, path, cookie: undefined as string | undefined })),
+  ...(await dynamicRoutes(baseUrl)),
+];
+
+for (const { label, path, cookie } of pages) {
+  describe(`invariants: ${label}`, () => {
     let status: number;
     let dom: JSDOM;
     let doc: Document;
 
     beforeAll(async () => {
-      const res = await fetch(new URL(route, baseUrl));
+      const res = await fetch(new URL(path, baseUrl), { headers: cookie ? { cookie } : {} });
       status = res.status;
       dom = new JSDOM(await res.text(), {
-        url: new URL(route, baseUrl).href,
+        url: new URL(path, baseUrl).href,
         runScripts: "outside-only",
         pretendToBeVisual: true,
       });

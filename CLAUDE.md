@@ -23,7 +23,10 @@ minus everything that was true only of crit 7's starter app.
 - Never commit a red state.
 - **A new page needs its route added to `spec/routes.ts`.** A server-rendered
   app has no `dist/*.html` to walk, so coverage is that explicit list: forget it
-  and the quality floor keeps passing while quietly testing nothing.
+  and the quality floor keeps passing while quietly testing nothing. A page
+  behind a dynamic segment (`/g/[id]`) can't be listed, so `dynamicRoutes()`
+  there makes one fresh each run, in every state a person can see it in
+  (invited, member). A new state or a new dynamic page gets a line there.
 - Commit `pnpm-lock.yaml` with any dependency change: CI installs with
   `--frozen-lockfile`.
 
