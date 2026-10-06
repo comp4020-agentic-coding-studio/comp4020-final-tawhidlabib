@@ -1,6 +1,10 @@
 node_modules/
 dist/
+.astro/
 *.log
+
+# the local dev database — state on your machine, never in the repo
+.data/
 
 # editor and OS junk
 .DS_Store
