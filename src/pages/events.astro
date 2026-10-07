@@ -1,0 +1,108 @@
+---
+import EventCard from "../components/EventCard.astro";
+import Icon from "../components/Icon.astro";
+import Onboard from "../components/Onboard.astro";
+import Base from "../layouts/Base.astro";
+import { eventsFor, goingCounts, publicEvents } from "../lib/events";
+import { DEFAULT_TIMEZONE, todayIn } from "../lib/time";
+
+const person = Astro.locals.person;
+const today = todayIn(person?.timezone ?? DEFAULT_TIMEZONE);
+const mine = person ? eventsFor(person.id, today) : [];
+const waiting = mine.filter((e) => e.response === "invited" && e.event.hostId !== person?.id);
+const rest = mine.filter((e) => !waiting.includes(e));
+const explore = publicEvents(today);
+const going = goingCounts([...mine.map((e) => e.event.id), ...explore.map((e) => e.id)]);
+---
+
+<Base title="Events · Hangout">
+  <div class="page-head">
+    <div>
+      <span class="kicker">What's on</span>
+      <h1>Events</h1>
+    </div>
+    <div class="actions">
+      <a class="button" href="/events/new">
+        <Icon name="plus" size={18} /> Create event
+      </a>
+    </div>
+  </div>
+
+  <nav class="segmented" aria-label="Event lists">
+    <a href="#yours">Your events</a>
+    <a href="#explore">Explore</a>
+  </nav>
+
+  <section id="yours" class="section" aria-labelledby="yours-h">
+    <h2 id="yours-h">Your events</h2>
+    {
+      !person ? (
+        <Onboard back="/events" lead="Make your profile to host events and get invited to them." />
+      ) : mine.length === 0 ? (
+        <div class="empty">
+          <div class="icon-bubble">
+            <Icon name="ticket" size={22} />
+          </div>
+          <strong>Nothing coming up</strong>
+          <span>
+            <a href="/events/new">Host something</a>, or find a public event below.
+          </span>
+        </div>
+      ) : (
+        <div class="stack">
+          {waiting.length > 0 && (
+            <div>
+              <h3 class="list-label">Waiting for your answer</h3>
+              <div class="cards stagger">
+                {waiting.map(({ event, response }, i) => (
+                  <EventCard event={event} today={today} response={response} going={going.get(event.id)} i={i} />
+                ))}
+              </div>
+            </div>
+          )}
+          {rest.length > 0 && (
+            <div>
+              {waiting.length > 0 && <h3 class="list-label">Coming up</h3>}
+              <div class="cards stagger">
+                {rest.map(({ event, response }, i) => (
+                  <EventCard
+                    event={event}
+                    today={today}
+                    response={response}
+                    hosting={event.hostId === person.id}
+                    going={going.get(event.id)}
+                    i={i}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    }
+  </section>
+
+  <section id="explore" class="section" aria-labelledby="explore-h">
+    <h2 id="explore-h">Explore</h2>
+    <p class="muted">Public events anyone can join.</p>
+    {
+      explore.length === 0 ? (
+        <div class="empty">
+          <div class="icon-bubble">
+            <Icon name="globe" size={22} />
+          </div>
+          <strong>No public events yet</strong>
+          <span>
+            Be the first: <a href="/events/new">host one</a> and make it public.
+          </span>
+        </div>
+      ) : (
+        <div class="cards stagger">
+          {explore.map((event, i) => (
+            <EventCard event={event} today={today} going={going.get(event.id)} i={i} />
+          ))}
+        </div>
+      )
+    }
+  </section>
+</Base>

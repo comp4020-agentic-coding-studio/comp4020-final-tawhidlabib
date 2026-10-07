@@ -1,5 +1,5 @@
-import type { Group, Hangout } from "./schema";
-import { wallTimeToUtc } from "./time";
+import type { Event, Group, Hangout } from "./schema";
+import { clockToUtc, wallTimeToUtc } from "./time";
 
 // Getting a hangout into someone's calendar without signing them in to
 // anything: a pre-filled Google Calendar event they save with one click, and
@@ -24,6 +24,21 @@ export function hangoutEvent(hangout: Hangout, group: Group, origin: string): Ca
     end: wallTimeToUtc(hangout.date, hangout.endHour, group.timezone),
     description: `With ${group.name}, planned on Hangout.`,
     url: new URL(`/g/${group.id}`, origin).href,
+  };
+}
+
+/** An event as a calendar entry, its times read in the host's timezone. */
+export function eventEvent(event: Event, origin: string): CalendarEvent {
+  const url = new URL(`/e/${event.shareId}`, origin).href;
+  return {
+    uid: `event-${event.shareId}@hangout`,
+    title: event.title,
+    start: clockToUtc(event.date, event.startTime, event.timezone),
+    end: clockToUtc(event.date, event.endTime, event.timezone),
+    description: [event.location && `At ${event.location}.`, event.details, "On Hangout."]
+      .filter(Boolean)
+      .join("\n"),
+    url,
   };
 }
 

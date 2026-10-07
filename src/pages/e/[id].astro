@@ -1,0 +1,296 @@
+---
+import Icon from "../../components/Icon.astro";
+import Onboard from "../../components/Onboard.astro";
+import Base from "../../layouts/Base.astro";
+import { hue, initials } from "../../lib/avatar";
+import { eventEvent, googleCalendarUrl } from "../../lib/calendar";
+import { allowedInvitees } from "../../lib/circle";
+import { canSee, eventByShareId, type Guest, guestsOf } from "../../lib/events";
+import { groupsFor } from "../../lib/identity";
+import { peopleByIds, personById } from "../../lib/people";
+import { clockLabel, dayLabel, relativeDay, todayIn } from "../../lib/time";
+
+const event = eventByShareId(Astro.params.id ?? "");
+const person = Astro.locals.person;
+const visible = event ? canSee(event, person) : false;
+if (!event) Astro.response.status = 404;
+else if (!visible) Astro.response.status = 403;
+
+const host = event && visible ? personById(event.hostId) : undefined;
+const guests = event && visible ? guestsOf(event.id) : [];
+const mine = guests.find((g) => g.person.id === person?.id)?.response;
+const isHost = !!person && event?.hostId === person.id;
+const by = (response: Guest["response"]) => guests.filter((g) => g.response === response);
+const going = by("going");
+const maybe = by("maybe");
+const invited = by("invited");
+const declined = by("declined");
+const url = event ? new URL(`/e/${event.shareId}`, Astro.url).href : "";
+const google = event && visible ? googleCalendarUrl(eventEvent(event, Astro.url.origin)) : "";
+const today = event ? todayIn(event.timezone) : "";
+const [weekday, day, month] = event ? dayLabel(event.date).split(" ") : [];
+
+// who the host can still invite: friends and group-mates not on the list yet
+const cookie = Astro.request.headers.get("cookie");
+const onList = new Set(guests.map((g) => g.person.id));
+const more =
+  isHost && person
+    ? peopleByIds([...allowedInvitees(person, cookie)].filter((id) => !onList.has(id))).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      )
+    : [];
+const hostGroups = isHost && person ? groupsFor(person, cookie) : [];
+---
+
+<Base
+  title={!event ? "Event not found · Hangout" : !visible ? "Private event · Hangout" : `${event.title} · Hangout`}
+>
+  {
+    !event ? (
+      <div class="narrow start-card join-card stack">
+        <div class="icon-bubble">
+          <Icon name="ticket" size={22} />
+        </div>
+        <h1>There's no event at this link</h1>
+        <p class="muted">It may have been cancelled, or the link was cut short.</p>
+        <a class="button" href="/events">
+          See events
+        </a>
+      </div>
+    ) : !visible ? (
+      <div class="narrow start-card join-card stack">
+        <div class="icon-bubble">
+          <Icon name="lock" size={22} />
+        </div>
+        <h1>This event is private</h1>
+        <p class="muted">
+          Only its host and the people they invited can see it.
+          {!person && " If you were invited, sign in with your own Hangout link first."}
+        </p>
+        <a class="button" href="/events">
+          Find public events
+        </a>
+      </div>
+    ) : (
+      <article class="event-page">
+        <header class="ev-cover">
+          <div class="date-tile big" aria-hidden="true">
+            <small>{weekday}</small>
+            <b>{day}</b>
+            <small>{month}</small>
+          </div>
+          <div class="ev-head">
+            <div class="ev-pills">
+              <span class="pill">
+                <Icon name={event.visibility === "public" ? "globe" : "lock"} size={13} />
+                {event.visibility === "public" ? "Public event" : "Private event"}
+              </span>
+              <span class="pill">
+                <Icon name="clock" size={13} /> {relativeDay(event.date, today)}
+              </span>
+            </div>
+            <h1>{event.title}</h1>
+            {host && (
+              <p class="host">
+                <span class="avatar" style={`--hue: ${hue(host.name)}`} aria-hidden="true">
+                  {initials(host.name)}
+                </span>
+                Hosted by <b>{isHost ? "you" : host.name}</b>
+              </p>
+            )}
+          </div>
+        </header>
+
+        <div class="ev-layout">
+          <div class="stack">
+            <ul class="card ev-facts">
+              <li>
+                <span class="icon-bubble small">
+                  <Icon name="calendar" size={18} />
+                </span>
+                <span>
+                  <b>{dayLabel(event.date)}</b>
+                  <span class="muted">
+                    {clockLabel(event.startTime)}–{clockLabel(event.endTime)} ({event.timezone})
+                  </span>
+                </span>
+              </li>
+              {event.location && (
+                <li>
+                  <span class="icon-bubble small">
+                    <Icon name="pin" size={18} />
+                  </span>
+                  <span>
+                    <b>{event.location}</b>
+                    <a
+                      class="muted"
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      Open in maps
+                    </a>
+                  </span>
+                </li>
+              )}
+            </ul>
+
+            {event.details && (
+              <section class="card" aria-labelledby="details-h">
+                <h2 id="details-h">Details</h2>
+                <p class="ev-details">{event.details}</p>
+              </section>
+            )}
+
+            <section class="card stack" aria-labelledby="rsvp-h">
+              <h2 id="rsvp-h">{isHost ? "You're hosting" : "Are you going?"}</h2>
+              {!person ? (
+                <Onboard
+                  back={`/e/${event.shareId}`}
+                  title="Pick a name to RSVP"
+                  lead="Make your profile and tell the host you're coming."
+                />
+              ) : (
+                <>
+                  <form method="post" action={`/api/events/${event.shareId}/rsvp`} class="rsvp three">
+                    <button type="submit" name="response" value="going" aria-pressed={mine === "going" ? "true" : "false"}>
+                      <Icon name="check" size={16} /> Going
+                    </button>
+                    <button type="submit" name="response" value="maybe" aria-pressed={mine === "maybe" ? "true" : "false"}>
+                      Maybe
+                    </button>
+                    <button
+                      type="submit"
+                      name="response"
+                      value="declined"
+                      class="out"
+                      aria-pressed={mine === "declined" ? "true" : "false"}
+                    >
+                      Can't go
+                    </button>
+                  </form>
+                  {(mine === "going" || mine === "maybe") && (
+                    <div class="cal-links">
+                      <a class="button small" href={google} target="_blank" rel="noopener">
+                        <Icon name="calendar" size={16} /> Add to Google Calendar
+                      </a>
+                      <a class="button small ghost" href={`/api/events/${event.shareId}.ics`}>
+                        Download .ics
+                      </a>
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
+
+            {isHost && (
+              <section class="card stack" aria-labelledby="host-h">
+                <h2 id="host-h">Host tools</h2>
+                <div class="invite-row">
+                  <label class="vh" for="event-link">
+                    Event link
+                  </label>
+                  <input type="url" readonly value={url} id="event-link" />
+                  <button type="button" class="button" data-copy={url} hidden>
+                    <Icon name="copy" size={18} /> Copy link
+                  </button>
+                </div>
+                {(more.length > 0 || hostGroups.length > 0) && (
+                  <form method="post" action={`/api/events/${event.shareId}/invite`} class="stack">
+                    <h3 class="list-label">Invite more people</h3>
+                    <div class="invite-grid">
+                      {more.map((p) => (
+                        <label class="invite-chip">
+                          <input type="checkbox" name="invite" value={p.id} />
+                          <span class="avatar" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
+                            {initials(p.name)}
+                          </span>
+                          {p.name}
+                        </label>
+                      ))}
+                      {hostGroups.map(({ group }) => (
+                        <label class="invite-chip">
+                          <input type="checkbox" name="inviteGroup" value={group.id} />
+                          <Icon name="users" size={18} />
+                          All of {group.name}
+                        </label>
+                      ))}
+                    </div>
+                    <div>
+                      <button type="submit" class="button small">
+                        <Icon name="userPlus" size={16} /> Send invites
+                      </button>
+                    </div>
+                  </form>
+                )}
+                <form method="post" action={`/api/events/${event.shareId}/cancel`} data-confirm="Cancel this event for everyone?">
+                  <button type="submit" class="button small ghost danger">
+                    Cancel event
+                  </button>
+                </form>
+              </section>
+            )}
+          </div>
+
+          <div class="guests">
+            <section id="going" class="card" aria-labelledby="going-h">
+              <h2 id="going-h">
+                Going <span class="pill solid">{going.length}</span>
+              </h2>
+              <ul class="guest-list">
+                {going.map((g) => (
+                  <li>
+                    <span class="avatar" style={`--hue: ${hue(g.person.name)}`} aria-hidden="true">
+                      {initials(g.person.name)}
+                    </span>
+                    {g.person.name}
+                    {g.person.id === event.hostId && <span class="pill">host</span>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+            {maybe.length > 0 && (
+              <section id="maybe" class="card" aria-labelledby="maybe-h">
+                <h2 id="maybe-h">
+                  Maybe <span class="pill">{maybe.length}</span>
+                </h2>
+                <ul class="guest-list">
+                  {maybe.map((g) => (
+                    <li>
+                      <span class="avatar" style={`--hue: ${hue(g.person.name)}`} aria-hidden="true">
+                        {initials(g.person.name)}
+                      </span>
+                      {g.person.name}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {invited.length > 0 && (
+              <section id="invited" class="card" aria-labelledby="invited-h">
+                <h2 id="invited-h">
+                  Invited <span class="pill">{invited.length}</span>
+                </h2>
+                <ul class="guest-list">
+                  {invited.map((g) => (
+                    <li class="muted">
+                      <span class="avatar" style={`--hue: ${hue(g.person.name)}`} aria-hidden="true">
+                        {initials(g.person.name)}
+                      </span>
+                      {g.person.name}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {declined.length > 0 && (
+              <p class="muted fine">
+                {declined.length} can't make it.
+              </p>
+            )}
+          </div>
+        </div>
+      </article>
+    )
+  }
+</Base>

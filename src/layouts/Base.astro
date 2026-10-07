@@ -243,6 +243,13 @@ const NAV = [
   }
   if (toast?.hasAttribute("data-party")) setTimeout(confetti, 250);
 
+  // ─── forms that ask first (cancelling an event, say) ──────────────────
+  for (const form of document.querySelectorAll<HTMLFormElement>("form[data-confirm]")) {
+    form.addEventListener("submit", (event) => {
+      if (!confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  }
+
   // ─── copy and share buttons, anywhere on any page ─────────────────────
   if (navigator.clipboard) {
     for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {

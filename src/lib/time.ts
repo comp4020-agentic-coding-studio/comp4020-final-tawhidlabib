@@ -118,6 +118,20 @@ export function spanLabel(date: string, start: number, end: number): string {
   return `${dayLabel(date)}, ${hourLabel(start)}–${hourLabel(end)}`;
 }
 
+export const isClock = (time: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(time);
+
+/** The instant an "HH:MM" wall-clock time on a date names in a timezone. */
+export function clockToUtc(date: string, time: string, tz: string): Date {
+  const [h, m] = time.split(":").map(Number);
+  return new Date(wallTimeToUtc(date, h, tz).getTime() + m * 60_000);
+}
+
+/** "19:00" → "7pm", "19:30" → "7:30pm". */
+export function clockLabel(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  return m === 0 ? hourLabel(h) : hourLabel(h).replace(/(am|pm)$/, `:${String(m).padStart(2, "0")}$1`);
+}
+
 /** "Today", "Tomorrow", "In 5 days": how far off a date is, for a glance. */
 export function relativeDay(date: string, today: string): string {
   const days = Math.round(

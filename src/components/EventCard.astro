@@ -1,0 +1,60 @@
+---
+import type { Event, Response } from "../lib/events";
+import { clockLabel, dayLabel, relativeDay } from "../lib/time";
+import Icon from "./Icon.astro";
+
+interface Props {
+  event: Event;
+  today: string;
+  /** Your answer, when it's one of your events. */
+  response?: Response;
+  hosting?: boolean;
+  going?: number;
+  i?: number;
+}
+
+const { event, today, response, hosting = false, going = 0, i = 0 } = Astro.props;
+const [weekday, day, month] = dayLabel(event.date).split(" ");
+const ANSWER = { invited: "Invited", going: "Going", maybe: "Maybe", declined: "Can't go" } as const;
+---
+
+<a
+  class:list={["card lift event-card", { "needs-answer": response === "invited" && !hosting }]}
+  href={`/e/${event.shareId}`}
+  style={`--i: ${i}`}
+>
+  <div class="date-tile" aria-hidden="true">
+    <small>{weekday}</small>
+    <b>{day}</b>
+    <small>{month}</small>
+  </div>
+  <div class="ev-body">
+    <p class="ev-title">{event.title}</p>
+    <p class="who">
+      {dayLabel(event.date)} · {clockLabel(event.startTime)}–{clockLabel(event.endTime)}
+      {event.location && ` · ${event.location}`}
+    </p>
+    <div class="ev-meta">
+      <span class="pill">
+        <Icon name={event.visibility === "public" ? "globe" : "lock"} size={13} />
+        {event.visibility === "public" ? "Public" : "Private"}
+      </span>
+      {going > 0 && <span class="pill">{going} going</span>}
+      <span class="pill">
+        <Icon name="clock" size={13} />
+        {relativeDay(event.date, today)}
+      </span>
+      {
+        hosting ? (
+          <span class="pill solid">Hosting</span>
+        ) : (
+          response && (
+            <span class:list={["pill", { solid: response === "going" || response === "invited" }]}>
+              {response === "invited" ? "Invited · answer" : ANSWER[response]}
+            </span>
+          )
+        )
+      }
+    </div>
+  </div>
+</a>
