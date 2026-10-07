@@ -76,6 +76,11 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
     plans.querySelector('form[action^="/api/hangouts/"][action$="/rsvp"]')?.getAttribute("action")?.split("/")[3] ?? "";
   await wall.post("/api/comments", { kind: "hangout", ref: hangoutRef, body: "I'll book a table" });
   await wall.post("/api/reactions", { kind: "hangout", ref: hangoutRef, emoji: "🙌" });
+  // and a poll with a vote in it
+  await host.post("/api/polls", { kind: "event", ref: partyRef, question: "Pizza or tacos?", option: ["Pizza", "Tacos"] });
+  const pollForm = (await host.get(party)).doc.querySelector('form[action^="/api/polls/"][action$="/vote"]');
+  const firstOption = pollForm?.querySelector<HTMLButtonElement>('button[name="option"]')?.value ?? "";
+  await host.post(pollForm?.getAttribute("action") ?? "/api/polls/0/vote", { option: firstOption });
 
   // a full event with someone waiting (ADR 6)
   const tiny = await host.post("/api/events", { ...when, title: "Floor dinner", visibility: "public", capacity: "1" });
