@@ -69,6 +69,32 @@ ever sees because the seed data hides it. Drive the running app --- create the
 thing, reload, come back to it --- rather than concluding from the handler that
 it must work.
 
+## Live updates, and what changes state
+
+Every page that shows shared state is live (crit 9). Parts that change carry
+`data-live="<topic>"`, and the stream (`/api/live`) says only *which* topic
+changed. The page then re-reads that part through the same access rules as
+any request. So:
+
+- **Anything that changes shared state must `publish()` its topic** (and
+  `notify()` the people it concerns). Forget one, and every other open page
+  goes stale without any error. That's exactly what no single-browser check
+  will catch.
+- **Never put data in the stream.** Not names, not comments, not counts.
+  Access rules then live in one place, and a private event can't leak down
+  a channel nobody thought to guard.
+- **A live part needs a stable `id`**, and must not be replaced while
+  someone is typing in it. The availability grid is patched, never replaced.
+- **State that has to be fair under a race goes in one SQLite transaction**
+  (ADR 6). Don't check in one statement and write in another.
+
+## Files people send
+
+Uploads are checked by their bytes, not their names, and served only by a
+route that checks access (ADR 8). A new upload kind reuses `saveImage()`
+and gets its own access rule. Never point a public route at the uploads
+folder as a whole.
+
 ## The checks
 
 `pnpm check` is `pnpm typecheck` (`astro check`) then `pnpm test`, and `test`
