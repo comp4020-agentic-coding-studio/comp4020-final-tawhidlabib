@@ -1,0 +1,186 @@
+---
+import Icon from "../components/Icon.astro";
+import Onboard from "../components/Onboard.astro";
+import Base from "../layouts/Base.astro";
+import { hue, initials } from "../lib/avatar";
+import { mayKnow, sharedGroups } from "../lib/circle";
+import { friendsOf, incomingRequests, outgoingRequests } from "../lib/friends";
+
+const person = Astro.locals.person;
+const cookie = Astro.request.headers.get("cookie");
+const friendUrl = person ? new URL(`/f/${person.friendCode}`, Astro.url).href : "";
+const friends = person ? friendsOf(person.id) : [];
+const incoming = person ? incomingRequests(person.id) : [];
+const outgoing = person ? outgoingRequests(person.id) : [];
+const shared = person ? sharedGroups(person, cookie) : new Map<number, string[]>();
+const suggestions = person ? mayKnow(person, cookie) : [];
+---
+
+<Base title="Friends · Hangout">
+  <div class="page-head">
+    <div>
+      <span class="kicker">Your people</span>
+      <h1>Friends</h1>
+    </div>
+  </div>
+
+  {
+    !person ? (
+      <Onboard back="/friends" lead="Make your profile, then add friends with your friend link." />
+    ) : (
+      <div class="stack-lg">
+        <section class="start-card stack" aria-labelledby="link-h">
+          <div class="split">
+            <div class="icon-bubble">
+              <Icon name="userPlus" size={22} />
+            </div>
+            <div>
+              <h2 id="link-h">Your friend link</h2>
+              <p class="muted">
+                Send it to someone and they can add you. Nobody finds you on Hangout without it.
+              </p>
+            </div>
+          </div>
+          <div class="invite-row">
+            <label class="vh" for="friend-link">
+              Your friend link
+            </label>
+            <input type="url" readonly value={friendUrl} id="friend-link" />
+            <button type="button" class="button" data-copy={friendUrl} hidden>
+              <Icon name="copy" size={18} /> Copy
+            </button>
+            <button type="button" class="button ghost" data-share={friendUrl} hidden>
+              <Icon name="share" size={18} /> Share
+            </button>
+          </div>
+        </section>
+
+        <section id="requests" aria-labelledby="requests-h">
+          <h2 id="requests-h">
+            Friend requests {incoming.length > 0 && <span class="pill solid">{incoming.length}</span>}
+          </h2>
+          {incoming.length === 0 ? (
+            <p class="muted">No requests waiting.</p>
+          ) : (
+            <ul class="people-list stagger">
+              {incoming.map((p, i) => (
+                <li class="card person-row" style={`--i: ${i}`}>
+                  <span class="avatar md" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
+                    {initials(p.name)}
+                  </span>
+                  <span class="who-name">
+                    <b>{p.name}</b>
+                    <span class="muted">wants to be friends</span>
+                  </span>
+                  <form method="post" action="/api/friends/respond" class="row-actions">
+                    <input type="hidden" name="person" value={p.id} />
+                    <button type="submit" name="action" value="accept" class="button small">
+                      <Icon name="check" size={16} /> Accept
+                    </button>
+                    <button type="submit" name="action" value="decline" class="button small ghost">
+                      Decline
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section id="friends" aria-labelledby="friends-h">
+          <h2 id="friends-h">Your friends {friends.length > 0 && <span class="pill">{friends.length}</span>}</h2>
+          {friends.length === 0 ? (
+            <div class="empty">
+              <div class="icon-bubble">
+                <Icon name="heart" size={22} />
+              </div>
+              <strong>No friends here yet</strong>
+              <span>Share your friend link, or add people from your groups below.</span>
+            </div>
+          ) : (
+            <ul class="people-grid stagger">
+              {friends.map((p, i) => (
+                <li class="card person-row" style={`--i: ${i}`}>
+                  <span class="avatar md" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
+                    {initials(p.name)}
+                  </span>
+                  <span class="who-name">
+                    <b>{p.name}</b>
+                    <span class="muted">
+                      {shared.get(p.id)?.length
+                        ? `In ${shared.get(p.id)?.join(", ")}`
+                        : "No groups together yet"}
+                    </span>
+                  </span>
+                  <form method="post" action="/api/friends/respond" class="row-actions">
+                    <input type="hidden" name="person" value={p.id} />
+                    <button
+                      type="submit"
+                      name="action"
+                      value="remove"
+                      class="icon-button"
+                      aria-label={`Remove ${p.name} from your friends`}
+                    >
+                      <Icon name="x" size={16} />
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {outgoing.length > 0 && (
+          <section id="sent" aria-labelledby="sent-h">
+            <h2 id="sent-h">Waiting on</h2>
+            <ul class="people-list">
+              {outgoing.map((p) => (
+                <li class="card person-row">
+                  <span class="avatar md" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
+                    {initials(p.name)}
+                  </span>
+                  <span class="who-name">
+                    <b>{p.name}</b>
+                    <span class="muted">Request sent</span>
+                  </span>
+                  <form method="post" action="/api/friends/respond" class="row-actions">
+                    <input type="hidden" name="person" value={p.id} />
+                    <button type="submit" name="action" value="remove" class="button small ghost">
+                      Cancel
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {suggestions.length > 0 && (
+          <section id="may-know" aria-labelledby="may-know-h">
+            <h2 id="may-know-h">People you may know</h2>
+            <p class="muted">From groups you're in.</p>
+            <ul class="people-grid">
+              {suggestions.map((p) => (
+                <li class="card person-row">
+                  <span class="avatar md" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
+                    {initials(p.name)}
+                  </span>
+                  <span class="who-name">
+                    <b>{p.name}</b>
+                    <span class="muted">In {shared.get(p.id)?.join(", ")}</span>
+                  </span>
+                  <form method="post" action="/api/friends" class="row-actions">
+                    <input type="hidden" name="person" value={p.id} />
+                    <button type="submit" class="button small">
+                      <Icon name="userPlus" size={16} /> Add
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    )
+  }
+</Base>

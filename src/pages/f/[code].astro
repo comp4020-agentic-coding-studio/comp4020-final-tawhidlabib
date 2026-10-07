@@ -1,0 +1,104 @@
+---
+import Icon from "../../components/Icon.astro";
+import Onboard from "../../components/Onboard.astro";
+import Base from "../../layouts/Base.astro";
+import { hue, initials } from "../../lib/avatar";
+import { relationship } from "../../lib/friends";
+import { personByCode } from "../../lib/people";
+
+// Someone's friend link. Opening it only shows who they are; adding them is a
+// button (a POST), so a link preview can't send a request on anyone's behalf.
+const code = Astro.params.code ?? "";
+const them = personByCode(code);
+if (!them) Astro.response.status = 404;
+const me = Astro.locals.person;
+const tie = them && me ? relationship(me.id, them.id) : "none";
+---
+
+<Base title={them ? `Add ${them.name} · Hangout` : "Link not found · Hangout"}>
+  <div class="narrow start-card join-card stack">
+    {
+      !them ? (
+        <>
+          <div class="icon-bubble">
+            <Icon name="link" size={22} />
+          </div>
+          <h1>This friend link doesn't work</h1>
+          <p class="muted">Ask for their link again: it may have been copied only partly.</p>
+          <a class="button" href="/friends">
+            Go to your friends
+          </a>
+        </>
+      ) : (
+        <>
+          <span class="avatar xl" style={`--hue: ${hue(them.name)}`} aria-hidden="true">
+            {initials(them.name)}
+          </span>
+          {tie === "self" ? (
+            <>
+              <h1>This is your friend link</h1>
+              <p class="muted">Send it to people so they can add you.</p>
+              <a class="button" href="/friends">
+                See your friends
+              </a>
+            </>
+          ) : tie === "friends" ? (
+            <>
+              <h1>You and {them.name} are friends</h1>
+              <a class="button" href="/friends">
+                See your friends
+              </a>
+            </>
+          ) : tie === "sent" ? (
+            <>
+              <h1>Request sent to {them.name}</h1>
+              <p class="muted">You'll be friends as soon as they accept.</p>
+              <a class="button ghost" href="/friends">
+                See your friends
+              </a>
+            </>
+          ) : tie === "received" ? (
+            <>
+              <h1>{them.name} wants to be friends</h1>
+              <form method="post" action="/api/friends/respond">
+                <input type="hidden" name="person" value={them.id} />
+                <input type="hidden" name="back" value="/friends" />
+                <button type="submit" name="action" value="accept" class="button large">
+                  <Icon name="check" /> Accept
+                </button>
+              </form>
+            </>
+          ) : me ? (
+            <>
+              <div>
+                <span class="pill">
+                  <Icon name="heart" size={14} /> Friend link
+                </span>
+                <h1>Add {them.name} as a friend?</h1>
+                <p class="muted">
+                  They'll get a request. Once they accept, you can invite each other to events.
+                </p>
+              </div>
+              <form method="post" action="/api/friends">
+                <input type="hidden" name="code" value={code} />
+                <input type="hidden" name="back" value="/friends" />
+                <button type="submit" class="button large">
+                  <Icon name="userPlus" /> Add {them.name}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <h1>{them.name} wants to be friends on Hangout</h1>
+              <Onboard
+                back={`/f/${code}`}
+                title="First, what should they call you?"
+                lead={`Make your profile, then add ${them.name}.`}
+              />
+            </>
+          )}
+        </>
+      )
+    }
+  </div>
+</Base>
