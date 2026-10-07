@@ -74,7 +74,9 @@ export function createGroup(input: {
       })
       .returning()
       .get();
-    return { group, member };
+    // whoever starts a group is its admin
+    tx.update(groups).set({ adminId: member.id }).where(eq(groups.id, group.id)).run();
+    return { group: { ...group, adminId: member.id }, member };
   });
 }
 

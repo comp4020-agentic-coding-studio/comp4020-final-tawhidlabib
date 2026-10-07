@@ -10,6 +10,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!thread) return new Response("No such plan", { status: 404 });
   if (!thread.visible) return new Response("This plan isn't yours to talk about", { status: 403 });
   if (!thread.person) return redirect(thread.page, 303);
+  if (!thread.canTalk) return new Response("This plan can be read, not added to", { status: 409 });
 
   const body = String(form.get("body") ?? "").trim().slice(0, 500);
   if (body) {

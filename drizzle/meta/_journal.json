@@ -50,6 +50,13 @@
       "when": 1791371365433,
       "tag": "0006_safe_champions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791371857200,
+      "tag": "0007_ancient_bullseye",
+      "breakpoints": true
     }
   ]
 }

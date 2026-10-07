@@ -3,6 +3,7 @@ import { getGroup, setAvailability } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { publish } from "../../../../lib/live";
 import { currentMember } from "../../../../lib/identity";
+import { isArchived } from "../../../../lib/manage";
 import { HOURS, isDate, weekDates, weekStartOf } from "../../../../lib/time";
 
 /** Save which hours you're free across one week. The submitted boxes are the
@@ -12,6 +13,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   if (!group) return new Response("No such group", { status: 404 });
   const me = currentMember(cookies, group.id);
   if (!me) return new Response("Join the group first", { status: 403 });
+  if (isArchived(group)) return new Response("This group is archived", { status: 409 });
 
   const form = await request.formData();
   const week = String(form.get("week") ?? "");

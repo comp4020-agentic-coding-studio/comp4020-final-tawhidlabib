@@ -1,6 +1,6 @@
 import type { AstroCookies } from "astro";
 import { and, asc, count, eq, inArray } from "drizzle-orm";
-import { db, getHangout, listMembers } from "./db";
+import { db, getGroup, getHangout, listMembers } from "./db";
 import { canSee, eventById, eventByShareId, guestsOf } from "./events";
 import { currentMember, currentPerson } from "./identity";
 import type { Person } from "./people";
@@ -79,6 +79,8 @@ export function openThread(kind: string, ref: string, cookies: AstroCookies): Th
     const hangout = getHangout(Number(ref));
     if (!hangout) return undefined;
     const visible = !!currentMember(cookies, hangout.groupId);
+    // an archived group's plans can be read, not added to
+    const archived = getGroup(hangout.groupId)?.archivedAt != null;
     return {
       target: { kind, id: hangout.id },
       kind,
@@ -86,7 +88,7 @@ export function openThread(kind: string, ref: string, cookies: AstroCookies): Th
       page: `/g/${hangout.groupId}?week=${weekStartOf(hangout.date)}#plans`,
       person,
       visible,
-      canTalk: visible && !!person,
+      canTalk: visible && !!person && !archived,
       moderatorId: null,
       title: hangout.title,
       audience: () =>

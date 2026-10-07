@@ -9,7 +9,9 @@ import { DEFAULT_TIMEZONE, spanLabel } from "../lib/time";
 
 const person = Astro.locals.person;
 const mine = groupsFor(person, Astro.request.headers.get("cookie"));
-const cards = mine.map(({ group, member }) => ({ group, member, ...groupOverview(group) }));
+const all = mine.map(({ group, member }) => ({ group, member, ...groupOverview(group) }));
+const cards = all.filter((c) => c.group.archivedAt === null);
+const archivedCards = all.filter((c) => c.group.archivedAt !== null);
 ---
 
 <Base title="Your groups · Hangout">
@@ -81,6 +83,27 @@ const cards = mine.map(({ group, member }) => ({ group, member, ...groupOverview
           </li>
         ))}
       </ul>
+    )
+  }
+
+  {
+    archivedCards.length > 0 && (
+      <section class="section" id="archived" aria-labelledby="archived-h">
+        <h2 id="archived-h" class="list-label">Archived</h2>
+        <ul class="people-list">
+          {archivedCards.map(({ group, members }) => (
+            <li>
+              <a class="card lift archived-card" href={`/g/${group.id}`}>
+                <Icon name="lock" size={16} />
+                <span>
+                  <b>{group.name}</b>
+                  <span class="muted"> · {members.length} members · read-only</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     )
   }
 

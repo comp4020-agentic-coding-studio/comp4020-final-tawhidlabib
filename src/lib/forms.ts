@@ -16,6 +16,7 @@ export const ERRORS: Record<string, string> = {
   "event-missing": "Give your event a name and a date.",
   "event-time": "Pick an end time after the start.",
   "rsvp-closed": "RSVPs for this event have closed.",
+  removed: "You were removed from this group, so you can't rejoin it.",
 };
 
 /** Where a form asked to go back to, if it's a path on this site; "/"

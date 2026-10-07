@@ -13,6 +13,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!thread) return new Response("No such plan", { status: 404 });
   if (!thread.visible) return new Response("This plan isn't yours to ask about", { status: 403 });
   if (!thread.person) return redirect(thread.page, 303);
+  if (!thread.canTalk) return new Response("This plan can be read, not added to", { status: 409 });
 
   const question = field(form.get("question"), 120);
   const options = [...new Set(form.getAll("option").map((o) => field(o, 60)).filter(Boolean))].slice(0, MAX_OPTIONS);

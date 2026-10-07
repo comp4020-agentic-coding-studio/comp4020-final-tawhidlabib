@@ -33,6 +33,11 @@ export const groups = sqliteTable("groups", {
   name: text().notNull(),
   /** IANA zone the group's hours are wall-clock times in. */
   timezone: text().notNull(),
+  /** The admin's membership (a member id, not a person); if it's gone, the
+   *  longest-standing member is admin (src/lib/manage.ts). */
+  adminId: int("admin_id"),
+  /** Archived groups are read-only. */
+  archivedAt: text("archived_at"),
   createdAt: createdAt(),
 });
 
@@ -276,6 +281,21 @@ export const pollVotes = sqliteTable(
       .references(() => people.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.optionId, t.personId] })],
+);
+
+/** People an admin removed from a group, who can't rejoin it by the link. */
+export const groupBans = sqliteTable(
+  "group_bans",
+  {
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    personId: int("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.personId] })],
 );
 
 export type Notification = typeof notifications.$inferSelect;

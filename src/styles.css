@@ -4235,3 +4235,101 @@ input[type="search"]:focus {
 .pill.full {
   border-color: color-mix(in oklab, #dc2626 35%, var(--line));
 }
+
+/* ─── running a group ─────────────────────────────────────────────────── */
+
+.archived-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.2rem 0 0.4rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.pill.admin {
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.7rem;
+  vertical-align: 0.1rem;
+}
+
+.member-menu {
+  position: relative;
+}
+
+.member-menu summary {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.member-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.member-menu-body {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 6;
+  display: grid;
+  min-width: 11rem;
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+  animation: menu-in 0.2s var(--spring);
+}
+
+.member-menu-body button {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.member-menu-body button:hover {
+  background: var(--surface-2);
+}
+
+.danger-text {
+  color: #dc2626 !important;
+}
+
+.archived-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+  transform: none;
+}

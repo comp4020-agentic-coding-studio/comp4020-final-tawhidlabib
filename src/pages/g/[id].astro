@@ -8,6 +8,7 @@ import { availabilityOn, getGroup, listMembers, rsvpsFor, upcomingHangouts } fro
 import { ERRORS } from "../../lib/forms";
 import { type Relationship, relationship } from "../../lib/friends";
 import { currentMember } from "../../lib/identity";
+import { adminIdOf, isArchived } from "../../lib/manage";
 import { recommend } from "../../lib/recommend";
 import { openThread } from "../../lib/talk";
 import {
@@ -104,11 +105,18 @@ const hangouts = plans.map((plan) => {
   };
 });
 
+// running the group: who's admin, and whether it's archived (read-only)
+const adminId = group ? adminIdOf(group) : undefined;
+const amAdmin = !!me && adminId === me.id;
+const archived = group ? isArchived(group) : false;
+
 // The one thing this person should do next, most pressing first.
 const markedThisWeek = me ? [...free.values()].some((s) => s.has(me.id)) : false;
 const unanswered = hangouts.find((h) => !h.myAnswer);
 const goingTo = hangouts.find((h) => h.myAnswer === "in");
-const next = unanswered
+const next = archived
+  ? ({ kind: "archived" } as const)
+  : unanswered
   ? ({ kind: "rsvp", h: unanswered } as const)
   : members.length === 1
     ? ({ kind: "invite" } as const)
@@ -259,6 +267,11 @@ const TABS = ["week", "best", "plans", "people"];
       <div class="group-head" id="group-head" data-live={`group:${group.id}`}>
         <div>
           <h1>{group.name}</h1>
+          {archived && (
+            <p class="archived-note">
+              <Icon name="lock" size={14} /> Archived: you can look back, but nothing new can be added.
+            </p>
+          )}
           <ul class="avatars" aria-label="Members">
             {members.slice(0, 7).map((m) => (
               <li class="avatar" style={`--hue: ${hue(m.name)}`} title={m.name}>
@@ -282,7 +295,14 @@ const TABS = ["week", "best", "plans", "people"];
       )}
 
       <section class="next-step" aria-label="Your next step" id="next-step" data-live={`group:${group.id}`}>
-        {next.kind === "rsvp" ? (
+        {next.kind === "archived" ? (
+          <div class="what">
+            <span class="label">
+              <Icon name="lock" size={14} /> Archived
+            </span>
+            <strong>This group's plans are here to look back on. Nothing new can be added.</strong>
+          </div>
+        ) : next.kind === "rsvp" ? (
           <>
             <div class="what">
               <span class="label">
@@ -447,7 +467,7 @@ const TABS = ["week", "best", "plans", "people"];
                       return (
                         <td>
                           <label class="slot" data-heat={c.heat}>
-                            <input type="checkbox" name="slot" value={c.key} checked={c.mine} />
+                            <input type="checkbox" name="slot" value={c.key} checked={c.mine} disabled={archived} />
                             <span class="vh">{c.label}</span>
                             <span aria-hidden="true">{c.count > 0 ? c.count : ""}</span>
                           </label>
@@ -481,7 +501,7 @@ const TABS = ["week", "best", "plans", "people"];
             <span role="status" id="save-status">
               {flashed === "saved" ? "Saved ✓" : ""}
             </span>
-            <button type="submit" class="button">
+            <button type="submit" class="button" disabled={archived}>
               <Icon name="check" size={18} /> Save my hours
             </button>
           </div>
@@ -571,7 +591,7 @@ const TABS = ["week", "best", "plans", "people"];
                         placeholder="Dinner, a walk, board games…"
                       />
                     </label>
-                    <button type="submit" class="button">
+                    <button type="submit" class="button" disabled={archived}>
                       Propose
                     </button>
                   </form>
@@ -638,6 +658,7 @@ const TABS = ["week", "best", "plans", "people"];
                       name="response"
                       value="in"
                       aria-pressed={myAnswer === "in" ? "true" : "false"}
+                      disabled={archived}
                     >
                       <Icon name="check" size={16} /> I'm in
                     </button>
@@ -647,6 +668,7 @@ const TABS = ["week", "best", "plans", "people"];
                       value="out"
                       class="out"
                       aria-pressed={myAnswer === "out" ? "true" : "false"}
+                      disabled={archived}
                     >
                       Can't make it
                     </button>
@@ -753,12 +775,15 @@ const TABS = ["week", "best", "plans", "people"];
               {members.map((m) => {
                 const tie = ties.get(m.id);
                 return (
-                  <li class="person-row">
+                  <li class="person-row" data-member={m.id}>
                     <span class="avatar md" style={`--hue: ${hue(m.name)}`} aria-hidden="true">
                       {initials(m.name)}
                     </span>
                     <span class="who-name">
-                      <b>{m.name}</b>
+                      <b>
+                        {m.name}
+                        {m.id === adminId && <span class="pill admin">Admin</span>}
+                      </b>
                       <span class="muted">
                         {m.id === me.id
                           ? "You"
@@ -796,6 +821,29 @@ const TABS = ["week", "best", "plans", "people"];
                         <Icon name="heart" size={13} /> Friends
                       </span>
                     )}
+                    {amAdmin && m.id !== me.id && (
+                      <details class="member-menu">
+                        <summary aria-label={`Manage ${m.name}`}>⋯</summary>
+                        <div class="member-menu-body">
+                          <form method="post" action={`/api/groups/${group.id}/manage`}>
+                            <input type="hidden" name="action" value="admin" />
+                            <input type="hidden" name="member" value={m.id} />
+                            <button type="submit">Make admin</button>
+                          </form>
+                          <form
+                            method="post"
+                            action={`/api/groups/${group.id}/manage`}
+                            data-confirm={`Remove ${m.name} from ${group.name}? They won't be able to rejoin by the link.`}
+                          >
+                            <input type="hidden" name="action" value="remove" />
+                            <input type="hidden" name="member" value={m.id} />
+                            <button type="submit" class="danger-text">
+                              Remove from group
+                            </button>
+                          </form>
+                        </div>
+                      </details>
+                    )}
                   </li>
                 );
               })}
@@ -827,6 +875,40 @@ const TABS = ["week", "best", "plans", "people"];
               </button>
             </div>
           </div>
+
+          {amAdmin && (
+            <div class="card stack" id="settings">
+              <h3>Group settings</h3>
+              <p class="muted fine">You're the admin.</p>
+              <form method="post" action={`/api/groups/${group.id}/manage`} class="inline-form">
+                <input type="hidden" name="action" value="rename" />
+                <label class="vh" for="group-name">
+                  Group name
+                </label>
+                <input type="text" name="name" id="group-name" required maxlength="60" value={group.name} />
+                <button type="submit" class="button ghost">
+                  Rename
+                </button>
+              </form>
+              <form method="post" action={`/api/groups/${group.id}/manage`}>
+                <input type="hidden" name="action" value={archived ? "unarchive" : "archive"} />
+                <button type="submit" class="button small ghost">
+                  <Icon name="lock" size={15} /> {archived ? "Unarchive the group" : "Archive the group (read-only)"}
+                </button>
+              </form>
+            </div>
+          )}
+
+          <form
+            method="post"
+            action={`/api/groups/${group.id}/manage`}
+            data-confirm={`Leave ${group.name}?${amAdmin ? " The longest-standing member becomes admin." : ""}`}
+          >
+            <input type="hidden" name="action" value="leave" />
+            <button type="submit" class="button small ghost danger">
+              Leave this group
+            </button>
+          </form>
         </div>
         </div>
       </section>

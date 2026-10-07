@@ -1,8 +1,9 @@
 import type { APIRoute } from "astro";
-import { getHangout, setRsvp } from "../../../../lib/db";
+import { getGroup, getHangout, setRsvp } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { publish } from "../../../../lib/live";
 import { currentMember } from "../../../../lib/identity";
+import { isArchived } from "../../../../lib/manage";
 import { weekStartOf } from "../../../../lib/time";
 
 /** I'm in, or I can't make it. Answering again changes your answer. */
@@ -11,6 +12,8 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   if (!hangout) return new Response("No such hangout", { status: 404 });
   const me = currentMember(cookies, hangout.groupId);
   if (!me) return new Response("Join the group first", { status: 403 });
+  const group = getGroup(hangout.groupId);
+  if (group && isArchived(group)) return new Response("This group is archived", { status: 409 });
 
   const response = String((await request.formData()).get("response") ?? "");
   if (response !== "in" && response !== "out") {

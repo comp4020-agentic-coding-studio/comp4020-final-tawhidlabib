@@ -9,6 +9,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!thread) return new Response("No such plan", { status: 404 });
   if (!thread.visible) return new Response("This plan isn't yours to react to", { status: 403 });
   if (!thread.person) return redirect(thread.page, 303);
+  if (!thread.canTalk) return new Response("This plan can be read, not added to", { status: 409 });
 
   const emoji = form.get("emoji");
   if (!isReaction(emoji)) return new Response("Not a reaction", { status: 400 });

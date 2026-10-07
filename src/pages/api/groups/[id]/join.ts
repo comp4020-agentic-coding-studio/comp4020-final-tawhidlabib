@@ -4,6 +4,7 @@ import { flash } from "../../../../lib/flash";
 import { publish } from "../../../../lib/live";
 import { field } from "../../../../lib/forms";
 import { currentPerson, remember, rememberPerson } from "../../../../lib/identity";
+import { isBanned } from "../../../../lib/manage";
 import { claimMembers, createPerson, memberOfPerson } from "../../../../lib/people";
 
 /** Join a group from its invite link, under a name nobody in it has yet. */
@@ -17,6 +18,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect, url }
   // already in it under your profile: nothing to join
   let person = currentPerson(cookies);
   if (person && memberOfPerson(group.id, person.id)) return redirect(`/g/${group.id}`, 303);
+  if (person && isBanned(group.id, person.id)) return redirect(`/g/${group.id}?error=removed`, 303);
 
   const member = addMember(group.id, name, person?.id);
   if (!member) return redirect(`/g/${group.id}?error=name-taken`, 303);

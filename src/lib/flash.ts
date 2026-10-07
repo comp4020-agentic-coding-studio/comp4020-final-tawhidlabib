@@ -31,6 +31,12 @@ export const FLASHES = {
   invited: { text: "Invites sent.", party: false },
   cancelled: { text: "Event cancelled.", party: false },
   edited: { text: "Event updated. Guests have been told.", party: false },
+  groupRenamed: { text: "Group renamed.", party: false },
+  adminChanged: { text: "They're the admin now.", party: false },
+  memberRemoved: { text: "Removed from the group.", party: false },
+  left: { text: "You've left the group.", party: false },
+  archived: { text: "Group archived. It's read-only now.", party: false },
+  unarchived: { text: "Group's back. Plan away.", party: false },
 } as const;
 
 export type Flash = keyof typeof FLASHES;

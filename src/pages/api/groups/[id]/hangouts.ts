@@ -5,6 +5,7 @@ import { publish } from "../../../../lib/live";
 import { notify } from "../../../../lib/notify";
 import { field } from "../../../../lib/forms";
 import { currentMember } from "../../../../lib/identity";
+import { isArchived } from "../../../../lib/manage";
 import { HOURS, isDate, LAST_HOUR, spanLabel, weekStartOf } from "../../../../lib/time";
 
 /** Propose a hangout: usually a recommended stretch, maybe shortened. Whoever
@@ -14,6 +15,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   if (!group) return new Response("No such group", { status: 404 });
   const me = currentMember(cookies, group.id);
   if (!me) return new Response("Join the group first", { status: 403 });
+  if (isArchived(group)) return new Response("This group is archived", { status: 409 });
 
   const form = await request.formData();
   const date = String(form.get("date") ?? "");

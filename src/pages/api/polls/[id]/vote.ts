@@ -10,6 +10,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   const thread = threadFor(pollTarget(poll), cookies);
   if (!thread?.visible) return new Response("This plan isn't yours to vote on", { status: 403 });
   if (!thread.person) return redirect(thread.page, 303);
+  if (!thread.canTalk) return new Response("This plan can be read, not added to", { status: 409 });
   if (poll.closedAt) return new Response("This poll is closed", { status: 409 });
 
   vote(poll.id, Number((await request.formData()).get("option")), thread.person.id, poll.multi);
