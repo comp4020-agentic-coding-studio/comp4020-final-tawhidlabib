@@ -89,6 +89,17 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
   await wall.post(`/api/events/${dinnerRef}/rsvp`, { response: "going" });
   await door.post(`/api/events/${dinnerRef}/rsvp`, { response: "going" });
 
+  // an event whose RSVPs have closed, wearing a cover
+  const late = await host.post("/api/events", {
+    ...when,
+    title: "Floor reunion",
+    visibility: "public",
+    cover: "night",
+    rsvpByDate: "2026-01-01",
+    rsvpByTime: "12:00",
+  });
+  const reunion = late.headers.get("location") ?? "/e/not-created";
+
   const { html } = await host.get("/me");
   const signIn = /\/me\/sign-in\/[A-Za-z0-9_-]+/.exec(html)?.[0] ?? "/me/sign-in/missing";
 
@@ -116,6 +127,9 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
     { label: "/e/[id], full, with a waitlist", path: dinner, cookie: as(host) },
     { label: "/e/[id], full, as the one waiting", path: dinner, cookie: as(door) },
     { label: "/events, a search", path: "/events?q=Floor" },
+    { label: "/events, this weekend", path: "/events?when=weekend" },
+    { label: "/e/[id], RSVPs closed", path: reunion, cookie: as(wall) },
+    { label: "/e/[id]/edit, host", path: `${party}/edit`, cookie: as(host) },
     { label: "/f/[code], stranger", path: `/f/${await friendCode(host)}` },
     { label: "/f/[code], signed in", path: `/f/${await friendCode(host)}`, cookie: as(door) },
     { label: "/me/sign-in/[token], another device", path: signIn },
