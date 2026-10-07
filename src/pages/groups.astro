@@ -1,0 +1,132 @@
+---
+import Icon from "../components/Icon.astro";
+import Onboard from "../components/Onboard.astro";
+import Base from "../layouts/Base.astro";
+import { hue, initials } from "../lib/avatar";
+import { groupsFor } from "../lib/identity";
+import { groupOverview } from "../lib/overview";
+import { DEFAULT_TIMEZONE, spanLabel } from "../lib/time";
+
+const person = Astro.locals.person;
+const mine = groupsFor(person, Astro.request.headers.get("cookie"));
+const cards = mine.map(({ group, member }) => ({ group, member, ...groupOverview(group) }));
+---
+
+<Base title="Your groups · Hangout">
+  <div class="page-head">
+    <div>
+      <span class="kicker">Your crews</span>
+      <h1>Groups</h1>
+    </div>
+    <div class="actions">
+      <a class="button" href="#new">
+        <Icon name="plus" size={18} /> New group
+      </a>
+    </div>
+  </div>
+
+  {
+    !person && cards.length === 0 ? (
+      <Onboard
+        back="/groups"
+        lead="Make your profile, then start a group or join one from an invite link."
+      />
+    ) : cards.length === 0 ? (
+      <div class="empty">
+        <div class="icon-bubble">
+          <Icon name="users" size={22} />
+        </div>
+        <strong>No groups yet</strong>
+        <span>
+          Start one below, or open an invite link a friend sent you.
+        </span>
+      </div>
+    ) : (
+      <ul class="group-cards stagger">
+        {cards.map(({ group, member, members, next, best }, i) => (
+          <li style={`--i: ${i}`}>
+            <a class="card lift group-card" href={`/g/${group.id}`}>
+              <div class="gc-top">
+                <ul class="avatars small" aria-hidden="true">
+                  {members.slice(0, 5).map((m) => (
+                    <li class="avatar" style={`--hue: ${hue(m.name)}`}>
+                      {initials(m.name)}
+                    </li>
+                  ))}
+                </ul>
+                <span class="pill">
+                  {members.length} {members.length === 1 ? "member" : "members"}
+                </span>
+              </div>
+              <h2 class="gc-name">{group.name}</h2>
+              <p class="muted">You're {member.name}</p>
+              <ul class="gc-facts">
+                <li>
+                  <Icon name="calendar" size={16} />
+                  {next
+                    ? `${next.title}, ${spanLabel(next.date, next.startHour, next.endHour)}`
+                    : "Nothing planned yet"}
+                </li>
+                <li>
+                  <Icon name="sparkles" size={16} />
+                  {best
+                    ? `Best this week: ${spanLabel(best.date, best.start, best.end)} · ${best.people.length} of ${members.length}`
+                    : "No overlap this week yet"}
+                </li>
+              </ul>
+              <span class="go" aria-hidden="true">
+                <Icon name="arrow" size={18} />
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  {
+    !person && cards.length > 0 && (
+      <p class="card hint">
+        <Icon name="sparkles" size={16} /> <a href="/me">Make your profile</a> to keep these groups
+        on all your devices and add friends.
+      </p>
+    )
+  }
+
+  <section class="section" id="new" aria-labelledby="new-h">
+    <form method="post" action="/api/groups" class="start-card stack">
+      <div class="split">
+        <div class="icon-bubble">
+          <Icon name="plus" size={22} />
+        </div>
+        <div>
+          <h2 id="new-h">Start a new group</h2>
+          <p class="muted">You'll get a link to send everyone in it.</p>
+        </div>
+      </div>
+      <div class="row">
+        <label class="field">
+          Group name
+          <input type="text" name="group" required maxlength="60" placeholder="Sunday brunch club" />
+        </label>
+        {
+          person ? (
+            <input type="hidden" name="name" value={person.name} />
+          ) : (
+            <label class="field">
+              Your name
+              <input type="text" name="name" required maxlength="40" autocomplete="given-name" />
+            </label>
+          )
+        }
+      </div>
+      <input type="hidden" name="timezone" value={person?.timezone ?? DEFAULT_TIMEZONE} />
+      <div>
+        <button type="submit" class="button">
+          Create group
+          <span class="icon-arrow"><Icon name="arrow" /></span>
+        </button>
+      </div>
+    </form>
+  </section>
+</Base>

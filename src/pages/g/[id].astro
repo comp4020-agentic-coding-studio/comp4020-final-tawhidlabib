@@ -5,6 +5,7 @@ import { hue, initials } from "../../lib/avatar";
 import { googleCalendarUrl, hangoutEvent } from "../../lib/calendar";
 import { availabilityOn, getGroup, listMembers, rsvpsFor, upcomingHangouts } from "../../lib/db";
 import { ERRORS } from "../../lib/forms";
+import { type Relationship, relationship } from "../../lib/friends";
 import { currentMember } from "../../lib/identity";
 import { recommend } from "../../lib/recommend";
 import {
@@ -117,7 +118,29 @@ const next = unanswered
           ? ({ kind: "going", h: goingTo } as const)
           : ({ kind: "wait" } as const);
 
-const TABS = ["week", "best", "plans", "group"];
+// The People tab: how you stand with each member, and everyone's week.
+const ties = new Map<number, Relationship>();
+if (me?.personId) {
+  for (const m of members) {
+    if (m.personId !== null) ties.set(m.id, relationship(me.personId, m.personId));
+  }
+}
+const hoursOf = (memberId: number, date: string) =>
+  HOURS.filter((h) => free.get(slotKey(date, h))?.has(memberId));
+/** "6pm–9pm, 10pm–12am": an hour list as the stretches it makes. */
+function stretches(hours: number[]): string {
+  const runs: [number, number][] = [];
+  for (const h of hours) {
+    const last = runs.at(-1);
+    if (last && last[1] === h) last[1] = h + 1;
+    else runs.push([h, h + 1]);
+  }
+  return runs.map(([a, b]) => `${hourLabel(a)}–${hourLabel(b)}`).join(", ");
+}
+const level = (n: number) => (n === 0 ? 0 : n <= 2 ? 1 : n <= 4 ? 2 : n <= 7 ? 3 : 4);
+const peopleBack = `/g/${group?.id}?week=${week}#people`;
+
+const TABS = ["week", "best", "plans", "people"];
 ---
 
 {
@@ -244,7 +267,7 @@ const TABS = ["week", "best", "plans", "group"];
             {members.length > 7 && <li class="more">+{members.length - 7}</li>}
           </ul>
         </div>
-        <a class="button ghost small" href="#group">
+        <a class="button ghost small" href="#people">
           <Icon name="users" size={16} /> Invite friends
         </a>
       </div>
@@ -286,7 +309,7 @@ const TABS = ["week", "best", "plans", "group"];
             <button type="button" class="button" data-copy={inviteUrl} hidden>
               <Icon name="copy" size={18} /> Copy invite link
             </button>
-            <a class="button" href="#group" data-copy-fallback>
+            <a class="button" href="#people" data-copy-fallback>
               Get the invite link
             </a>
           </>
@@ -347,7 +370,7 @@ const TABS = ["week", "best", "plans", "group"];
               </span>
               <strong>Recommendations appear once someone else's free hours overlap yours.</strong>
             </div>
-            <a class="button ghost" href="#group">
+            <a class="button ghost" href="#people">
               <Icon name="share" size={18} /> Nudge them with the link
             </a>
           </>
@@ -366,8 +389,8 @@ const TABS = ["week", "best", "plans", "group"];
           <Icon name="calendar" size={17} /> Hangouts
           {hangouts.length > 0 && <span class="count">{hangouts.length}</span>}
         </a>
-        <a href="#group" data-tab="group">
-          <Icon name="users" size={17} /> Group
+        <a href="#people" data-tab="people">
+          <Icon name="users" size={17} /> People
           <span class="count">{members.length}</span>
         </a>
       </nav>
@@ -639,19 +662,148 @@ const TABS = ["week", "best", "plans", "group"];
         )}
       </section>
 
-      <section id="group" class="panel" aria-labelledby="group-heading">
+      <section id="people" class="panel" aria-labelledby="people-heading">
         <div class="panel-head">
-          <h2 id="group-heading">The group</h2>
+          <h2 id="people-heading">People</h2>
+          <span class="pill">{week === thisWeek ? "This week" : `Week of ${dayLabel(week)}`}</span>
         </div>
         <div class="stack">
+          <div class="card everyone-card">
+            <h3>Everyone's week</h3>
+            <p class="muted fine">
+              Hours each person has marked free. Hover or focus a day to see when.
+            </p>
+            <div class="table-scroll">
+              <table class="everyone">
+                <caption class="vh">
+                  Hours each member marked free, week of {dayLabel(week)}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <span class="vh">Member</span>
+                    </th>
+                    {dates.map((date) => {
+                      const [weekday, day] = dayParts(date);
+                      return (
+                        <th scope="col" aria-current={date === today ? "date" : undefined}>
+                          {weekday}
+                          <span>{day}</span>
+                        </th>
+                      );
+                    })}
+                    <th scope="col">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((m) => {
+                    const total = dates.reduce((n, d) => n + hoursOf(m.id, d).length, 0);
+                    return (
+                      <tr>
+                        <th scope="row">
+                          <span class="avatar" style={`--hue: ${hue(m.name)}`} aria-hidden="true">
+                            {initials(m.name)}
+                          </span>
+                          <span class="member-name">
+                            {m.name}
+                            {m.id === me.id && <span class="muted"> (you)</span>}
+                          </span>
+                        </th>
+                        {dates.map((date) => {
+                          const hours = hoursOf(m.id, date);
+                          const when = hours.length ? stretches(hours) : "Not free";
+                          return (
+                            <td title={when}>
+                              <span class="day-dot" data-level={level(hours.length)} aria-hidden="true">
+                                {hours.length || ""}
+                              </span>
+                              <span class="vh">{when}</span>
+                            </td>
+                          );
+                        })}
+                        <td class="total">{total}h</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Members</h3>
+            {!me.personId && (
+              <p class="hint">
+                <a href="/me">Make your profile</a> to add people from this group as friends.
+              </p>
+            )}
+            <ul class="people-grid">
+              {members.map((m) => {
+                const tie = ties.get(m.id);
+                return (
+                  <li class="person-row">
+                    <span class="avatar md" style={`--hue: ${hue(m.name)}`} aria-hidden="true">
+                      {initials(m.name)}
+                    </span>
+                    <span class="who-name">
+                      <b>{m.name}</b>
+                      <span class="muted">
+                        {m.id === me.id
+                          ? "You"
+                          : tie === "friends"
+                            ? "Friends"
+                            : tie === "sent"
+                              ? "Friend request sent"
+                              : tie === "received"
+                                ? "Wants to be friends"
+                                : m.personId === null
+                                  ? "Hasn't made a profile yet"
+                                  : "In this group"}
+                      </span>
+                    </span>
+                    {tie === "none" && m.id !== me.id && (
+                      <form method="post" action="/api/friends" class="row-actions">
+                        <input type="hidden" name="person" value={m.personId} />
+                        <input type="hidden" name="back" value={peopleBack} />
+                        <button type="submit" class="button small ghost">
+                          <Icon name="userPlus" size={16} /> Add friend
+                        </button>
+                      </form>
+                    )}
+                    {tie === "received" && (
+                      <form method="post" action="/api/friends/respond" class="row-actions">
+                        <input type="hidden" name="person" value={m.personId} />
+                        <input type="hidden" name="back" value={peopleBack} />
+                        <button type="submit" name="action" value="accept" class="button small">
+                          <Icon name="check" size={16} /> Accept
+                        </button>
+                      </form>
+                    )}
+                    {tie === "friends" && (
+                      <span class="pill">
+                        <Icon name="heart" size={13} /> Friends
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
           <div class="start-card stack">
-            <div>
+            <div class="split">
               <div class="icon-bubble">
                 <Icon name="link" size={22} />
               </div>
-              <label class="field" for="invite">
-                Invite link: anyone with it can join
-              </label>
+              <div>
+                <label class="field" for="invite">
+                  Invite link: anyone with it can join
+                </label>
+                <p class="muted fine">
+                  Hangout picks the longest stretch the most people share. Times are in{" "}
+                  {group.timezone}.
+                </p>
+              </div>
             </div>
             <div class="invite-row">
               <input type="url" readonly value={inviteUrl} id="invite" />
@@ -661,29 +813,6 @@ const TABS = ["week", "best", "plans", "group"];
               <button type="button" class="button ghost" data-share={inviteUrl} hidden>
                 <Icon name="share" size={18} /> Share
               </button>
-            </div>
-          </div>
-          <div class="facts">
-            <div class="card">
-              <h3>Members</h3>
-              <ul class="members">
-                {members.map((m) => (
-                  <li>
-                    <span class="avatar" style={`--hue: ${hue(m.name)}`} aria-hidden="true">
-                      {initials(m.name)}
-                    </span>
-                    {m.name}
-                    {m.id === me.id && <span class="pill">you</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div class="card">
-              <h3>How Hangout picks times</h3>
-              <p class="muted">
-                It looks for the longest stretch the most people share, and never offers one
-                that has already started. Times are in {group.timezone}.
-              </p>
             </div>
           </div>
         </div>
