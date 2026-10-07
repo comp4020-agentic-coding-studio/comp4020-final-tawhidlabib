@@ -13,9 +13,13 @@ export class Person {
     readonly name = "",
   ) {}
 
+  /** Every cookie this person holds, as a Cookie header's value. */
+  get cookie(): string {
+    return [...this.jar].map(([k, v]) => `${k}=${v}`).join("; ");
+  }
+
   private header(): Record<string, string> {
-    const cookie = [...this.jar].map(([k, v]) => `${k}=${v}`).join("; ");
-    return cookie ? { cookie } : {};
+    return this.cookie ? { cookie: this.cookie } : {};
   }
 
   private keep(res: Response): void {
