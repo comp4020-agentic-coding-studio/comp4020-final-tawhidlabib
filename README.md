@@ -3,8 +3,8 @@
 Hangout gets a small group of friends from "we should hang out" to a time
 in everyone's calendar. Someone starts a group and sends the link. Everyone
 taps the hours they're free this week; Hangout finds the longest stretch the
-most of you share, and anyone can turn it into a plan. You can also add
-friends, host events and see every plan in one place.
+most of you share, and anyone can turn it into a plan. Friends, events,
+polls, an inbox and photo memories grow around that.
 
 It's live at
 [comp4020-final-tawhidlabib.fly.dev](https://comp4020-final-tawhidlabib.fly.dev/).
@@ -44,17 +44,17 @@ is the design. Hangout is generic, but each group's copy is situated: its own
 link, its own names, its own week. Friends and private events reach past a
 group only by invitation.
 
-When2meet gets everyone to paint a grid, then stops at the overlap. Doodle
-starts from a few times one organiser guesses at. Hangout starts from
-everyone's real week, and ends with a plan.
+When2meet gets everyone to paint a grid, then stops at the overlap; Doodle
+starts from times one organiser guesses. Hangout starts from everyone's real
+week and ends with a plan.
 
 ## What I chose not to build
 
 - **Passwords and Google sign-in.** Writing into Google Calendar needs
   OAuth, which an unverified app offers only to listed test users; links do
   the job without the wall.
-- **A chat, notifications, recurring availability.** Comments live on a
-  plan, not in an endless channel: Hangout's job is to end the group chat.
+- **A chat or recurring availability.** Comments live on a plan, not in an
+  endless channel: Hangout's job is to end the group chat.
 
 The cost of no passwords: whoever holds your sign-in link is you, so it's
 private, and your profile can replace it.
@@ -73,6 +73,7 @@ private, and your profile can replace it.
   people can comment or react
 - a change reaches other open pages within a second
 - of simultaneous taps on a last spot, exactly one wins
+- someone you've blocked can't reach you
 
 The quality floor checks accessibility basics on every page state. Whether
 Hangout really beats the group chat is judged by people using it together.

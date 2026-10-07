@@ -22,6 +22,17 @@ comments and reactions on every plan
 so the talk lives with the plan instead of in the group chat Hangout exists
 to end. Crit 9 then made all of it live
 ([`e3d7473...fd9fd67`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/e3d7473...fd9fd67)).
+With that safe, seven more milestones each shipped on their own:
+- a live inbox
+- polls
+- event deadlines, covers and editing
+- group admin and archiving
+- nudges and everyone-free alerts
+- photo memories
+- avatars with block and mute
+
+Each was a red spec, then a feature, then a harness commit, then a deploy
+([`dfebbd1...d0ff703`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/dfebbd1...d0ff703)).
 
 Every big step started in plan mode with questions only I could answer:
 - how a person exists
@@ -44,7 +55,9 @@ back:
 The quality floor now builds a small world on every run (a host, friends, a
 group with plans, public, private and full events, threads with comments in
 them) and runs its accessibility checks over every page as each of those
-people sees it. That's 272 checks, and every feature adds its states.
+people sees it. That's 373 checks now, and every milestone added the
+states it introduced: a full event, an archived group, a poll with a vote
+in it, an album with a photo in it.
 
 ## The stack, and why
 
@@ -99,6 +112,16 @@ checks exactly one wins.
 - **The checks kept going blind on new pages.** Each new signed-in or
   dynamic page passed every check while nothing visited it, until the
   fixture learned to build the people who see it.
+- **Tests that couldn't fail.** Twice a new test would have passed
+  without the feature. The photo-notification test matched an older
+  notification with the same title, and the closed-poll test posted to a
+  form that no longer existed. Both were tightened before their spec
+  commits, so red meant red.
+- **A bug no test reached.** Picking an avatar photo on `/me` did nothing
+  with JavaScript on, because the "upload on choose" handler lived in the
+  album component, which `/me` doesn't use. Reading the code caught it, and
+  the handler moved to the layout
+  ([`c594a35`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/c594a35)).
 - **A secret nearly went public.** The deploy token went into a tracked
   file instead of the ignored one. It was moved before anything was
   committed, and the secret scans confirmed it never reached GitHub.
@@ -113,12 +136,5 @@ record. I edit them into my own words.
 
 ## Next
 
-Crit 10 adds server-side logging. Before then, the rest of the plan lands
-one milestone at a time:
-- a notifications inbox
-- polls
-- event extras
-- group management
-- smarter availability
-- photo memories
-- richer profiles with mute and block
+Crit 10 adds server-side logging. The live stream, the waitlist race and
+uploads are where I most want to see what the server is doing.
