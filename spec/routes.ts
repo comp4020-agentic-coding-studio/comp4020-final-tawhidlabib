@@ -100,6 +100,11 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
   });
   const reunion = late.headers.get("location") ?? "/e/not-created";
 
+  // an archived group
+  const old = await host.post("/api/groups", { group: "Floor archive", name: host.name, timezone: "Australia/Sydney" });
+  const oldPath = old.headers.get("location") ?? "/g/not-created";
+  await host.post(`/api/groups${oldPath.slice(2)}/manage`, { action: "archive" });
+
   const { html } = await host.get("/me");
   const signIn = /\/me\/sign-in\/[A-Za-z0-9_-]+/.exec(html)?.[0] ?? "/me/sign-in/missing";
 
@@ -113,6 +118,8 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
     { label: "/g/[id], with plans", path: `${path}?week=${week}`, cookie: as(host) },
     { label: "/g/[id], people", path: `${path}?week=${week}#people`, cookie: as(wall) },
     { label: "/g/[id], join as yourself", path, cookie: as(door) },
+    { label: "/g/[id], the admin's people", path: `${path}#people`, cookie: as(host) },
+    { label: "/g/[id], archived", path: oldPath, cookie: as(host) },
     { label: "home, signed in", path: "/", cookie: as(host) },
     { label: "/groups, signed in", path: "/groups", cookie: as(host) },
     { label: "/calendar, with plans", path: "/calendar?month=2030-01&day=2030-01-08", cookie: as(host) },
