@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { getGroup, proposeHangout } from "../../../../lib/db";
+import { flash } from "../../../../lib/flash";
 import { field } from "../../../../lib/forms";
 import { currentMember } from "../../../../lib/identity";
 import { HOURS, isDate, LAST_HOUR, weekStartOf } from "../../../../lib/time";
@@ -28,5 +29,6 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
     title: field(form.get("title"), 80) || "Hangout",
     proposedBy: me.id,
   });
+  flash(cookies, "proposed");
   return redirect(`/g/${group.id}?week=${weekStartOf(date)}#plans`, 303);
 };

@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { addMember, getGroup } from "../../../../lib/db";
+import { flash } from "../../../../lib/flash";
 import { field } from "../../../../lib/forms";
 import { remember } from "../../../../lib/identity";
 
@@ -15,5 +16,6 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect, url }
   if (!member) return redirect(`/g/${group.id}?error=name-taken`, 303);
 
   remember(cookies, url, group.id, member.token);
+  flash(cookies, "joined");
   return redirect(`/g/${group.id}`, 303);
 };

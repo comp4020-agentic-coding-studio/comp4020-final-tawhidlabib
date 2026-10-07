@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { getGroup, setAvailability } from "../../../../lib/db";
+import { flash } from "../../../../lib/flash";
 import { currentMember } from "../../../../lib/identity";
 import { HOURS, isDate, weekDates, weekStartOf } from "../../../../lib/time";
 
@@ -29,5 +30,6 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   }
 
   setAvailability(me.id, dates, free);
-  return redirect(`/g/${group.id}?week=${week}&saved=1#week`, 303);
+  flash(cookies, "saved");
+  return redirect(`/g/${group.id}?week=${week}#week`, 303);
 };

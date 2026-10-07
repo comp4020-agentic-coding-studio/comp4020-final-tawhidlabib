@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { createGroup } from "../../lib/db";
+import { flash } from "../../lib/flash";
 import { field } from "../../lib/forms";
 import { remember } from "../../lib/identity";
 import { DEFAULT_TIMEZONE, isTimezone } from "../../lib/time";
@@ -18,5 +19,6 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
     timezone: isTimezone(tz) ? tz : DEFAULT_TIMEZONE,
   });
   remember(cookies, url, group.id, member.token);
+  flash(cookies, "created");
   return redirect(`/g/${group.id}`, 303);
 };
