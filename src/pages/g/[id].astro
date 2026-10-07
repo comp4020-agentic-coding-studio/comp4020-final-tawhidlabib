@@ -1,5 +1,6 @@
 ---
 import Base from "../../layouts/Base.astro";
+import { hue, initials } from "../../lib/avatar";
 import { googleCalendarUrl, hangoutEvent } from "../../lib/calendar";
 import { availabilityOn, getGroup, listMembers, rsvpsFor, upcomingHangouts } from "../../lib/db";
 import { ERRORS } from "../../lib/forms";
@@ -70,6 +71,8 @@ const namesOf = (ids: number[]) =>
     .filter(Boolean)
     .join(", ");
 const range = (from: number, to: number) => Array.from({ length: to - from }, (_, i) => from + i);
+/** "Tue 8 Jan" → ["Tue", "8"], for the date tiles and grid headers. */
+const dayParts = (date: string) => dayLabel(date).split(" ");
 
 const best =
   group && me
@@ -88,253 +91,598 @@ const hangouts = plans.map((plan) => {
     google: group ? googleCalendarUrl(hangoutEvent(plan, group, Astro.url.origin)) : "",
   };
 });
+
+// The one thing this person should do next, most pressing first.
+const markedThisWeek = me ? [...free.values()].some((s) => s.has(me.id)) : false;
+const unanswered = hangouts.find((h) => !h.myAnswer);
+const goingTo = hangouts.find((h) => h.myAnswer === "in");
+const next = unanswered
+  ? ({ kind: "rsvp", h: unanswered } as const)
+  : members.length === 1
+    ? ({ kind: "invite" } as const)
+    : !markedThisWeek
+      ? ({ kind: "mark" } as const)
+      : best.length > 0 && hangouts.length === 0
+        ? ({ kind: "propose" } as const)
+        : goingTo
+          ? ({ kind: "going", h: goingTo } as const)
+          : ({ kind: "wait" } as const);
+
+const TABS = ["week", "best", "plans", "group"];
 ---
 
 {
   !group ? (
     <Base title="No group here · Hangout">
-      <h1>There's no group at this link</h1>
-      <p>
-        Check the link you were sent, or <a href="/">start a group of your own</a>.
-      </p>
+      <div class="narrow card stack">
+        <h1>There's no group at this link</h1>
+        <p class="muted">
+          The link might be cut short, or the group might have been mistyped. Ask whoever sent
+          it to copy it again.
+        </p>
+        <div>
+          <a class="button" href="/#start">
+            Start a group of your own
+          </a>
+        </div>
+      </div>
     </Base>
   ) : !me ? (
     <Base title={`Join ${group.name} · Hangout`}>
-      <h1>Join {group.name}</h1>
-      <p class="lede">
-        {members.length === 1
-          ? `${members[0].name} is finding a time to hang out.`
-          : `${members.length} people are finding a time to hang out.`}{" "}
-        Pick a name they'll recognise, then tap the hours you're free.
-      </p>
+      <div class="narrow card start-card stack">
+        <ul class="avatars" aria-hidden="true">
+          {members.slice(0, 6).map((m) => (
+            <li class="avatar" style={`--hue: ${hue(m.name)}`}>
+              {initials(m.name)}
+            </li>
+          ))}
+        </ul>
+        <div>
+          <span class="pill">You're invited</span>
+          <h1>Join {group.name}</h1>
+          <p class="muted">
+            {members.length === 1
+              ? `${members[0].name} is finding a time to hang out.`
+              : `${members.map((m) => m.name).join(", ")} are finding a time to hang out.`}{" "}
+            Pick a name they'll recognise, then tap the hours you're free.
+          </p>
+        </div>
+        {error && (
+          <p class="error" role="alert">
+            {error}
+          </p>
+        )}
+        <form method="post" action={`/api/groups/${group.id}/join`} class="stack">
+          <label class="field">
+            Your name
+            <input
+              type="text"
+              name="name"
+              required
+              maxlength="40"
+              autocomplete="given-name"
+              placeholder="What your friends call you"
+            />
+          </label>
+          <div>
+            <button type="submit" class="button large">
+              Join the group
+            </button>
+          </div>
+        </form>
+        <p class="muted">No account or password. This browser will remember you.</p>
+      </div>
+    </Base>
+  ) : (
+    <Base title={`${group.name} · Hangout`}>
+      <Fragment slot="head">
+        {/* Pick the tab before first paint, so the page never flashes every panel. */}
+        <script is:inline define:vars={{ tabs: TABS }}>
+          document.documentElement.classList.add("js");
+          const asked = location.hash.slice(1);
+          document.documentElement.dataset.tab = tabs.includes(asked) ? asked : "week";
+        </script>
+      </Fragment>
+
+      <div class="group-head">
+        <div>
+          <h1>{group.name}</h1>
+          <ul class="avatars" aria-label="Members">
+            {members.slice(0, 7).map((m) => (
+              <li class="avatar" style={`--hue: ${hue(m.name)}`} title={m.name}>
+                <span aria-hidden="true">{initials(m.name)}</span>
+                <span class="vh">{m.id === me.id ? `${m.name} (you)` : m.name}</span>
+              </li>
+            ))}
+            {members.length > 7 && <li class="more">+{members.length - 7}</li>}
+          </ul>
+        </div>
+        <a class="button ghost small" href="#group" data-copy-fallback>
+          Invite friends
+        </a>
+      </div>
+
       {error && (
         <p class="error" role="alert">
           {error}
         </p>
       )}
-      <form method="post" action={`/api/groups/${group.id}/join`} class="stack card">
-        <label class="field">
-          Your name
-          <input type="text" name="name" required maxlength="40" autocomplete="given-name" />
-        </label>
-        <div>
-          <button type="submit">Join the group</button>
+
+      <section class="next-step" aria-label="Your next step">
+        {next.kind === "rsvp" ? (
+          <>
+            <div class="what">
+              <span class="label">Are you in?</span>
+              <strong>
+                {next.h.plan.title}, {spanLabel(next.h.plan.date, next.h.plan.startHour, next.h.plan.endHour)}
+              </strong>
+            </div>
+            <form method="post" action={`/api/hangouts/${next.h.plan.id}/rsvp`} class="rsvp">
+              <button type="submit" name="response" value="in" aria-pressed="false">
+                I'm in
+              </button>
+              <button type="submit" name="response" value="out" class="out" aria-pressed="false">
+                Can't make it
+              </button>
+            </form>
+          </>
+        ) : next.kind === "invite" ? (
+          <>
+            <div class="what">
+              <span class="label">Next step</span>
+              <strong>Invite your friends. Hangout needs at least two of you.</strong>
+            </div>
+            <button type="button" class="button" data-copy={inviteUrl} hidden>
+              Copy invite link
+            </button>
+            <a class="button" href="#group" data-copy-fallback>
+              Get the invite link
+            </a>
+          </>
+        ) : next.kind === "mark" ? (
+          <>
+            <div class="what">
+              <span class="label">Next step</span>
+              <strong>
+                Tap the hours you're free{week === thisWeek ? " this week" : ` in the week of ${dayLabel(week)}`}.
+              </strong>
+            </div>
+            <a class="button" href="#week">
+              Mark my hours
+            </a>
+          </>
+        ) : next.kind === "propose" ? (
+          <>
+            <div class="what">
+              <span class="label">Best time found</span>
+              <strong>
+                {spanLabel(best[0].date, best[0].start, best[0].end)} · {best[0].people.length} of{" "}
+                {members.length} free
+              </strong>
+            </div>
+            <a class="button" href="#best">
+              Propose it
+            </a>
+          </>
+        ) : next.kind === "going" ? (
+          <>
+            <div class="what">
+              <span class="label">You're in</span>
+              <strong>
+                {next.h.plan.title}, {spanLabel(next.h.plan.date, next.h.plan.startHour, next.h.plan.endHour)}
+              </strong>
+            </div>
+            <a class="button" href={next.h.google} target="_blank" rel="noopener">
+              Add to Google Calendar
+            </a>
+          </>
+        ) : (
+          <>
+            <div class="what">
+              <span class="label">Waiting on the group</span>
+              <strong>Recommendations appear once someone else's free hours overlap yours.</strong>
+            </div>
+            <a class="button ghost" href="#group">
+              Nudge them with the link
+            </a>
+          </>
+        )}
+      </section>
+
+      <nav class="tabs" aria-label="Group sections" data-tabs>
+        <a href="#week" data-tab="week">
+          Your week
+        </a>
+        <a href="#best" data-tab="best">
+          Best times
+          {best.length > 0 && <span class="count">{best.length}</span>}
+        </a>
+        <a href="#plans" data-tab="plans">
+          Hangouts
+          {hangouts.length > 0 && <span class="count">{hangouts.length}</span>}
+        </a>
+        <a href="#group" data-tab="group">
+          Group
+          <span class="count">{members.length}</span>
+        </a>
+      </nav>
+
+      <section id="week" class="panel" aria-labelledby="week-heading">
+        <div class="panel-head">
+          <h2 id="week-heading">When are you free?</h2>
+          <nav class="week-nav" aria-label="Week">
+            <a href={`?week=${addDays(week, -7)}#week`} aria-label="Earlier week">
+              ‹
+            </a>
+            <strong>{week === thisWeek ? "This week" : `Week of ${dayLabel(week)}`}</strong>
+            <a href={`?week=${addDays(week, 7)}#week`} aria-label="Later week">
+              ›
+            </a>
+          </nav>
         </div>
-      </form>
-    </Base>
-  ) : (
-    <Base title={`${group.name} · Hangout`}>
-      <h1>{group.name}</h1>
-      <p class="muted">
-        You're {me.name}. In the group: {members.map((m) => m.name).join(", ")}.
-      </p>
-
-      <div class="card invite">
-        <label class="field">
-          Invite link: anyone with it can join
-          <input type="url" readonly value={inviteUrl} id="invite" />
-        </label>
-        <button type="button" class="quiet" id="copy-invite" hidden>
-          Copy link
-        </button>
-      </div>
-
-      <section aria-labelledby="free">
-        <h2 id="free">When are you free?</h2>
-        <nav class="week-nav" aria-label="week">
-          <a href={`?week=${addDays(week, -7)}`}>← Earlier</a>
-          <strong>
-            {week === thisWeek ? "This week" : `Week of ${dayLabel(week)}`}
-          </strong>
-          <a href={`?week=${addDays(week, 7)}`}>Later →</a>
-        </nav>
         <p class="muted">
-          Tap every hour you could hang out, then save. Times are in {group.timezone}.
+          Tap every hour you could hang out{" "}
+          <span class="desktop-hint">(or drag across them)</span>, then save. Times are in{" "}
+          {group.timezone}.
         </p>
-        <div class="legend" aria-hidden="true">
-          <span>
-            <span class="swatch" style="border: 3px solid var(--you)" />
-            You're free
-          </span>
-          <span>
-            <span class="swatch" style="background: var(--heat-2)" />
-            Others are free (number = how many)
-          </span>
-        </div>
 
         <form method="post" action={`/api/groups/${group.id}/availability`}>
           <input type="hidden" name="week" value={week} />
-          <table class="week">
-            <caption class="vh">
-              Your free hours, week of {dayLabel(week)}
-            </caption>
-            <thead>
-              <tr>
-                <td />
-                {dates.map((date) => {
-                  const [weekday, day] = dayLabel(date).split(" ");
-                  return (
-                    <th scope="col" aria-current={date === today ? "date" : undefined}>
-                      {weekday}
-                      <span>{day}</span>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {HOURS.map((hour) => (
+          <div class="card grid-card">
+            <table class="week">
+              <caption class="vh">
+                Your free hours, week of {dayLabel(week)}
+              </caption>
+              <thead>
                 <tr>
-                  <th scope="row">{hourLabel(hour)}</th>
+                  <td />
                   {dates.map((date) => {
-                    const c = cell(date, hour);
+                    const [weekday, day] = dayParts(date);
                     return (
-                      <td>
-                        <label class="slot" data-heat={c.heat}>
-                          <input type="checkbox" name="slot" value={c.key} checked={c.mine} />
-                          <span class="vh">{c.label}</span>
-                          <span aria-hidden="true">{c.count > 0 ? c.count : ""}</span>
-                        </label>
-                      </td>
+                      <th scope="col" aria-current={date === today ? "date" : undefined}>
+                        {weekday}
+                        <span>{day}</span>
+                      </th>
                     );
                   })}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <div class="save-bar">
-            <button type="submit">Save my free hours</button>
-            <span role="status" class="muted" id="save-status">
-              {Astro.url.searchParams.has("saved") ? "Saved." : ""}
+              </thead>
+              <tbody>
+                {HOURS.map((hour) => (
+                  <tr>
+                    <th scope="row">{hourLabel(hour)}</th>
+                    {dates.map((date) => {
+                      const c = cell(date, hour);
+                      return (
+                        <td>
+                          <label class="slot" data-heat={c.heat}>
+                            <input type="checkbox" name="slot" value={c.key} checked={c.mine} />
+                            <span class="vh">{c.label}</span>
+                            <span aria-hidden="true">{c.count > 0 ? c.count : ""}</span>
+                          </label>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div class="legend" aria-hidden="true">
+            <span>
+              <span class="key" style="box-shadow: inset 0 0 0 2.5px var(--accent); background: var(--surface-2)" />
+              Your hours
             </span>
+            <span>
+              <span class="scale">
+                <i style="background: var(--heat-1)" />
+                <i style="background: var(--heat-2)" />
+                <i style="background: var(--heat-3)" />
+                <i style="background: var(--heat-4)" />
+              </span>
+              More of the group free (the number is how many)
+            </span>
+          </div>
+          <div class="save-bar">
+            <span role="status" id="save-status">
+              {Astro.url.searchParams.has("saved") ? "Saved ✓" : ""}
+            </span>
+            <button type="submit" class="button">
+              Save my hours
+            </button>
           </div>
         </form>
       </section>
 
-      <section aria-labelledby="best">
-        <h2 id="best">Best times</h2>
+      <section id="best" class="panel" aria-labelledby="best-heading">
+        <div class="panel-head">
+          <h2 id="best-heading">Best times</h2>
+          <span class="muted">
+            {week === thisWeek ? "This week" : `Week of ${dayLabel(week)}`}
+          </span>
+        </div>
         {best.length === 0 ? (
-          <p class="muted">
-            Recommendations appear once at least two of you have marked hours you're both free
-            this week.
-          </p>
+          <div class="empty">
+            <strong>No overlap yet</strong>
+            Recommendations appear once at least two of you have marked the same hours.{" "}
+            <a href="#week">Mark yours</a>.
+          </div>
         ) : (
-          best.map((rec, i) => (
-            <div class="card">
-              <p class="time">{spanLabel(rec.date, rec.start, rec.end)}</p>
-              <p class="who">
-                {rec.people.length === members.length ? (
-                  <span class="badge">Everyone</span>
-                ) : (
-                  `${rec.people.length} of ${members.length}`
-                )}{" "}
-                free: {namesOf(rec.people)}
-              </p>
-              <form method="post" action={`/api/groups/${group.id}/hangouts`} class="row">
-                <input type="hidden" name="date" value={rec.date} />
-                <label class="field" for={`start-${i}`}>
-                  From
-                  <select name="start" id={`start-${i}`}>
-                    {range(rec.start, rec.end).map((h) => (
-                      <option value={h} selected={h === rec.start}>
-                        {hourLabel(h)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label class="field" for={`end-${i}`}>
-                  Until
-                  <select name="end" id={`end-${i}`}>
-                    {range(rec.start + 1, rec.end + 1).map((h) => (
-                      <option value={h} selected={h === rec.end}>
-                        {hourLabel(h)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label class="field" for={`title-${i}`}>
-                  What's the plan?
-                  <input
-                    type="text"
-                    name="title"
-                    id={`title-${i}`}
-                    maxlength="80"
-                    placeholder="Dinner, a walk…"
-                  />
-                </label>
-                <button type="submit">Propose</button>
-              </form>
-            </div>
-          ))
+          <div class="cards">
+            {best.map((rec, i) => {
+              const [weekday, day] = dayParts(rec.date);
+              return (
+                <div class="card">
+                  <div class="when">
+                    <div class="date-tile" aria-hidden="true">
+                      <small>{weekday}</small>
+                      <b>{day}</b>
+                    </div>
+                    <div>
+                      <p class="time">{spanLabel(rec.date, rec.start, rec.end)}</p>
+                      <p class="who">
+                        {rec.people.length === members.length
+                          ? "Everyone's free"
+                          : `${rec.people.length} of ${members.length} free`}
+                        : {namesOf(rec.people)}
+                      </p>
+                    </div>
+                    {i === 0 && <span class="pill rank">Best</span>}
+                  </div>
+                  <form method="post" action={`/api/groups/${group.id}/hangouts`} class="propose">
+                    <input type="hidden" name="date" value={rec.date} />
+                    <label class="field" for={`start-${i}`}>
+                      From
+                      <select name="start" id={`start-${i}`}>
+                        {range(rec.start, rec.end).map((h) => (
+                          <option value={h} selected={h === rec.start}>
+                            {hourLabel(h)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label class="field" for={`end-${i}`}>
+                      Until
+                      <select name="end" id={`end-${i}`}>
+                        {range(rec.start + 1, rec.end + 1).map((h) => (
+                          <option value={h} selected={h === rec.end}>
+                            {hourLabel(h)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label class="field title-field" for={`title-${i}`}>
+                      What's the plan?
+                      <input
+                        type="text"
+                        name="title"
+                        id={`title-${i}`}
+                        maxlength="80"
+                        placeholder="Dinner, a walk, board games…"
+                      />
+                    </label>
+                    <button type="submit" class="button">
+                      Propose
+                    </button>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
         )}
       </section>
 
-      <section aria-labelledby="plans-heading" id="plans">
-        <h2 id="plans-heading">Hangouts</h2>
+      <section id="plans" class="panel" aria-labelledby="plans-heading">
+        <div class="panel-head">
+          <h2 id="plans-heading">Hangouts</h2>
+        </div>
         {hangouts.length === 0 ? (
-          <p class="muted">Nothing planned yet. Propose one of the best times above.</p>
+          <div class="empty">
+            <strong>Nothing planned yet</strong>
+            Pick one of the <a href="#best">best times</a> and propose it. Everyone gets asked if
+            they're in.
+          </div>
         ) : (
-          hangouts.map(({ plan, going, notGoing, myAnswer, google }) => (
-            <article class="card">
-              <p class="time">{spanLabel(plan.date, plan.startHour, plan.endHour)}</p>
-              <p>{plan.title}</p>
-              <p class="who">
-                In: {going.length ? namesOf(going) : "nobody yet"}
-                {notGoing.length > 0 && ` · Can't make it: ${namesOf(notGoing)}`}
-              </p>
-              <form method="post" action={`/api/hangouts/${plan.id}/rsvp`} class="row">
-                <button
-                  type="submit"
-                  name="response"
-                  value="in"
-                  aria-pressed={myAnswer === "in" ? "true" : "false"}
-                >
-                  I'm in
-                </button>
-                <button
-                  type="submit"
-                  name="response"
-                  value="out"
-                  class="quiet"
-                  aria-pressed={myAnswer === "out" ? "true" : "false"}
-                >
-                  Can't make it
-                </button>
-              </form>
-              {myAnswer === "in" && (
-                <div class="cal-links">
-                  <a class="button quiet" href={google} target="_blank" rel="noopener">
-                    Add to Google Calendar
-                  </a>
-                  <a class="button quiet" href={`/api/hangouts/${plan.id}.ics`}>
-                    Download .ics
-                  </a>
-                </div>
-              )}
-            </article>
-          ))
+          <div class="cards">
+            {hangouts.map(({ plan, going, notGoing, myAnswer, google }) => {
+              const [weekday, day] = dayParts(plan.date);
+              return (
+                <article class="card">
+                  <div class="when">
+                    <div class="date-tile" aria-hidden="true">
+                      <small>{weekday}</small>
+                      <b>{day}</b>
+                    </div>
+                    <div>
+                      <p class="time">{spanLabel(plan.date, plan.startHour, plan.endHour)}</p>
+                      <p class="plan-title">{plan.title}</p>
+                    </div>
+                  </div>
+                  <div class="going">
+                    {going.length === 0 && <span class="muted">Nobody's in yet.</span>}
+                    {going.map((id) => (
+                      <span class="pill">✓ {id === me.id ? "You" : nameOf.get(id)}</span>
+                    ))}
+                    {notGoing.map((id) => (
+                      <span class="pill out">
+                        <span class="vh">Can't make it:</span>
+                        {id === me.id ? "You" : nameOf.get(id)}
+                      </span>
+                    ))}
+                  </div>
+                  <form method="post" action={`/api/hangouts/${plan.id}/rsvp`} class="rsvp">
+                    <button
+                      type="submit"
+                      name="response"
+                      value="in"
+                      aria-pressed={myAnswer === "in" ? "true" : "false"}
+                    >
+                      I'm in
+                    </button>
+                    <button
+                      type="submit"
+                      name="response"
+                      value="out"
+                      class="out"
+                      aria-pressed={myAnswer === "out" ? "true" : "false"}
+                    >
+                      Can't make it
+                    </button>
+                  </form>
+                  {myAnswer === "in" && (
+                    <div class="cal-links">
+                      <a class="button small" href={google} target="_blank" rel="noopener">
+                        Add to Google Calendar
+                      </a>
+                      <a class="button small ghost" href={`/api/hangouts/${plan.id}.ics`}>
+                        Download .ics
+                      </a>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
         )}
+      </section>
+
+      <section id="group" class="panel" aria-labelledby="group-heading">
+        <div class="panel-head">
+          <h2 id="group-heading">The group</h2>
+        </div>
+        <div class="stack">
+          <div class="card stack">
+            <label class="field" for="invite">
+              Invite link: anyone with it can join
+            </label>
+            <div class="invite-row">
+              <input type="url" readonly value={inviteUrl} id="invite" />
+              <button type="button" class="button" data-copy={inviteUrl} hidden>
+                Copy
+              </button>
+              <button type="button" class="button ghost" data-share={inviteUrl} hidden>
+                Share
+              </button>
+            </div>
+          </div>
+          <div class="facts">
+            <div class="card">
+              <h3>Members</h3>
+              <ul class="members">
+                {members.map((m) => (
+                  <li>
+                    <span class="avatar" style={`--hue: ${hue(m.name)}`} aria-hidden="true">
+                      {initials(m.name)}
+                    </span>
+                    {m.name}
+                    {m.id === me.id && <span class="pill">you</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div class="card">
+              <h3>How Hangout picks times</h3>
+              <p class="muted">
+                It looks for the longest stretch the most people share, and never offers one
+                that has already started. Times are in {group.timezone}.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
     </Base>
   )
 }
 
 <script>
-  // Enhancements only: everything here works without JS by plain form submit.
+  // Enhancements only: without JS the tabs are links to sections on one page
+  // and every form still submits.
+  const root = document.documentElement;
 
-  // Copy the invite link in one tap.
-  const invite = document.querySelector<HTMLInputElement>("#invite");
-  const copy = document.querySelector<HTMLButtonElement>("#copy-invite");
-  if (invite && copy && navigator.clipboard) {
-    copy.hidden = false;
-    copy.addEventListener("click", async () => {
-      await navigator.clipboard.writeText(invite.value);
-      copy.textContent = "Copied";
-      setTimeout(() => (copy.textContent = "Copy link"), 2000);
-    });
+  // ─── tabs ───────────────────────────────────────────────────────────────
+  const tablist = document.querySelector<HTMLElement>("[data-tabs]");
+  const tabs = [...(tablist?.querySelectorAll<HTMLAnchorElement>("a[data-tab]") ?? [])];
+  const names = tabs.map((t) => t.dataset.tab ?? "");
+  if (tablist) {
+    tablist.setAttribute("role", "tablist");
+    for (const tab of tabs) {
+      const name = tab.dataset.tab ?? "";
+      tab.id = `tab-${name}`;
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-controls", name);
+      const panel = document.getElementById(name);
+      panel?.setAttribute("role", "tabpanel");
+      panel?.setAttribute("aria-labelledby", tab.id);
+    }
+  }
+  function select(name: string, { focus = false, remember = true } = {}) {
+    if (!names.includes(name)) return;
+    root.dataset.tab = name;
+    for (const tab of tabs) {
+      const on = tab.dataset.tab === name;
+      tab.setAttribute("aria-selected", String(on));
+      tab.tabIndex = on ? 0 : -1;
+      if (on && focus) tab.focus();
+    }
+    if (remember) history.replaceState(null, "", `${location.pathname}${location.search}#${name}`);
+    // keep the tabs in view when switching from far down a long panel
+    if (tablist && tablist.getBoundingClientRect().top > 80) return;
+    document.getElementById(name)?.scrollIntoView({ block: "start" });
+  }
+  if (tablist) select(root.dataset.tab ?? "week", { remember: false });
+  tablist?.addEventListener("keydown", (event) => {
+    const at = names.indexOf(root.dataset.tab ?? "");
+    const to =
+      event.key === "ArrowRight"
+        ? (at + 1) % names.length
+        : event.key === "ArrowLeft"
+          ? (at - 1 + names.length) % names.length
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? names.length - 1
+              : -1;
+    if (to < 0) return;
+    event.preventDefault();
+    select(names[to], { focus: true });
+  });
+  // Any link to a tab's section (the tabs themselves, the next-step button,
+  // "Mark yours") switches tabs instead of jumping.
+  document.addEventListener("click", (event) => {
+    const link = (event.target as Element).closest<HTMLAnchorElement>('a[href^="#"]');
+    const name = link?.getAttribute("href")?.slice(1) ?? "";
+    if (!link || !names.includes(name)) return;
+    event.preventDefault();
+    select(name, { focus: link.closest("[data-tabs]") !== null });
+  });
+  window.addEventListener("hashchange", () => select(location.hash.slice(1), { remember: false }));
+
+  // ─── copy and share the invite ─────────────────────────────────────────
+  if (navigator.clipboard) {
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
+      button.hidden = false;
+      const label = button.textContent ?? "Copy";
+      button.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(button.dataset.copy ?? "");
+        button.textContent = "Copied ✓";
+        setTimeout(() => (button.textContent = label), 2000);
+      });
+    }
+    // the next-step banner's no-JS fallback link isn't needed once Copy works
+    document
+      .querySelectorAll<HTMLElement>(".next-step [data-copy-fallback]")
+      .forEach((link) => (link.hidden = true));
+  }
+  if (navigator.share) {
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-share]")) {
+      button.hidden = false;
+      button.addEventListener("click", () =>
+        navigator.share({ title: document.title, url: button.dataset.share }).catch(() => {}),
+      );
+    }
   }
 
-  // Say when the grid has changes that aren't saved yet.
+  // ─── the week grid ─────────────────────────────────────────────────────
   const grid = document.querySelector<HTMLTableElement>("table.week");
   const status = document.querySelector<HTMLElement>("#save-status");
   const changed = () => {

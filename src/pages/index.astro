@@ -9,21 +9,44 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
 ---
 
 <Base title="Hangout: find a time your friends are free">
-  <h1>Find the time your friends are all free</h1>
-  <p class="lede">
-    Start a group, send everyone the link, and each of you taps the hours you're free this
-    week. Hangout finds the longest stretch that works for the most of you.
-  </p>
+  <section class="hero" aria-labelledby="hero-title">
+    <span class="pill eyebrow">No sign-up · free · made for small groups</span>
+    <h1 id="hero-title">Stop asking “when's everyone free?”</h1>
+    <p class="lede">
+      Start a group, send one link, and everyone taps the hours they're free this week.
+      Hangout finds the longest stretch that works for the most of you, and puts it in
+      your calendar.
+    </p>
+    <div class="cta-row">
+      <a class="button large" href="#start">Start a group</a>
+      {
+        groups.length > 0 ? (
+          <a class="button large ghost" href={`/g/${groups[0].group.id}`}>
+            Open {groups[0].group.name}
+          </a>
+        ) : (
+          <a class="button large ghost" href="#how">
+            How it works
+          </a>
+        )
+      }
+    </div>
+  </section>
 
   {
     groups.length > 0 && (
-      <section aria-labelledby="your-groups">
+      <section class="section" aria-labelledby="your-groups">
         <h2 id="your-groups">Your groups</h2>
-        <ul class="groups">
+        <ul class="group-list">
           {groups.map(({ group, member }) => (
-            <li class="card">
-              <a href={`/g/${group.id}`}>{group.name}</a>
-              <span class="muted"> · you're {member.name}</span>
+            <li>
+              <a class="card" href={`/g/${group.id}`}>
+                <span>
+                  {group.name}
+                  <span class="muted"> · you're {member.name}</span>
+                </span>
+                <span aria-hidden="true">→</span>
+              </a>
             </li>
           ))}
         </ul>
@@ -31,24 +54,58 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
     )
   }
 
-  <section aria-labelledby="start">
-    <h2 id="start">Start a group</h2>
-    {error && <p class="error" role="alert">{error}</p>}
-    <form method="post" action="/api/groups" class="stack card">
+  <section class="section" aria-labelledby="how">
+    <h2 id="how">How it works</h2>
+    <ol class="steps">
+      <li class="card">
+        <strong>Start a group</strong>
+        <span class="muted">Name it, add your name. No account, no password.</span>
+      </li>
+      <li class="card">
+        <strong>Share the link</strong>
+        <span class="muted">Anyone with it can join in seconds, on any phone.</span>
+      </li>
+      <li class="card">
+        <strong>Tap when you're free</strong>
+        <span class="muted">
+          Hangout recommends the best time. Say you're in, and add it to your calendar.
+        </span>
+      </li>
+    </ol>
+  </section>
+
+  <section class="section" aria-labelledby="start-title" id="start">
+    <form method="post" action="/api/groups" class="card start-card stack">
+      <div>
+        <h2 id="start-title">Start a group</h2>
+        <p class="muted">Takes ten seconds. You'll get a link to send your friends.</p>
+      </div>
+      {
+        error && (
+          <p class="error" role="alert">
+            {error}
+          </p>
+        )
+      }
       <label class="field">
         Group name
         <input type="text" name="group" required maxlength="60" placeholder="Friday dinner crew" />
       </label>
       <label class="field">
         Your name
-        <input type="text" name="name" required maxlength="40" autocomplete="given-name" />
+        <input
+          type="text"
+          name="name"
+          required
+          maxlength="40"
+          autocomplete="given-name"
+          placeholder="What your friends call you"
+        />
       </label>
       <input type="hidden" name="timezone" value={DEFAULT_TIMEZONE} id="timezone" />
-      <p class="muted">
-        No account, no password: anyone with the group's link can join, and this browser
-        remembers you.
-      </p>
-      <div><button type="submit">Start the group</button></div>
+      <div>
+        <button type="submit" class="button large">Create group and get the link</button>
+      </div>
     </form>
   </section>
 </Base>
