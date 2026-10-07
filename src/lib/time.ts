@@ -146,3 +146,30 @@ export function relativeDay(date: string, today: string): string {
 
 /** The slot key the grid's checkboxes carry: "2030-01-08T18". */
 export const slotKey = (date: string, hour: number) => `${date}T${pad(hour)}`;
+
+export const isMonth = (month: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
+
+/** "2030-01" → "2030-02" (or back, with a negative n). */
+export function addMonths(month: string, n: number): string {
+  const [y, m] = month.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1 + n, 1));
+  return t.toISOString().slice(0, 7);
+}
+
+/** "2030-01" → "January 2030". */
+export function monthLabel(month: string): string {
+  return new Intl.DateTimeFormat("en-AU", { timeZone: "UTC", month: "long", year: "numeric" }).format(
+    new Date(`${month}-01T00:00:00Z`),
+  );
+}
+
+/** Every date a month's calendar grid shows: whole weeks, Monday first. */
+export function monthGrid(month: string): string[] {
+  const first = `${month}-01`;
+  const last = addDays(`${addMonths(month, 1)}-01`, -1);
+  const start = weekStartOf(first);
+  const end = addDays(weekStartOf(last), 6);
+  const days: string[] = [];
+  for (let d = start; d <= end; d = addDays(d, 1)) days.push(d);
+  return days;
+}

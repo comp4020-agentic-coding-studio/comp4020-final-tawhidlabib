@@ -1,0 +1,191 @@
+---
+import AgendaList from "../components/AgendaList.astro";
+import Icon from "../components/Icon.astro";
+import Onboard from "../components/Onboard.astro";
+import Base from "../layouts/Base.astro";
+import { agendaFor, upcoming } from "../lib/agenda";
+import { groupsFor } from "../lib/identity";
+import {
+  addMonths,
+  dayLabel,
+  DEFAULT_TIMEZONE,
+  isDate,
+  isMonth,
+  monthGrid,
+  monthLabel,
+  todayIn,
+} from "../lib/time";
+
+const person = Astro.locals.person;
+const cookie = Astro.request.headers.get("cookie");
+const signedOut = !person && groupsFor(undefined, cookie).length === 0;
+const today = todayIn(person?.timezone ?? DEFAULT_TIMEZONE);
+
+const askedMonth = Astro.url.searchParams.get("month") ?? "";
+const month = isMonth(askedMonth) ? askedMonth : today.slice(0, 7);
+const grid = monthGrid(month);
+const items = signedOut ? [] : agendaFor(person, cookie, grid[0], grid.at(-1));
+const onDay = (date: string) => items.filter((i) => i.date === date);
+
+const askedDay = Astro.url.searchParams.get("day") ?? "";
+const day =
+  isDate(askedDay) && grid.includes(askedDay)
+    ? askedDay
+    : today.startsWith(month)
+      ? today
+      : `${month}-01`;
+const upNext = signedOut ? [] : upcoming(agendaFor(person, cookie, today)).slice(0, 8);
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const busyDays = grid.filter((d) => onDay(d).length > 0);
+---
+
+<Base title={`${monthLabel(month)} · Calendar · Hangout`}>
+  <div class="page-head">
+    <div>
+      <span class="kicker">Your calendar</span>
+      <h1>{monthLabel(month)}</h1>
+    </div>
+    <div class="actions">
+      <nav class="week-nav" aria-label="Month">
+        <a href={`?month=${addMonths(month, -1)}`} aria-label="Previous month">
+          <Icon name="chevronLeft" size={18} />
+        </a>
+        <a href="/calendar" class="today-link">Today</a>
+        <a href={`?month=${addMonths(month, 1)}`} aria-label="Next month">
+          <Icon name="chevronRight" size={18} />
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  {
+    signedOut ? (
+      <Onboard back="/calendar" lead="Make your profile and every plan you have lands here." />
+    ) : (
+      <div class="cal-layout">
+        <div class="stack">
+          <div class="card month-card">
+            <div class="month-grid">
+              <div class="month-row head" aria-hidden="true">
+                {WEEKDAYS.map((d) => (
+                  <span>{d}</span>
+                ))}
+              </div>
+              {Array.from({ length: grid.length / 7 }, (_, w) => (
+                <div class="month-row">
+                  {grid.slice(w * 7, w * 7 + 7).map((date) => {
+                    const plans = onDay(date);
+                    return (
+                      <a
+                        href={`?month=${month}&day=${date}#day`}
+                        data-date={date}
+                        class:list={[
+                          "day-cell",
+                          {
+                            outside: !date.startsWith(month),
+                            today: date === today,
+                            busy: plans.length > 0,
+                          },
+                        ]}
+                        aria-current={date === today ? "date" : undefined}
+                        data-selected={date === day ? "" : undefined}
+                      >
+                        <span class="day-num">{Number(date.slice(8))}</span>
+                        <span class="day-chips" aria-hidden="true">
+                          {plans.slice(0, 2).map((p) => (
+                            <span class:list={["chip", p.kind, p.status]}>{p.title}</span>
+                          ))}
+                          {plans.length > 2 && <span class="chip more">+{plans.length - 2}</span>}
+                        </span>
+                        <span class="day-dots" aria-hidden="true">
+                          {plans.slice(0, 3).map((p) => (
+                            <i class={p.kind} />
+                          ))}
+                        </span>
+                        <span class="vh">
+                          {dayLabel(date)}
+                          {plans.length > 0
+                            ? `: ${plans.map((p) => `${p.title} at ${p.time}`).join("; ")}`
+                            : ", nothing planned"}
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div class="legend" aria-hidden="true">
+              <span>
+                <span class="key hangout" /> Hangouts
+              </span>
+              <span>
+                <span class="key event" /> Events
+              </span>
+            </div>
+          </div>
+
+          <section id="day" class="card" aria-labelledby="day-h" aria-live="polite">
+            <h2 id="day-h">{dayLabel(day)}</h2>
+            {onDay(day).length === 0 ? (
+              <p class="muted">Nothing planned. A good day to propose something.</p>
+            ) : (
+              <AgendaList items={onDay(day)} today={today} />
+            )}
+          </section>
+          {/* every busy day's list, for switching days without a reload */}
+          {busyDays.map((date) => (
+            <template data-day={date}>
+              <h2 id="day-h">{dayLabel(date)}</h2>
+              <AgendaList items={onDay(date)} today={today} />
+            </template>
+          ))}
+        </div>
+
+        <section id="up-next" aria-labelledby="up-next-h">
+          <h2 id="up-next-h">Up next</h2>
+          {upNext.length === 0 ? (
+            <div class="empty">
+              <div class="icon-bubble">
+                <Icon name="calendar" size={22} />
+              </div>
+              <strong>Your calendar's clear</strong>
+              <span>
+                <a href="/groups">Find a time with a group</a> or <a href="/events/new">host an event</a>.
+              </span>
+            </div>
+          ) : (
+            <AgendaList items={upNext} dated today={today} />
+          )}
+        </section>
+      </div>
+    )
+  }
+</Base>
+
+<script>
+  // Tapping a day swaps its plans into the day panel, without a reload.
+  const panel = document.querySelector<HTMLElement>("#day");
+  const cells = document.querySelectorAll<HTMLAnchorElement>(".day-cell");
+  for (const cell of cells) {
+    cell.addEventListener("click", (event) => {
+      const date = cell.dataset.date ?? "";
+      if (!panel || !date || cell.classList.contains("outside")) return;
+      event.preventDefault();
+      const template = document.querySelector<HTMLTemplateElement>(`template[data-day="${date}"]`);
+      const label = cell.querySelector(".vh")?.textContent?.split(":")[0]?.split(",")[0] ?? date;
+      panel.replaceChildren();
+      if (template) panel.append(template.content.cloneNode(true));
+      else {
+        const h = document.createElement("h2");
+        h.id = "day-h";
+        h.textContent = label;
+        const p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = "Nothing planned. A good day to propose something.";
+        panel.append(h, p);
+      }
+      for (const c of cells) c.toggleAttribute("data-selected", c === cell);
+      history.replaceState(null, "", cell.href.replace(/#day$/, ""));
+    });
+  }
+</script>

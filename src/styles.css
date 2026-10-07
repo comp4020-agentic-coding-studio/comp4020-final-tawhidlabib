@@ -3179,3 +3179,271 @@ fieldset.card legend {
 .button.danger:hover {
   border-color: #dc2626;
 }
+
+/* ─── calendar ────────────────────────────────────────────────────────── */
+
+.today-link {
+  width: auto !important;
+  padding: 0 0.75rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  border-radius: 999px !important;
+}
+
+.cal-layout {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 60rem) {
+  .cal-layout {
+    grid-template-columns: 1fr 20rem;
+  }
+}
+
+.month-card {
+  padding: 0.75rem;
+}
+
+.month-grid {
+  display: grid;
+  gap: 4px;
+}
+
+.month-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.month-row.head span {
+  padding: 0.3rem 0;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 5.6rem;
+  padding: 0.4rem;
+  border-radius: 0.7rem;
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  transition:
+    transform 0.18s var(--spring),
+    box-shadow 0.2s,
+    background-color 0.2s;
+}
+
+.day-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  z-index: 1;
+}
+
+.day-cell.outside {
+  opacity: 0.45;
+}
+
+.day-cell.busy {
+  background: var(--accent-soft);
+}
+
+.day-cell[data-selected] {
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    var(--shadow);
+}
+
+.day-num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 750;
+  font-size: 0.95rem;
+}
+
+.day-cell.today .day-num {
+  background: var(--gradient);
+  color: var(--on-accent);
+  box-shadow: var(--glow);
+}
+
+.day-chips {
+  display: grid;
+  gap: 2px;
+}
+
+.chip {
+  display: block;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.chip.event {
+  background: var(--accent-2);
+}
+
+.chip.unanswered,
+.chip.invited {
+  background: transparent;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.chip.out,
+.chip.declined {
+  background: var(--surface);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.chip.more {
+  background: transparent;
+  color: var(--muted);
+}
+
+.day-dots {
+  display: none;
+  gap: 3px;
+  justify-content: center;
+}
+
+.day-dots i {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.day-dots i.event {
+  background: var(--accent-2);
+}
+
+@media (max-width: 40rem) {
+  .day-cell {
+    min-height: 3.2rem;
+    align-items: center;
+    padding: 0.3rem 0.1rem;
+  }
+  .day-chips {
+    display: none;
+  }
+  .day-dots {
+    display: flex;
+  }
+}
+
+.legend .key.hangout {
+  background: var(--accent);
+}
+
+.legend .key.event {
+  background: var(--accent-2);
+}
+
+#day {
+  animation: rise 0.35s var(--ease);
+}
+
+#day h2,
+#up-next h2 {
+  font-size: 1.2rem;
+}
+
+/* agenda lists */
+
+.agenda {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agenda-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s;
+}
+
+.agenda-item.event {
+  border-left-color: var(--accent-2);
+}
+
+.agenda-item.out,
+.agenda-item.declined {
+  opacity: 0.6;
+}
+
+.agenda-item:hover {
+  transform: translateX(3px);
+  box-shadow: var(--shadow);
+}
+
+.agenda-item .date-tile {
+  width: 3rem;
+  height: 3rem;
+}
+
+.agenda-item .date-tile b {
+  font-size: 1.15rem;
+}
+
+.agenda-time {
+  min-width: 3rem;
+  font-family: var(--font-display);
+  font-weight: 750;
+  color: var(--accent);
+}
+
+.agenda-body {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.agenda-body b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agenda-body .muted {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+}

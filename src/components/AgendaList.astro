@@ -1,0 +1,62 @@
+---
+import type { AgendaItem } from "../lib/agenda";
+import { dayLabel, relativeDay } from "../lib/time";
+import Icon from "./Icon.astro";
+
+interface Props {
+  items: AgendaItem[];
+  /** Show each item's date (an agenda across days) rather than just its time. */
+  dated?: boolean;
+  today: string;
+}
+
+const { items, dated = false, today } = Astro.props;
+const STATUS: Record<AgendaItem["status"], string> = {
+  in: "You're in",
+  out: "Can't make it",
+  unanswered: "Answer",
+  hosting: "Hosting",
+  going: "Going",
+  maybe: "Maybe",
+  invited: "Invited · answer",
+  declined: "Can't go",
+};
+---
+
+<ul class="agenda stagger">
+  {
+    items.map((item, i) => {
+      const [weekday, day] = dayLabel(item.date).split(" ");
+      return (
+        <li style={`--i: ${i}`}>
+          <a href={item.href} class:list={["agenda-item", item.kind, item.status]}>
+            {dated ? (
+              <span class="date-tile" aria-hidden="true">
+                <small>{weekday}</small>
+                <b>{day}</b>
+              </span>
+            ) : (
+              <span class="agenda-time">{item.time.split("–")[0]}</span>
+            )}
+            <span class="agenda-body">
+              <b>{item.title}</b>
+              <span class="muted">
+                <Icon name={item.kind === "event" ? "ticket" : "users"} size={13} />{" "}
+                {dated ? `${relativeDay(item.date, today)} · ${item.time}` : item.time}
+                {item.where && ` · ${item.where}`}
+              </span>
+            </span>
+            <span
+              class:list={[
+                "pill",
+                { solid: item.status === "unanswered" || item.status === "invited" },
+              ]}
+            >
+              {STATUS[item.status]}
+            </span>
+          </a>
+        </li>
+      );
+    })
+  }
+</ul>
