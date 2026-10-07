@@ -182,6 +182,24 @@ const blocked = person ? peopleByIds([...blockedBy(person.id)]) : [];
           </section>
         )}
 
+        <section class="card stack logout" aria-labelledby="logout-h" style="--i: 4">
+          <h2 id="logout-h">Log out</h2>
+          <p class="muted">
+            Logging out forgets you on this device: your profile and your groups. There's no
+            password, so <strong>copy your sign-in link above first</strong>. It's how you get
+            back in.
+          </p>
+          <form
+            method="post"
+            action="/api/me/logout"
+            data-confirm="Log out on this device? You'll need your private sign-in link to get back in."
+          >
+            <button type="submit" class="button ghost danger">
+              Log out
+            </button>
+          </form>
+        </section>
+
         <section class="card stack" aria-labelledby="groups-h" style="--i: 3">
           <h2 id="groups-h">Your groups</h2>
           <p class="muted">

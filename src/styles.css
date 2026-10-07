@@ -4605,3 +4605,7 @@ button:disabled {
 .block-form {
   margin-top: 0.5rem;
 }
+
+.logout {
+  border-color: color-mix(in oklab, #dc2626 25%, var(--line));
+}
