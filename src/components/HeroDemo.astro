@@ -1,0 +1,77 @@
+---
+// The front page's demo: a pretend group's evening week filling in as three
+// friends mark their hours, then the overlap lighting up and landing in a
+// calendar. Pure CSS on a 9s loop; with reduced motion it rests on the
+// finished picture. Decorative, so it's hidden from assistive tech and
+// described in one sentence instead.
+
+const days = ["M", "T", "W", "T", "F", "S", "S"];
+const hours = ["4pm", "5pm", "6pm", "7pm", "8pm", "9pm"];
+// how many of the three are free, by row (hour) then column (day); Thursday
+// 6–9pm is everyone
+const heat = [
+  [1, 0, 2, 1, 0, 2, 1],
+  [2, 1, 1, 2, 1, 3, 2],
+  [1, 2, 3, 4, 2, 3, 1],
+  [0, 2, 2, 4, 3, 2, 0],
+  [1, 1, 2, 4, 2, 1, 0],
+  [0, 0, 1, 2, 1, 0, 1],
+];
+const friends = [
+  { name: "Ana", hue: 18, hours: 6 },
+  { name: "Ben", hue: 210, hours: 4 },
+  { name: "Cat", hue: 150, hours: 5 },
+];
+---
+
+<div class="demo">
+  <p class="vh">
+    An example group's week: as three friends mark their free evenings, Thursday 6 to 9pm
+    lights up as the time everyone shares, and gets added to their calendars.
+  </p>
+  <div class="demo-card" aria-hidden="true">
+    <div class="demo-head">
+      <span class="demo-title">Friday crew</span>
+      <span class="demo-week">This week</span>
+    </div>
+    <div class="demo-grid">
+      {days.map((d, c) => <b style={`grid-row: 1; grid-column: ${c + 2}`}>{d}</b>)}
+      {
+        hours.map((h, r) => (
+          <>
+            <em style={`grid-row: ${r + 2}; grid-column: 1`}>{h}</em>
+            {heat[r].map((level, c) => (
+              <i
+                data-heat={level}
+                style={`grid-row: ${r + 2}; grid-column: ${c + 2}; --d: ${300 + ((r * 7 + c) * 53) % 2000}ms`}
+              />
+            ))}
+          </>
+        ))
+      }
+      <span class="demo-best" style="grid-row: 4 / 7; grid-column: 5"></span>
+    </div>
+    <div class="demo-found">
+      <span class="spark">✦</span> Best: Thu 6–9pm · everyone's free
+    </div>
+  </div>
+
+  {
+    friends.map((f, i) => (
+      <div class={`demo-chip chip-${i + 1}`} aria-hidden="true">
+        <span class="avatar" style={`--hue: ${f.hue}`}>
+          {f.name[0]}
+        </span>
+        <span>
+          <b>{f.name}</b> marked {f.hours} hours
+        </span>
+      </div>
+    ))
+  }
+  <div class="demo-chip demo-cal" aria-hidden="true">
+    <span class="cal-icon">31</span>
+    <span>
+      <b>Thu 6–9pm</b> added to calendar
+    </span>
+  </div>
+</div>

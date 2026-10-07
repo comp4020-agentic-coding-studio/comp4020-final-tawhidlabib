@@ -1,51 +1,88 @@
 ---
+import HeroDemo from "../components/HeroDemo.astro";
+import Icon from "../components/Icon.astro";
 import Base from "../layouts/Base.astro";
+import { hue, initials } from "../lib/avatar";
+import { listMembers } from "../lib/db";
 import { ERRORS } from "../lib/forms";
 import { yourGroups } from "../lib/identity";
 import { DEFAULT_TIMEZONE } from "../lib/time";
 
-const groups = yourGroups(Astro.request.headers.get("cookie"));
+const groups = yourGroups(Astro.request.headers.get("cookie")).map((g) => ({
+  ...g,
+  members: listMembers(g.group.id),
+}));
 const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
 ---
 
-<Base title="Hangout: find a time your friends are free">
+<Base title="Hangout: find the overlap">
   <section class="hero" aria-labelledby="hero-title">
-    <span class="pill eyebrow">No sign-up · free · made for small groups</span>
-    <h1 id="hero-title">Stop asking “when's everyone free?”</h1>
-    <p class="lede">
-      Start a group, send one link, and everyone taps the hours they're free this week.
-      Hangout finds the longest stretch that works for the most of you, and puts it in
-      your calendar.
-    </p>
-    <div class="cta-row">
-      <a class="button large" href="#start">Start a group</a>
-      {
-        groups.length > 0 ? (
-          <a class="button large ghost" href={`/g/${groups[0].group.id}`}>
-            Open {groups[0].group.name}
-          </a>
-        ) : (
-          <a class="button large ghost" href="#how">
-            How it works
-          </a>
-        )
-      }
+    <div>
+      <span class="pill eyebrow">
+        <Icon name="sparkles" size={14} /> For small groups who'd rather meet than message
+      </span>
+      <h1 id="hero-title">
+        Find the <span class="gradient-text">overlap.</span><br />Then actually hang out.
+      </h1>
+      <p class="lede">
+        One link for the group. Everyone taps the hours they're free. Hangout finds the
+        longest stretch that works for the most of you, and puts it in your calendar.
+      </p>
+      <div class="cta-row">
+        <a class="button large" href="#start">
+          Start a group, free
+          <span class="icon-arrow"><Icon name="arrow" /></span>
+        </a>
+        {
+          groups.length > 0 ? (
+            <a class="button large ghost" href={`/g/${groups[0].group.id}`}>
+              Open {groups[0].group.name}
+            </a>
+          ) : (
+            <a class="button large ghost" href="#how">
+              See how it works
+            </a>
+          )
+        }
+      </div>
+      <div class="reassure">
+        <span><Icon name="check" size={16} /> No sign-up</span>
+        <span><Icon name="check" size={16} /> Works on any phone</span>
+        <span><Icon name="check" size={16} /> Google & Apple calendars</span>
+      </div>
     </div>
+    <HeroDemo />
   </section>
 
   {
     groups.length > 0 && (
       <section class="section" aria-labelledby="your-groups">
-        <h2 id="your-groups">Your groups</h2>
-        <ul class="group-list">
-          {groups.map(({ group, member }) => (
-            <li>
-              <a class="card" href={`/g/${group.id}`}>
-                <span>
+        <div class="section-head">
+          <span class="kicker">Welcome back</span>
+          <h2 id="your-groups">Your groups</h2>
+        </div>
+        <ul class="group-list stagger">
+          {groups.map(({ group, member, members }, i) => (
+            <li style={`--i: ${i}`}>
+              <a class="card lift" href={`/g/${group.id}`}>
+                <ul class="avatars small" aria-hidden="true">
+                  {members.slice(0, 4).map((m) => (
+                    <li class="avatar" style={`--hue: ${hue(m.name)}`}>
+                      {initials(m.name)}
+                    </li>
+                  ))}
+                </ul>
+                <span class="name">
                   {group.name}
-                  <span class="muted"> · you're {member.name}</span>
+                  <span class="muted">
+                    {" "}
+                    · you're {member.name} · {members.length}{" "}
+                    {members.length === 1 ? "member" : "members"}
+                  </span>
                 </span>
-                <span aria-hidden="true">→</span>
+                <span class="go" aria-hidden="true">
+                  <Icon name="arrow" size={18} />
+                </span>
               </a>
             </li>
           ))}
@@ -54,29 +91,77 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
     )
   }
 
-  <section class="section" aria-labelledby="how">
-    <h2 id="how">How it works</h2>
-    <ol class="steps">
-      <li class="card">
-        <strong>Start a group</strong>
-        <span class="muted">Name it, add your name. No account, no password.</span>
+  <section class="section reveal" aria-labelledby="how-title" id="how">
+    <div class="section-head">
+      <span class="kicker">How it works</span>
+      <h2 id="how-title">Three taps from "we should hang out" to a plan</h2>
+    </div>
+    <ol class="features">
+      <li class="card lift">
+        <span class="step" aria-hidden="true">1</span>
+        <div class="icon-bubble"><Icon name="link" size={22} /></div>
+        <h3>Start a group, share one link</h3>
+        <p class="muted">
+          No accounts, no passwords, no app to install. Anyone with the link joins with just a
+          name.
+        </p>
       </li>
-      <li class="card">
-        <strong>Share the link</strong>
-        <span class="muted">Anyone with it can join in seconds, on any phone.</span>
+      <li class="card lift">
+        <span class="step" aria-hidden="true">2</span>
+        <div class="icon-bubble"><Icon name="grid" size={22} /></div>
+        <h3>Everyone taps when they're free</h3>
+        <p class="muted">
+          A week of hours, shaded by how many of your friends are free, so the good times
+          jump out.
+        </p>
       </li>
-      <li class="card">
-        <strong>Tap when you're free</strong>
-        <span class="muted">
-          Hangout recommends the best time. Say you're in, and add it to your calendar.
-        </span>
+      <li class="card lift">
+        <span class="step" aria-hidden="true">3</span>
+        <div class="icon-bubble"><Icon name="calendar" size={22} /></div>
+        <h3>Say you're in, add it to your calendar</h3>
+        <p class="muted">
+          Hangout recommends the longest overlap. Propose it, RSVP in one tap, and save it to
+          Google or Apple Calendar.
+        </p>
       </li>
     </ol>
   </section>
 
-  <section class="section" aria-labelledby="start-title" id="start">
-    <form method="post" action="/api/groups" class="card start-card stack">
+  <section class="section reveal" aria-labelledby="why">
+    <div class="section-head">
+      <span class="kicker">Why Hangout</span>
+      <h2 id="why">Beat the group chat</h2>
+    </div>
+    <div class="compare">
+      <div class="card">
+        <h3><Icon name="chat" size={18} /> The group chat</h3>
+        <ul class="chat" aria-label="An example group chat">
+          <li>we should hang out!!</li>
+          <li>yes! when?</li>
+          <li>i'm free thursday-ish</li>
+          <li>thurs is bad, maybe sat?</li>
+          <li class="lost">…41 more messages…</li>
+        </ul>
+        <div class="result">
+          <strong>No plan.</strong>
+          <span class="muted">Everyone's still "free-ish" in theory.</span>
+        </div>
+      </div>
+      <div class="card winner">
+        <h3><Icon name="sparkles" size={18} /> Hangout</h3>
+        <p class="muted">One link. Everyone taps their week. The overlap finds itself.</p>
+        <div class="result">
+          <strong>Thu 6–9pm · everyone's in</strong>
+          <span class="muted">Already in four calendars.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section reveal" aria-labelledby="start-title" id="start">
+    <form method="post" action="/api/groups" class="start-card stack">
       <div>
+        <div class="icon-bubble"><Icon name="users" size={22} /></div>
         <h2 id="start-title">Start a group</h2>
         <p class="muted">Takes ten seconds. You'll get a link to send your friends.</p>
       </div>
@@ -87,24 +172,29 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
           </p>
         )
       }
-      <label class="field">
-        Group name
-        <input type="text" name="group" required maxlength="60" placeholder="Friday dinner crew" />
-      </label>
-      <label class="field">
-        Your name
-        <input
-          type="text"
-          name="name"
-          required
-          maxlength="40"
-          autocomplete="given-name"
-          placeholder="What your friends call you"
-        />
-      </label>
+      <div class="row">
+        <label class="field">
+          Group name
+          <input type="text" name="group" required maxlength="60" placeholder="Friday dinner crew" />
+        </label>
+        <label class="field">
+          Your name
+          <input
+            type="text"
+            name="name"
+            required
+            maxlength="40"
+            autocomplete="given-name"
+            placeholder="What your friends call you"
+          />
+        </label>
+      </div>
       <input type="hidden" name="timezone" value={DEFAULT_TIMEZONE} id="timezone" />
       <div>
-        <button type="submit" class="button large">Create group and get the link</button>
+        <button type="submit" class="button large">
+          Create group and get the link
+          <span class="icon-arrow"><Icon name="arrow" /></span>
+        </button>
       </div>
     </form>
   </section>

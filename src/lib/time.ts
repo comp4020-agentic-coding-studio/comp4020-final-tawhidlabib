@@ -118,5 +118,17 @@ export function spanLabel(date: string, start: number, end: number): string {
   return `${dayLabel(date)}, ${hourLabel(start)}–${hourLabel(end)}`;
 }
 
+/** "Today", "Tomorrow", "In 5 days": how far off a date is, for a glance. */
+export function relativeDay(date: string, today: string): string {
+  const days = Math.round(
+    (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000,
+  );
+  if (days <= 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  if (days < 14) return `In ${days} days`;
+  if (days < 60) return `In ${Math.round(days / 7)} weeks`;
+  return `In ${Math.round(days / 30)} months`;
+}
+
 /** The slot key the grid's checkboxes carry: "2030-01-08T18". */
 export const slotKey = (date: string, hour: number) => `${date}T${pad(hour)}`;
