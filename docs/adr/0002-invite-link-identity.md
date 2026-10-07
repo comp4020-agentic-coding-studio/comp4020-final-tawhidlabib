@@ -1,6 +1,6 @@
 # 2. A person is a name and a cookie, per group
 
-Date: 2026-10-06 · Status: accepted (crit 8)
+Date: 2026-10-06 · Status: superseded by [ADR 4](0004-profiles-with-a-sign-in-link.md) (crit 8)
 
 ## Context
 
