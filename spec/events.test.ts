@@ -34,7 +34,9 @@ describe("events", () => {
     const page = await stranger.get(path);
     expect(page.res.status).toBe(200);
     expect(page.html).toContain(title);
-    expect(textOf((await stranger.get("/events")).doc, "#explore")).toContain(title);
+    // Explore shows the soonest 30; a search finds any of them
+    const found = await stranger.get(`/events?q=${encodeURIComponent(title)}`);
+    expect(textOf(found.doc, "#explore .cards")).toContain(title);
   });
 
   it("a private event is for the people invited, and nobody else", async () => {
@@ -54,7 +56,9 @@ describe("events", () => {
 
     expect((await new Person(baseUrl).get(path)).res.status, "a stranger can't see it").toBe(403);
     expect((await cat.get(path)).res.status, "nor can a friend who wasn't invited").toBe(403);
-    expect(textOf((await new Person(baseUrl).get("/events")).doc, "#explore")).not.toContain(title);
+    const searched = await new Person(baseUrl).get(`/events?q=${encodeURIComponent(title)}`);
+    // the results, not the page echoing what was searched for
+    expect(textOf(searched.doc, "#explore .cards"), "and a search doesn't find it").not.toContain(title);
   });
 
   it("saying you're going puts you on the guest list and on your calendar", async () => {

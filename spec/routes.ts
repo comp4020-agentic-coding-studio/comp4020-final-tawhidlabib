@@ -76,6 +76,13 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
   await wall.post("/api/comments", { kind: "hangout", ref: hangoutRef, body: "I'll book a table" });
   await wall.post("/api/reactions", { kind: "hangout", ref: hangoutRef, emoji: "🙌" });
 
+  // a full event with someone waiting (ADR 6)
+  const tiny = await host.post("/api/events", { ...when, title: "Floor dinner", visibility: "public", capacity: "1" });
+  const dinner = tiny.headers.get("location") ?? "/e/not-created";
+  const dinnerRef = dinner.split("/").pop() ?? "";
+  await wall.post(`/api/events/${dinnerRef}/rsvp`, { response: "going" });
+  await door.post(`/api/events/${dinnerRef}/rsvp`, { response: "going" });
+
   const { html } = await host.get("/me");
   const signIn = /\/me\/sign-in\/[A-Za-z0-9_-]+/.exec(html)?.[0] ?? "/me/sign-in/missing";
 
@@ -99,6 +106,9 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
     { label: "/e/[id], host", path: party, cookie: as(host) },
     { label: "/e/[id], stranger", path: party },
     { label: "/e/[id], private, invited", path: secret, cookie: as(wall) },
+    { label: "/e/[id], full, with a waitlist", path: dinner, cookie: as(host) },
+    { label: "/e/[id], full, as the one waiting", path: dinner, cookie: as(door) },
+    { label: "/events, a search", path: "/events?q=Floor" },
     { label: "/f/[code], stranger", path: `/f/${await friendCode(host)}` },
     { label: "/f/[code], signed in", path: `/f/${await friendCode(host)}`, cookie: as(door) },
     { label: "/me/sign-in/[token], another device", path: signIn },
