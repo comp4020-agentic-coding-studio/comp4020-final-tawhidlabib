@@ -1,0 +1,47 @@
+---
+import EventForm from "../../../components/EventForm.astro";
+import Base from "../../../layouts/Base.astro";
+import { eventByShareId } from "../../../lib/events";
+import { ERRORS } from "../../../lib/forms";
+import { todayIn } from "../../../lib/time";
+
+// The host's edit form. Anyone else gets the same 403 the API would give.
+const event = eventByShareId(Astro.params.id ?? "");
+const person = Astro.locals.person;
+const isHost = !!event && person?.id === event.hostId;
+if (!event) Astro.response.status = 404;
+else if (!isHost) Astro.response.status = 403;
+const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
+---
+
+<Base title={event && isHost ? `Edit ${event.title} · Hangout` : "Not yours to edit · Hangout"}>
+  {
+    event && isHost ? (
+      <>
+        <div class="page-head">
+          <div>
+            <span class="kicker">
+              <a href={`/e/${event.shareId}`}>← {event.title}</a>
+            </span>
+            <h1>Edit event</h1>
+          </div>
+        </div>
+        <EventForm
+          action={`/api/events/${event.shareId}/edit`}
+          today={todayIn(event.timezone)}
+          timezone={event.timezone}
+          error={error}
+          event={event}
+          submitLabel="Save changes"
+        />
+      </>
+    ) : (
+      <div class="narrow start-card join-card stack">
+        <h1>Only the host can edit this event</h1>
+        <a class="button" href="/events">
+          See events
+        </a>
+      </div>
+    )
+  }
+</Base>

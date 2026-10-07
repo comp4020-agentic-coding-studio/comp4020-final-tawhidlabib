@@ -3,8 +3,8 @@ import EventCard from "../components/EventCard.astro";
 import Icon from "../components/Icon.astro";
 import Onboard from "../components/Onboard.astro";
 import Base from "../layouts/Base.astro";
-import { eventsFor, goingCounts, publicEvents } from "../lib/events";
-import { DEFAULT_TIMEZONE, todayIn } from "../lib/time";
+import { eventsFor, goingCounts, publicEvents, takenCounts } from "../lib/events";
+import { addDays, DEFAULT_TIMEZONE, todayIn } from "../lib/time";
 
 const person = Astro.locals.person;
 const today = todayIn(person?.timezone ?? DEFAULT_TIMEZONE);
@@ -12,8 +12,25 @@ const mine = person ? eventsFor(person.id, today) : [];
 const waiting = mine.filter((e) => e.response === "invited" && e.event.hostId !== person?.id);
 const rest = mine.filter((e) => !waiting.includes(e));
 const search = (Astro.url.searchParams.get("q") ?? "").slice(0, 60);
-const explore = publicEvents(today, 30, search);
-const going = goingCounts([...mine.map((e) => e.event.id), ...explore.map((e) => e.id)]);
+// Explore's date filters, in your timezone: today, this weekend, the next 7 days
+const WHEN = { all: "Any time", today: "Today", weekend: "This weekend", week: "Next 7 days" } as const;
+const askedWhen = Astro.url.searchParams.get("when") ?? "all";
+const when = (askedWhen in WHEN ? askedWhen : "all") as keyof typeof WHEN;
+const dow = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7; // Monday is 0
+const range: [string, string | undefined] =
+  when === "today"
+    ? [today, today]
+    : when === "weekend"
+      ? [dow >= 5 ? today : addDays(today, 5 - dow), addDays(today, 6 - dow)]
+      : when === "week"
+        ? [today, addDays(today, 6)]
+        : [today, undefined];
+const explore = publicEvents(range[0], 30, search, range[1]);
+const ids = [...mine.map((e) => e.event.id), ...explore.map((e) => e.id)];
+const going = goingCounts(ids);
+const taken = takenCounts(ids);
+const filterHref = (w: string) =>
+  `/events?${new URLSearchParams({ ...(w === "all" ? {} : { when: w }), ...(search ? { q: search } : {}) })}#explore`;
 ---
 
 <Base title="Events · Hangout">
@@ -56,7 +73,14 @@ const going = goingCounts([...mine.map((e) => e.event.id), ...explore.map((e) =>
               <h3 class="list-label">Waiting for your answer</h3>
               <div class="cards stagger">
                 {waiting.map(({ event, response }, i) => (
-                  <EventCard event={event} today={today} response={response} going={going.get(event.id)} i={i} />
+                  <EventCard
+                    event={event}
+                    today={today}
+                    response={response}
+                    going={going.get(event.id)}
+                    taken={taken.get(event.id)}
+                    i={i}
+                  />
                 ))}
               </div>
             </div>
@@ -72,6 +96,7 @@ const going = goingCounts([...mine.map((e) => e.event.id), ...explore.map((e) =>
                     response={response}
                     hosting={event.hostId === person.id}
                     going={going.get(event.id)}
+                    taken={taken.get(event.id)}
                     i={i}
                   />
                 ))}
@@ -88,8 +113,18 @@ const going = goingCounts([...mine.map((e) => e.event.id), ...explore.map((e) =>
     <form method="get" action="/events#explore" class="search">
       <label class="vh" for="q">Search public events</label>
       <input type="search" name="q" id="q" value={search} placeholder="Search by name or place" />
+      {when !== "all" && <input type="hidden" name="when" value={when} />}
       <button type="submit" class="button small">Search</button>
     </form>
+    <nav class="chips" aria-label="When">
+      {
+        Object.entries(WHEN).map(([key, label]) => (
+          <a href={filterHref(key)} aria-current={key === when ? "true" : undefined}>
+            {label}
+          </a>
+        ))
+      }
+    </nav>
     <p class="muted">
       {search ? `Public events matching "${search}".` : "Public events anyone can join."}
     </p>
@@ -107,7 +142,7 @@ const going = goingCounts([...mine.map((e) => e.event.id), ...explore.map((e) =>
       ) : (
         <div class="cards stagger">
           {explore.map((event, i) => (
-            <EventCard event={event} today={today} going={going.get(event.id)} i={i} />
+            <EventCard event={event} today={today} going={going.get(event.id)} taken={taken.get(event.id)} i={i} />
           ))}
         </div>
       )

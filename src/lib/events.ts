@@ -3,6 +3,7 @@ import { and, asc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import { db } from "./db";
 import type { Person } from "./people";
 import { type Event, eventGuests, events, people } from "./schema";
+import { clockToUtc } from "./time";
 
 // Events, Facebook-style (ADR 5). Public: anyone with the link can see and
 // RSVP, and it's listed on Explore. Private: the host and the people they
@@ -133,6 +134,44 @@ export function respond(
 
     return { recorded, promoted: fillFromWaitlist(tx, event) };
   });
+}
+
+/** After the host raises the spot limit (or anything else frees spots),
+ *  move people in from the waitlist. Returns who moved in. */
+export function refill(event: Event): number[] {
+  return db.transaction((tx) => fillFromWaitlist(tx, event));
+}
+
+export function updateEvent(
+  id: number,
+  fields: Partial<Omit<Event, "id" | "shareId" | "hostId" | "createdAt">>,
+): Event {
+  return db.update(events).set(fields).where(eq(events.id, id)).returning().get();
+}
+
+/** Whether RSVPs have closed: the deadline, in the event's timezone, has
+ *  passed. The host can always still answer. */
+export function rsvpClosed(event: Event, now = new Date()): boolean {
+  if (!event.rsvpByDate || !event.rsvpByTime) return false;
+  return clockToUtc(event.rsvpByDate, event.rsvpByTime, event.timezone).getTime() <= now.getTime();
+}
+
+/** Spots taken at each of these events: going guests and their +1s, the
+ *  host aside. */
+export function takenCounts(eventIds: number[]): Map<number, number> {
+  const taken = new Map<number, number>();
+  if (eventIds.length === 0) return taken;
+  const rows = db
+    .select({ eventId: eventGuests.eventId, personId: eventGuests.personId, plusOnes: eventGuests.plusOnes, hostId: events.hostId })
+    .from(eventGuests)
+    .innerJoin(events, eq(events.id, eventGuests.eventId))
+    .where(and(inArray(eventGuests.eventId, eventIds), eq(eventGuests.response, "going")))
+    .all();
+  for (const r of rows) {
+    if (r.personId === r.hostId) continue;
+    taken.set(r.eventId, (taken.get(r.eventId) ?? 0) + 1 + r.plusOnes);
+  }
+  return taken;
 }
 
 /** Move people from the waitlist into free spots, earliest first; someone

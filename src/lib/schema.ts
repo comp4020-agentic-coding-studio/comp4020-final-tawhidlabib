@@ -144,6 +144,11 @@ export const events = sqliteTable("events", {
   capacity: int(),
   /** How many +1s each guest may bring; they take spots too. */
   maxPlusOnes: int("max_plus_ones").notNull().default(0),
+  /** When RSVPs close (wall-clock in `timezone`); null means they don't. */
+  rsvpByDate: text("rsvp_by_date"),
+  rsvpByTime: text("rsvp_by_time"),
+  /** The cover's theme (see src/lib/covers.ts). */
+  cover: text().notNull().default("sunset"),
   createdAt: createdAt(),
 });
 

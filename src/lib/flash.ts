@@ -30,6 +30,7 @@ export const FLASHES = {
   },
   invited: { text: "Invites sent.", party: false },
   cancelled: { text: "Event cancelled.", party: false },
+  edited: { text: "Event updated. Guests have been told.", party: false },
 } as const;
 
 export type Flash = keyof typeof FLASHES;

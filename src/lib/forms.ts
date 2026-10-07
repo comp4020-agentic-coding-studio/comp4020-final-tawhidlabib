@@ -15,6 +15,7 @@ export const ERRORS: Record<string, string> = {
   "bad-link": "That sign-in link doesn't work any more. Ask for a fresh one from /me.",
   "event-missing": "Give your event a name and a date.",
   "event-time": "Pick an end time after the start.",
+  "rsvp-closed": "RSVPs for this event have closed.",
 };
 
 /** Where a form asked to go back to, if it's a path on this site; "/"

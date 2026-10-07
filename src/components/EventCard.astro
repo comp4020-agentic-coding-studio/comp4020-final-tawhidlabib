@@ -10,10 +10,13 @@ interface Props {
   response?: Response;
   hosting?: boolean;
   going?: number;
+  /** Spots taken, for an event with a limit. */
+  taken?: number;
   i?: number;
 }
 
-const { event, today, response, hosting = false, going = 0, i = 0 } = Astro.props;
+const { event, today, response, hosting = false, going = 0, taken = 0, i = 0 } = Astro.props;
+const left = event.capacity === null ? null : Math.max(0, event.capacity - taken);
 const [weekday, day, month] = dayLabel(event.date).split(" ");
 const ANSWER = {
   invited: "Invited",
@@ -46,6 +49,11 @@ const ANSWER = {
         {event.visibility === "public" ? "Public" : "Private"}
       </span>
       {going > 0 && <span class="pill">{going} going</span>}
+      {left !== null && (
+        <span class:list={["pill", { full: left === 0 }]}>
+          {left === 0 ? "Full · waitlist" : `${left} ${left === 1 ? "spot" : "spots"} left`}
+        </span>
+      )}
       <span class="pill">
         <Icon name="clock" size={13} />
         {relativeDay(event.date, today)}

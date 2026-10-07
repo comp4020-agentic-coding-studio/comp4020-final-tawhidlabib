@@ -1,0 +1,241 @@
+---
+import { hue, initials } from "../lib/avatar";
+import { COVERS } from "../lib/covers";
+import type { Event } from "../lib/events";
+import type { Group } from "../lib/db";
+import type { Person } from "../lib/people";
+import { addDays } from "../lib/time";
+import Icon from "./Icon.astro";
+
+// The event form, for hosting a new event and for editing one: what, when,
+// where, spots and +1s, an RSVP deadline, a cover, who can see it, and (new
+// events only) who to invite. A live preview of the cover as you type.
+
+interface Props {
+  action: string;
+  today: string;
+  timezone: string;
+  error?: string;
+  /** The event being edited; absent when hosting a new one. */
+  event?: Event;
+  friends?: Person[];
+  groups?: { group: Group }[];
+  submitLabel: string;
+}
+
+const { action, today, timezone, error, event, friends = [], groups = [], submitLabel } = Astro.props;
+const cover = event?.cover ?? "sunset";
+---
+
+<form method="post" action={action} class="event-form">
+  {
+    error && (
+      <p class="error" role="alert">
+        {error}
+      </p>
+    )
+  }
+
+  <div class="ev-preview" data-cover={cover} aria-hidden="true">
+    <span class="ev-preview-title" data-preview-title>{event?.title ?? "Your event"}</span>
+    <span class="ev-preview-when" data-preview-when>Pick a date and time</span>
+  </div>
+
+  <div class="card stack">
+    <label class="field">
+      What's happening?
+      <input
+        type="text"
+        name="title"
+        required
+        maxlength="80"
+        value={event?.title}
+        placeholder="Rooftop picnic, games night, a long walk…"
+        data-title
+      />
+    </label>
+    <div class="row-3">
+      <label class="field">
+        Date
+        <input type="date" name="date" required min={event ? undefined : today} value={event?.date ?? addDays(today, 7)} data-date />
+      </label>
+      <label class="field">
+        Starts
+        <input type="time" name="start" required value={event?.startTime ?? "19:00"} data-start />
+      </label>
+      <label class="field">
+        Ends
+        <input type="time" name="end" required value={event?.endTime ?? "21:00"} data-end />
+      </label>
+    </div>
+    <label class="field">
+      Where
+      <input type="text" name="location" maxlength="120" value={event?.location} placeholder="Address, park, or 'my place'" />
+    </label>
+    <label class="field">
+      Details
+      <textarea name="details" rows="4" maxlength="1000" placeholder="What to bring, how to find it, anything people should know">{event?.details}</textarea>
+    </label>
+    <div class="row-3">
+      <label class="field">
+        Spots
+        <input
+          type="number"
+          name="capacity"
+          min="1"
+          max="1000"
+          inputmode="numeric"
+          value={event?.capacity ?? undefined}
+          placeholder="No limit"
+        />
+      </label>
+      <label class="field">
+        +1s per guest
+        <select name="maxPlusOnes">
+          {[0, 1, 2, 3].map((n) => (
+            <option value={n} selected={(event?.maxPlusOnes ?? 0) === n}>
+              {n === 0 ? "None" : `Up to ${n}`}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+    <div class="row-3">
+      <label class="field">
+        RSVP by (optional)
+        <input type="date" name="rsvpByDate" value={event?.rsvpByDate ?? undefined} />
+      </label>
+      <label class="field">
+        at
+        <input type="time" name="rsvpByTime" value={event?.rsvpByTime ?? undefined} />
+      </label>
+    </div>
+    <p class="muted fine">
+      Times are in {timezone}. With a spot limit, once it's full people join a waitlist and move in
+      automatically, first come first served, when someone drops out.
+    </p>
+  </div>
+
+  <fieldset class="card stack">
+    <legend>Cover</legend>
+    <div class="covers">
+      {
+        COVERS.map((c) => (
+          <label class="cover-choice" data-cover={c.id}>
+            <input type="radio" name="cover" value={c.id} checked={c.id === cover} data-cover-pick />
+            <span class="cover-swatch" aria-hidden="true" />
+            {c.label}
+          </label>
+        ))
+      }
+    </div>
+  </fieldset>
+
+  <fieldset class="card stack visibility">
+    <legend>Who can see it?</legend>
+    <div class="choice-row">
+      <label class="choice">
+        <input type="radio" name="visibility" value="public" checked={event?.visibility !== "private"} />
+        <span class="choice-body">
+          <span class="choice-title">
+            <Icon name="globe" size={18} /> Public
+          </span>
+          <span class="muted">Anyone with the link can see it and RSVP. Listed on Explore.</span>
+        </span>
+      </label>
+      <label class="choice">
+        <input type="radio" name="visibility" value="private" checked={event?.visibility === "private"} />
+        <span class="choice-body">
+          <span class="choice-title">
+            <Icon name="lock" size={18} /> Private
+          </span>
+          <span class="muted">Only you and the people you invite can see it.</span>
+        </span>
+      </label>
+    </div>
+  </fieldset>
+
+  {
+    !event && (
+      <fieldset class="card stack">
+        <legend>Invite</legend>
+        {friends.length === 0 && groups.length === 0 ? (
+          <p class="muted">
+            Add <a href="/friends">friends</a> or join a group to invite people. You can always
+            share the link instead.
+          </p>
+        ) : (
+          <>
+            {friends.length > 0 && (
+              <div>
+                <h2 class="list-label">Friends</h2>
+                <div class="invite-grid">
+                  {friends.map((f) => (
+                    <label class="invite-chip">
+                      <input type="checkbox" name="invite" value={f.id} />
+                      <span class="avatar" style={`--hue: ${hue(f.name)}`} aria-hidden="true">
+                        {initials(f.name)}
+                      </span>
+                      {f.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {groups.length > 0 && (
+              <div>
+                <h2 class="list-label">Whole groups</h2>
+                <div class="invite-grid">
+                  {groups.map(({ group }) => (
+                    <label class="invite-chip">
+                      <input type="checkbox" name="inviteGroup" value={group.id} />
+                      <Icon name="users" size={18} />
+                      {group.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </fieldset>
+    )
+  }
+
+  <div class="save-bar">
+    <span role="status" class="muted">{event ? "Guests going or maybe are told what changed" : "Ready when you are"}</span>
+    <button type="submit" class="button">
+      <Icon name="sparkles" size={18} />
+      {submitLabel}
+    </button>
+  </div>
+</form>
+
+<script>
+  // A live preview of the event's cover as you type and pick.
+  const title = document.querySelector<HTMLInputElement>("[data-title]");
+  const date = document.querySelector<HTMLInputElement>("[data-date]");
+  const start = document.querySelector<HTMLInputElement>("[data-start]");
+  const end = document.querySelector<HTMLInputElement>("[data-end]");
+  const preview = document.querySelector<HTMLElement>(".ev-preview");
+  const previewTitle = document.querySelector<HTMLElement>("[data-preview-title]");
+  const previewWhen = document.querySelector<HTMLElement>("[data-preview-when]");
+  function update() {
+    if (previewTitle) previewTitle.textContent = title?.value.trim() || "Your event";
+    if (previewWhen && date?.value) {
+      const day = new Date(`${date.value}T00:00:00`).toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      });
+      previewWhen.textContent = `${day} · ${start?.value ?? ""}–${end?.value ?? ""}`;
+    }
+  }
+  for (const input of [title, date, start, end]) input?.addEventListener("input", update);
+  for (const pick of document.querySelectorAll<HTMLInputElement>("[data-cover-pick]")) {
+    pick.addEventListener("change", () => {
+      if (preview && pick.checked) preview.dataset.cover = pick.value;
+    });
+  }
+  update();
+</script>

@@ -1,16 +1,16 @@
 ---
-import Icon from "../../components/Icon.astro";
-import Onboard from "../../components/Onboard.astro";
-import Thread from "../../components/Thread.astro";
-import Base from "../../layouts/Base.astro";
-import { hue, initials } from "../../lib/avatar";
-import { eventEvent, googleCalendarUrl } from "../../lib/calendar";
-import { allowedInvitees } from "../../lib/circle";
-import { canSee, eventByShareId, type Guest, guestsOf } from "../../lib/events";
-import { groupsFor } from "../../lib/identity";
-import { peopleByIds, personById } from "../../lib/people";
-import { openThread } from "../../lib/talk";
-import { clockLabel, dayLabel, relativeDay, todayIn } from "../../lib/time";
+import Icon from "../../../components/Icon.astro";
+import Onboard from "../../../components/Onboard.astro";
+import Thread from "../../../components/Thread.astro";
+import Base from "../../../layouts/Base.astro";
+import { hue, initials } from "../../../lib/avatar";
+import { eventEvent, googleCalendarUrl } from "../../../lib/calendar";
+import { allowedInvitees } from "../../../lib/circle";
+import { canSee, eventByShareId, type Guest, guestsOf, rsvpClosed } from "../../../lib/events";
+import { groupsFor } from "../../../lib/identity";
+import { peopleByIds, personById } from "../../../lib/people";
+import { openThread } from "../../../lib/talk";
+import { clockLabel, dayLabel, relativeDay, todayIn } from "../../../lib/time";
 
 const event = eventByShareId(Astro.params.id ?? "");
 const person = Astro.locals.person;
@@ -34,15 +34,22 @@ const myPlace = waitlisted.findIndex((g) => g.person.id === person?.id) + 1;
 const taken = going.filter((g) => g.person.id !== event?.hostId).reduce((n, g) => n + 1 + g.plusOnes, 0);
 const capacity = event?.capacity ?? null;
 const full = capacity !== null && taken >= capacity;
+const closed = !!event && rsvpClosed(event);
+const deadline =
+  event?.rsvpByDate && event.rsvpByTime
+    ? `${dayLabel(event.rsvpByDate)}, ${clockLabel(event.rsvpByTime)}`
+    : null;
 const rsvpHeading = isHost
   ? "You're hosting"
   : mine === "going"
     ? `You're going${myGuest?.plusOnes ? ` (+${myGuest.plusOnes})` : ""}`
     : mine === "waitlisted"
       ? `You're on the waitlist (#${myPlace})`
-      : full
-        ? "It's full. Join the waitlist?"
-        : "Are you going?";
+      : closed
+        ? "RSVPs have closed"
+        : full
+          ? "It's full. Join the waitlist?"
+          : "Are you going?";
 const url = event ? new URL(`/e/${event.shareId}`, Astro.url).href : "";
 const google = event && visible ? googleCalendarUrl(eventEvent(event, Astro.url.origin)) : "";
 const today = event ? todayIn(event.timezone) : "";
@@ -92,7 +99,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
       </div>
     ) : (
       <article class="event-page">
-        <header class="ev-cover">
+        <header class="ev-cover" data-cover={event.cover}>
           <div class="date-tile big" aria-hidden="true">
             <small>{weekday}</small>
             <b>{day}</b>
@@ -171,6 +178,13 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
 
             <section class="card stack" aria-labelledby="rsvp-h" id="rsvp" data-live={`event:${event.shareId}`}>
               <h2 id="rsvp-h">{rsvpHeading}</h2>
+              {deadline && (
+                <p class:list={["deadline", { closed }]}>
+                  <Icon name="clock" size={15} />
+                  {closed ? `RSVPs closed ${deadline}.` : `RSVP by ${deadline} (${relativeDay(event.rsvpByDate ?? "", today).toLowerCase()}).`}
+                  {closed && !isHost && mine && " Your answer stands."}
+                </p>
+              )}
               {capacity !== null && (
                 <div class="spots">
                   <div class="spots-bar" aria-hidden="true">
@@ -209,11 +223,18 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                       name="response"
                       value="going"
                       aria-pressed={mine === "going" || mine === "waitlisted" ? "true" : "false"}
+                      disabled={closed && !isHost}
                     >
                       <Icon name="check" size={16} />{" "}
                       {mine === "waitlisted" ? "Waitlisted" : full && mine !== "going" && !isHost ? "Join waitlist" : "Going"}
                     </button>
-                    <button type="submit" name="response" value="maybe" aria-pressed={mine === "maybe" ? "true" : "false"}>
+                    <button
+                      type="submit"
+                      name="response"
+                      value="maybe"
+                      aria-pressed={mine === "maybe" ? "true" : "false"}
+                      disabled={closed && !isHost}
+                    >
                       Maybe
                     </button>
                     <button
@@ -222,6 +243,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                       value="declined"
                       class="out"
                       aria-pressed={mine === "declined" ? "true" : "false"}
+                      disabled={closed && !isHost}
                     >
                       Can't go
                     </button>
@@ -251,6 +273,11 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
             {isHost && (
               <section class="card stack" aria-labelledby="host-h">
                 <h2 id="host-h">Host tools</h2>
+                <div>
+                  <a class="button small ghost" href={`/e/${event.shareId}/edit`}>
+                    Edit event
+                  </a>
+                </div>
                 <div class="invite-row">
                   <label class="vh" for="event-link">
                     Event link

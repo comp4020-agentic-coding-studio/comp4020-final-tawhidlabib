@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { canSee, eventByShareId, respond } from "../../../../lib/events";
+import { canSee, eventByShareId, respond, rsvpClosed } from "../../../../lib/events";
 import { flash } from "../../../../lib/flash";
 import { currentPerson } from "../../../../lib/identity";
 import { publish } from "../../../../lib/live";
@@ -16,6 +16,9 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   const me = currentPerson(cookies);
   if (!me) return redirect(`/e/${event.shareId}`, 303);
   if (!canSee(event, me)) return new Response("This event is private", { status: 403 });
+  if (rsvpClosed(event) && me.id !== event.hostId) {
+    return new Response("RSVPs for this event have closed", { status: 409 });
+  }
 
   const form = await request.formData();
   const response = String(form.get("response") ?? "");
