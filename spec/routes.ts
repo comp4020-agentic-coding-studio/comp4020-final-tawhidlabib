@@ -119,6 +119,12 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
   await host.upload("/api/photos", { kind: "hangout", ref: pastRef }, [{ name: "brunch.png", type: "image/png", bytes: png }]);
   await host.post("/api/ratings", { kind: "hangout", ref: pastRef, score: "5" });
 
+  // a profile with an emoji and a bio, and someone they've blocked
+  await host.post("/api/me", { name: host.name, bio: "Here for the floor checks", avatarEmoji: "🐙", back: "/me" });
+  const pest = new Person(baseUrl, "Pest");
+  await pest.post("/api/me", { name: pest.name, timezone: "Australia/Sydney" });
+  await host.post("/api/blocks", { code: await friendCode(pest), action: "block" });
+
   // an archived group
   const old = await host.post("/api/groups", { group: "Floor archive", name: host.name, timezone: "Australia/Sydney" });
   const oldPath = old.headers.get("location") ?? "/g/not-created";
@@ -158,6 +164,7 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
     { label: "/e/[id]/edit, host", path: `${party}/edit`, cookie: as(host) },
     { label: "/f/[code], stranger", path: `/f/${await friendCode(host)}` },
     { label: "/f/[code], signed in", path: `/f/${await friendCode(host)}`, cookie: as(door) },
+    { label: "/f/[code], someone you've blocked", path: `/f/${await friendCode(pest)}`, cookie: as(host) },
     { label: "/me/sign-in/[token], another device", path: signIn },
   ];
 }
