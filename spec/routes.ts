@@ -104,6 +104,21 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
   });
   const reunion = late.headers.get("location") ?? "/e/not-created";
 
+  // a past hangout with a photo and a rating in its memories
+  await host.post(`/api/groups/${id}/hangouts`, { date: "2026-01-10", start: "10", end: "12", title: "Floor brunch" });
+  const pastRef =
+    [...(await host.get(path)).doc.querySelectorAll("#plans-body .past article")]
+      .find((a) => a.textContent?.includes("Floor brunch"))
+      ?.querySelector("[data-thread]")
+      ?.getAttribute("data-thread")
+      ?.split(":")[1] ?? "";
+  const png = Uint8Array.from(
+    atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="),
+    (c) => c.charCodeAt(0),
+  );
+  await host.upload("/api/photos", { kind: "hangout", ref: pastRef }, [{ name: "brunch.png", type: "image/png", bytes: png }]);
+  await host.post("/api/ratings", { kind: "hangout", ref: pastRef, score: "5" });
+
   // an archived group
   const old = await host.post("/api/groups", { group: "Floor archive", name: host.name, timezone: "Australia/Sydney" });
   const oldPath = old.headers.get("location") ?? "/g/not-created";
