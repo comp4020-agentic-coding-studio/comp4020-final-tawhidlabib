@@ -230,6 +230,49 @@ export const notifications = sqliteTable(
   (t) => [index("notifications_person").on(t.personId, t.id)],
 );
 
+/** A question asked on one plan: "Pizza or tacos?". */
+export const polls = sqliteTable(
+  "polls",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    eventId: int("event_id").references(() => events.id, { onDelete: "cascade" }),
+    hangoutId: int("hangout_id").references(() => hangouts.id, { onDelete: "cascade" }),
+    createdBy: int("created_by")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    question: text().notNull(),
+    /** Several answers each, rather than one. */
+    multi: int({ mode: "boolean" }).notNull().default(false),
+    closedAt: text("closed_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [check("polls_one_target", sql`(${t.eventId} IS NULL) != (${t.hangoutId} IS NULL)`)],
+);
+
+export const pollOptions = sqliteTable("poll_options", {
+  id: int().primaryKey({ autoIncrement: true }),
+  pollId: int("poll_id")
+    .notNull()
+    .references(() => polls.id, { onDelete: "cascade" }),
+  label: text().notNull(),
+});
+
+export const pollVotes = sqliteTable(
+  "poll_votes",
+  {
+    optionId: int("option_id")
+      .notNull()
+      .references(() => pollOptions.id, { onDelete: "cascade" }),
+    pollId: int("poll_id")
+      .notNull()
+      .references(() => polls.id, { onDelete: "cascade" }),
+    personId: int("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.optionId, t.personId] })],
+);
+
 export type Notification = typeof notifications.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Person = typeof people.$inferSelect;

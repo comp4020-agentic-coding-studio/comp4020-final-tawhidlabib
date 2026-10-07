@@ -1,5 +1,6 @@
 ---
 import { hue, initials } from "../lib/avatar";
+import { pollsOn } from "../lib/polls";
 import { ago, commentsOn, reactionsOn, type Thread } from "../lib/talk";
 import Icon from "./Icon.astro";
 
@@ -17,6 +18,7 @@ interface Props {
 const { thread, compact = false } = Astro.props;
 const said = commentsOn(thread.target);
 const reacted = reactionsOn(thread.target, thread.person?.id);
+const asked = pollsOn(thread.target, thread.person?.id);
 const id = `talk-${thread.kind}-${thread.ref}`;
 const me = thread.person;
 const canDelete = (authorId: number) => !!me && (me.id === authorId || me.id === thread.moderatorId);
@@ -53,6 +55,47 @@ const canDelete = (authorId: number) => !!me && (me.id === authorId || me.id ===
       }
     </div>
   </form>
+
+  {
+    asked.map((p) => (
+      <div class:list={["poll", { closed: p.closed }]}>
+        <p class="poll-question">
+          <Icon name="sparkles" size={15} /> {p.question}
+        </p>
+        <p class="muted fine">
+          {p.multi ? "Pick any" : "Pick one"} · {p.total} voted{p.closed && " · Closed"}
+        </p>
+        <form method="post" action={`/api/polls/${p.id}/vote`} class="poll-options" data-thread-form>
+          {p.options.map((o) => {
+            const share = p.total ? Math.round((o.voters.length / p.total) * 100) : 0;
+            return (
+              <button
+                type="submit"
+                name="option"
+                value={o.id}
+                class="poll-option"
+                aria-pressed={o.mine ? "true" : "false"}
+                disabled={p.closed || !thread.canTalk}
+                title={o.voters.length ? o.voters.join(", ") : "No votes yet"}
+                style={`--share: ${share}%`}
+              >
+                <span class="option-label">{o.label}</span>
+                <span class="votes">{o.voters.length}</span>
+                <span class="vh">{` votes${o.mine ? ", including yours" : ""}`}</span>
+              </button>
+            );
+          })}
+        </form>
+        {me && me.id === p.createdBy && !p.closed && (
+          <form method="post" action={`/api/polls/${p.id}/close`} data-thread-form>
+            <button type="submit" class="link-button">
+              Close poll
+            </button>
+          </form>
+        )}
+      </div>
+    ))
+  }
 
   {
     said.length > 0 && (
@@ -111,6 +154,47 @@ const canDelete = (authorId: number) => !!me && (me.id === authorId || me.id ===
           <a href="/me">Make your profile</a> to comment and react.
         </p>
       )
+    )
+  }
+
+  {
+    thread.canTalk && (
+      <details class="ask">
+        <summary>
+          <Icon name="sparkles" size={15} /> Ask a question
+        </summary>
+        <form method="post" action="/api/polls" class="stack poll-form" data-thread-form>
+          <input type="hidden" name="kind" value={thread.kind} />
+          <input type="hidden" name="ref" value={thread.ref} />
+          <label class="field">
+            Question
+            <input type="text" name="question" required maxlength="120" placeholder="Pizza or tacos?" />
+          </label>
+          <div class="poll-inputs">
+            {[1, 2, 3, 4].map((n) => (
+              <>
+                <label class="vh" for={`${id}-option-${n}`}>{`Option ${n}`}</label>
+                <input
+                  type="text"
+                  name="option"
+                  id={`${id}-option-${n}`}
+                  maxlength="60"
+                  required={n <= 2}
+                  placeholder={n <= 2 ? `Option ${n}` : `Option ${n} (optional)`}
+                />
+              </>
+            ))}
+          </div>
+          <label class="check">
+            <input type="checkbox" name="multi" /> People can pick more than one
+          </label>
+          <div>
+            <button type="submit" class="button small">
+              Ask
+            </button>
+          </div>
+        </form>
+      </details>
     )
   }
 </div>

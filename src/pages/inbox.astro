@@ -19,7 +19,14 @@ const sections: { label: string; notes: Note[] }[] = [
   { label: "Yesterday", notes: notes.filter((n) => dayOf(n) === addDays(today, -1)) },
   { label: "Earlier", notes: notes.filter((n) => dayOf(n) < addDays(today, -1)) },
 ].filter((s) => s.notes.length > 0);
-const ICON = { friend: "heart", invite: "ticket", promoted: "sparkles", comment: "chat", proposed: "calendar" } as const;
+const ICON = {
+  friend: "heart",
+  invite: "ticket",
+  promoted: "sparkles",
+  comment: "chat",
+  proposed: "calendar",
+  poll: "sparkles",
+} as const;
 const unread = notes.filter((n) => !n.readAt).length;
 ---
 

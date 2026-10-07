@@ -1,7 +1,7 @@
 import type { AstroCookies } from "astro";
 import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { db, getHangout, listMembers } from "./db";
-import { canSee, eventByShareId, guestsOf } from "./events";
+import { canSee, eventById, eventByShareId, guestsOf } from "./events";
 import { currentMember, currentPerson } from "./identity";
 import type { Person } from "./people";
 import { comments, people, reactions } from "./schema";
@@ -96,6 +96,13 @@ export function openThread(kind: string, ref: string, cookies: AstroCookies): Th
     };
   }
   return undefined;
+}
+
+/** A plan's thread, found from the plan itself rather than a form. */
+export function threadFor(target: Target, cookies: AstroCookies): Thread | undefined {
+  return target.kind === "event"
+    ? openThread("event", eventById(target.id)?.shareId ?? "", cookies)
+    : openThread("hangout", String(target.id), cookies);
 }
 
 export type Said = { id: number; body: string; createdAt: string; author: Person };
