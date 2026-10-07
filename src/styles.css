@@ -3447,3 +3447,77 @@ fieldset.card legend {
   gap: 0.25rem;
   font-size: 0.82rem;
 }
+
+/* ─── home, signed in ─────────────────────────────────────────────────── */
+
+.quick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.quick-action > span:last-child {
+  display: grid;
+  line-height: 1.3;
+}
+
+.quick-action .muted {
+  font-size: 0.85rem;
+}
+
+.home-grid {
+  display: grid;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+@media (min-width: 52rem) {
+  .home-grid {
+    grid-template-columns: 1.3fr 1fr;
+  }
+}
+
+.home-grid h2,
+.section .panel-head h2 {
+  font-size: 1.3rem;
+}
+
+.mini-groups {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mini-group {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: var(--text);
+  text-decoration: none;
+  padding: 0.8rem 0.9rem;
+}
+
+.mini-group .avatars {
+  margin: 0;
+}
+
+.mg-body {
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.mg-body .muted {
+  font-size: 0.85rem;
+}

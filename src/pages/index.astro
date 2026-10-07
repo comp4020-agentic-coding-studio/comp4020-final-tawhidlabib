@@ -1,4 +1,5 @@
 ---
+import Dashboard from "../components/Dashboard.astro";
 import HeroDemo from "../components/HeroDemo.astro";
 import Icon from "../components/Icon.astro";
 import Base from "../layouts/Base.astro";
@@ -13,9 +14,11 @@ const groups = yourGroups(Astro.request.headers.get("cookie")).map((g) => ({
   members: listMembers(g.group.id),
 }));
 const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
+const person = Astro.locals.person;
 ---
 
-<Base title="Hangout: find the overlap">
+<Base title={person ? "Home · Hangout" : "Hangout: find the overlap"}>
+  {person ? <Dashboard person={person} /> : <>
   <section class="hero" aria-labelledby="hero-title">
     <div>
       <span class="pill eyebrow">
@@ -198,6 +201,7 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
       </div>
     </form>
   </section>
+  </>}
 </Base>
 
 <script is:inline>

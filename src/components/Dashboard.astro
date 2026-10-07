@@ -1,0 +1,180 @@
+---
+import { agendaFor, upcoming } from "../lib/agenda";
+import { hue, initials } from "../lib/avatar";
+import { eventsFor, goingCounts, publicEvents } from "../lib/events";
+import { incomingRequests } from "../lib/friends";
+import { groupsFor } from "../lib/identity";
+import { groupOverview } from "../lib/overview";
+import type { Person } from "../lib/people";
+import { spanLabel, todayIn } from "../lib/time";
+import AgendaList from "./AgendaList.astro";
+import EventCard from "./EventCard.astro";
+import Icon from "./Icon.astro";
+
+// Home, once you have a profile: what's next, what's waiting on you, your
+// groups, and what's on publicly.
+
+interface Props {
+  person: Person;
+}
+
+const { person } = Astro.props;
+const cookie = Astro.request.headers.get("cookie");
+const today = todayIn(person.timezone);
+const next = upcoming(agendaFor(person, cookie, today)).slice(0, 4);
+const requests = incomingRequests(person.id);
+const invites = eventsFor(person.id, today).filter(
+  (e) => e.response === "invited" && e.event.hostId !== person.id,
+);
+const groups = groupsFor(person, cookie)
+  .slice(0, 4)
+  .map(({ group }) => ({ group, ...groupOverview(group) }));
+const explore = publicEvents(today, 3).filter((e) => e.hostId !== person.id);
+const going = goingCounts(explore.map((e) => e.id));
+
+const hour = Number(
+  new Intl.DateTimeFormat("en-AU", { timeZone: person.timezone, hour: "numeric", hourCycle: "h23" }).format(
+    new Date(),
+  ),
+);
+const greeting = hour < 5 ? "Up late" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+const first = person.name.split(" ")[0];
+---
+
+<div class="page-head">
+  <span class="avatar xl" style={`--hue: ${hue(person.name)}`} aria-hidden="true">
+    {initials(person.name)}
+  </span>
+  <div>
+    <span class="kicker">{greeting}</span>
+    <h1>Hi, {first}</h1>
+  </div>
+</div>
+
+<div class="quick stagger">
+  <a class="card lift quick-action" href="/groups#new" style="--i: 0">
+    <span class="icon-bubble small"><Icon name="users" size={18} /></span>
+    <span><b>New group</b><span class="muted">Find a time together</span></span>
+  </a>
+  <a class="card lift quick-action" href="/events/new" style="--i: 1">
+    <span class="icon-bubble small"><Icon name="ticket" size={18} /></span>
+    <span><b>New event</b><span class="muted">Host something</span></span>
+  </a>
+  <a class="card lift quick-action" href="/friends" style="--i: 2">
+    <span class="icon-bubble small"><Icon name="userPlus" size={18} /></span>
+    <span><b>Add friends</b><span class="muted">Share your link</span></span>
+  </a>
+</div>
+
+{
+  (requests.length > 0 || invites.length > 0) && (
+    <section class="next-step" aria-label="Waiting on you">
+      <div class="what">
+        <span class="label">
+          <Icon name="sparkles" size={14} /> Waiting on you
+        </span>
+        <strong>
+          {[
+            requests.length > 0 &&
+              `${requests.length} friend ${requests.length === 1 ? "request" : "requests"}`,
+            invites.length > 0 && `${invites.length} event ${invites.length === 1 ? "invite" : "invites"}`,
+          ]
+            .filter(Boolean)
+            .join(" and ")}
+        </strong>
+      </div>
+      {requests.length > 0 && (
+        <a class="button" href="/friends#requests">
+          See requests
+        </a>
+      )}
+      {invites.length > 0 && (
+        <a class={requests.length > 0 ? "button ghost" : "button"} href="/events#yours">
+          Answer invites
+        </a>
+      )}
+    </section>
+  )
+}
+
+<div class="home-grid">
+  <section aria-labelledby="next-h">
+    <div class="panel-head">
+      <h2 id="next-h">Up next</h2>
+      <a href="/calendar">Calendar →</a>
+    </div>
+    {
+      next.length === 0 ? (
+        <div class="empty">
+          <div class="icon-bubble">
+            <Icon name="calendar" size={22} />
+          </div>
+          <strong>Nothing planned yet</strong>
+          <span>Mark your hours in a group, or host an event.</span>
+        </div>
+      ) : (
+        <AgendaList items={next} dated today={today} />
+      )
+    }
+  </section>
+
+  <section aria-labelledby="groups-h">
+    <div class="panel-head">
+      <h2 id="groups-h">Your groups</h2>
+      <a href="/groups">All groups →</a>
+    </div>
+    {
+      groups.length === 0 ? (
+        <div class="empty">
+          <div class="icon-bubble">
+            <Icon name="users" size={22} />
+          </div>
+          <strong>No groups yet</strong>
+          <span>
+            <a href="/groups#new">Start one</a> and send the link.
+          </span>
+        </div>
+      ) : (
+        <ul class="mini-groups stagger">
+          {groups.map(({ group, members, best }, i) => (
+            <li style={`--i: ${i}`}>
+              <a class="card lift mini-group" href={`/g/${group.id}`}>
+                <ul class="avatars small" aria-hidden="true">
+                  {members.slice(0, 4).map((m) => (
+                    <li class="avatar" style={`--hue: ${hue(m.name)}`}>
+                      {initials(m.name)}
+                    </li>
+                  ))}
+                </ul>
+                <span class="mg-body">
+                  <b>{group.name}</b>
+                  <span class="muted">
+                    {best
+                      ? `Best: ${spanLabel(best.date, best.start, best.end)}`
+                      : `${members.length} ${members.length === 1 ? "member" : "members"}`}
+                  </span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+</div>
+
+{
+  explore.length > 0 && (
+    <section class="section" aria-labelledby="explore-h">
+      <div class="panel-head">
+        <h2 id="explore-h">What's on</h2>
+        <a href="/events#explore">Explore →</a>
+      </div>
+      <div class="cards stagger">
+        {explore.map((event, i) => (
+          <EventCard event={event} today={today} going={going.get(event.id)} i={i} />
+        ))}
+      </div>
+    </section>
+  )
+}
