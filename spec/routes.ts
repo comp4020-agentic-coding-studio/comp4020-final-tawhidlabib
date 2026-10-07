@@ -41,6 +41,10 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
   await door.post("/api/me", { name: door.name, timezone: "Australia/Sydney" });
   await door.post("/api/friends", { code: await friendCode(host) });
 
+  // a member who hasn't marked anything, so there's someone to nudge
+  const quiet = new Person(baseUrl, "Quiet");
+  await quiet.post(`/api/groups/${id}/join`, { name: quiet.name });
+
   // A future week, so its hours are still recommendable.
   const week = "2030-01-07";
   const evening = ["18", "19", "20", "21"].map((h) => `2030-01-08T${h}`);
