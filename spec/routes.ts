@@ -65,6 +65,17 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
   const secret = closed.headers.get("location") ?? "/e/not-created";
   await host.post(`/api/events${secret.slice(2)}/invite`, { inviteGroup: id ?? "" });
 
+  // threads with something in them: a comment and reactions on the event and
+  // on the hangout
+  const partyRef = party.split("/").pop() ?? "";
+  await host.post("/api/comments", { kind: "event", ref: partyRef, body: "Who's bringing music?" });
+  await host.post("/api/reactions", { kind: "event", ref: partyRef, emoji: "🎉" });
+  const plans = (await wall.get(`${path}?week=${week}`)).doc;
+  const hangoutRef =
+    plans.querySelector('form[action^="/api/hangouts/"][action$="/rsvp"]')?.getAttribute("action")?.split("/")[3] ?? "";
+  await wall.post("/api/comments", { kind: "hangout", ref: hangoutRef, body: "I'll book a table" });
+  await wall.post("/api/reactions", { kind: "hangout", ref: hangoutRef, emoji: "🙌" });
+
   const { html } = await host.get("/me");
   const signIn = /\/me\/sign-in\/[A-Za-z0-9_-]+/.exec(html)?.[0] ?? "/me/sign-in/missing";
 
