@@ -298,6 +298,38 @@ export const groupBans = sqliteTable(
   (t) => [primaryKey({ columns: [t.groupId, t.personId] })],
 );
 
+/** Who nudged whom to mark which week, so a nudge is once a week. */
+export const nudges = sqliteTable(
+  "nudges",
+  {
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    fromPersonId: int("from_person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    toMemberId: int("to_member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    week: text().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.fromPersonId, t.toMemberId, t.week] })],
+);
+
+/** Stretches a whole group was told it shares, so each is announced once. */
+export const everyoneFree = sqliteTable(
+  "everyone_free",
+  {
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    date: text().notNull(),
+    startHour: int("start_hour").notNull(),
+    endHour: int("end_hour").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.date, t.startHour, t.endHour] })],
+);
+
 export type Notification = typeof notifications.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Person = typeof people.$inferSelect;

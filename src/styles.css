@@ -4333,3 +4333,18 @@ button:disabled {
   box-shadow: none;
   transform: none;
 }
+
+.copy-week {
+  margin-left: auto;
+}
+
+.nudge {
+  display: inline;
+  margin-left: 0.4rem;
+}
+
+.nudge .link-button {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}

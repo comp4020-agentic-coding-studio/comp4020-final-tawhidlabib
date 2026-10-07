@@ -37,6 +37,9 @@ export const FLASHES = {
   left: { text: "You've left the group.", party: false },
   archived: { text: "Group archived. It's read-only now.", party: false },
   unarchived: { text: "Group's back. Plan away.", party: false },
+  copied: { text: "Copied last week's hours. Tweak anything that's changed.", party: false },
+  nothingToCopy: { text: "You didn't mark any hours last week, so there was nothing to copy.", party: false },
+  nudged: { text: "Nudged. They'll see it in their inbox.", party: false },
 } as const;
 
 export type Flash = keyof typeof FLASHES;

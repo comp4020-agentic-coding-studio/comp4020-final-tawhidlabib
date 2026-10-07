@@ -421,6 +421,14 @@ const TABS = ["week", "best", "plans", "people"];
       <section id="week" class="panel" aria-labelledby="week-heading">
         <div class="panel-head">
           <h2 id="week-heading">When are you free?</h2>
+          {!archived && (
+            <form method="post" action={`/api/groups/${group.id}/copy-week`} class="copy-week">
+              <input type="hidden" name="week" value={week} />
+              <button type="submit" class="button small ghost">
+                <Icon name="copy" size={15} /> Copy last week
+              </button>
+            </form>
+          )}
           <nav class="week-nav" aria-label="Week">
             <a href={`?week=${addDays(week, -7)}#week`} aria-label="Earlier week">
               <Icon name="chevronLeft" size={18} />
@@ -742,6 +750,15 @@ const TABS = ["week", "best", "plans", "people"];
                             {m.name}
                             {m.id === me.id && <span class="muted"> (you)</span>}
                           </span>
+                          {total === 0 && m.id !== me.id && m.personId !== null && me.personId !== null && !archived && (
+                            <form method="post" action={`/api/groups/${group.id}/nudge`} class="nudge">
+                              <input type="hidden" name="member" value={m.id} />
+                              <input type="hidden" name="week" value={week} />
+                              <button type="submit" class="link-button" aria-label={`Nudge ${m.name} to mark their hours`}>
+                                Nudge
+                              </button>
+                            </form>
+                          )}
                         </th>
                         {dates.map((date) => {
                           const hours = hoursOf(m.id, date);
