@@ -3,6 +3,7 @@ import { flash } from "../../lib/flash";
 import { field, safeBack } from "../../lib/forms";
 import { requestFriend } from "../../lib/friends";
 import { currentPerson } from "../../lib/identity";
+import { publish } from "../../lib/live";
 import { personByCode, personById } from "../../lib/people";
 
 /** Ask to be someone's friend: by their friend link's code, or by their id
@@ -20,6 +21,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!them || them.id === me.id) return redirect(back, 303);
 
   const now = requestFriend(me.id, them.id);
+  publish(`person:${them.id}`, "friends");
+  publish(`person:${me.id}`, "friends");
   if (now === "sent") flash(cookies, "requested");
   if (now === "friends") flash(cookies, "befriended");
   return redirect(back, 303);

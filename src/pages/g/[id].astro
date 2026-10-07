@@ -256,7 +256,7 @@ const TABS = ["week", "best", "plans", "people"];
         </script>
       </Fragment>
 
-      <div class="group-head">
+      <div class="group-head" id="group-head" data-live={`group:${group.id}`}>
         <div>
           <h1>{group.name}</h1>
           <ul class="avatars" aria-label="Members">
@@ -273,6 +273,7 @@ const TABS = ["week", "best", "plans", "people"];
           <Icon name="users" size={16} /> Invite friends
         </a>
       </div>
+      <p class="here-now" data-presence={`group:${group.id}`} hidden />
 
       {error && (
         <p class="error" role="alert">
@@ -280,7 +281,7 @@ const TABS = ["week", "best", "plans", "people"];
         </p>
       )}
 
-      <section class="next-step" aria-label="Your next step">
+      <section class="next-step" aria-label="Your next step" id="next-step" data-live={`group:${group.id}`}>
         {next.kind === "rsvp" ? (
           <>
             <div class="what">
@@ -418,7 +419,7 @@ const TABS = ["week", "best", "plans", "people"];
 
         <form method="post" action={`/api/groups/${group.id}/availability`}>
           <input type="hidden" name="week" value={week} />
-          <div class="card grid-card">
+          <div class="card grid-card" id="week-grid" data-live={`group:${group.id}`} data-live-grid>
             <table class="week">
               <caption class="vh">
                 Your free hours, week of {dayLabel(week)}
@@ -492,6 +493,7 @@ const TABS = ["week", "best", "plans", "people"];
           <h2 id="best-heading">Best times</h2>
           <span class="pill">{week === thisWeek ? "This week" : `Week of ${dayLabel(week)}`}</span>
         </div>
+        <div id="best-body" data-live={`group:${group.id}`}>
         {best.length === 0 ? (
           <div class="empty">
             <div class="icon-bubble">
@@ -578,12 +580,14 @@ const TABS = ["week", "best", "plans", "people"];
             })}
           </div>
         )}
+        </div>
       </section>
 
       <section id="plans" class="panel" aria-labelledby="plans-heading">
         <div class="panel-head">
           <h2 id="plans-heading">Hangouts</h2>
         </div>
+        <div id="plans-body" data-live={`group:${group.id}`}>
         {hangouts.length === 0 ? (
           <div class="empty">
             <div class="icon-bubble">
@@ -666,6 +670,7 @@ const TABS = ["week", "best", "plans", "people"];
             })}
           </div>
         )}
+        </div>
       </section>
 
       <section id="people" class="panel" aria-labelledby="people-heading">
@@ -673,6 +678,7 @@ const TABS = ["week", "best", "plans", "people"];
           <h2 id="people-heading">People</h2>
           <span class="pill">{week === thisWeek ? "This week" : `Week of ${dayLabel(week)}`}</span>
         </div>
+        <div id="people-body" data-live={`group:${group.id}`}>
         <div class="stack">
           <div class="card everyone-card">
             <h3>Everyone's week</h3>
@@ -822,6 +828,7 @@ const TABS = ["week", "best", "plans", "people"];
             </div>
           </div>
         </div>
+        </div>
       </section>
     </Base>
   )
@@ -916,10 +923,27 @@ const TABS = ["week", "best", "plans", "people"];
   // ─── the week grid ─────────────────────────────────────────────────────
   const grid = document.querySelector<HTMLTableElement>("table.week");
   const status = document.querySelector<HTMLElement>("#save-status");
-  const saveBar = document.querySelector<HTMLElement>(".save-bar");
+  const gridForm = grid?.closest("form");
+  // With JS the grid saves itself a moment after you stop tapping, so the
+  // rest of the group sees your hours fill in live (crit 9). The Save button
+  // stays for anyone without JS, and as a retry.
+  let saveTimer = 0;
+  async function save() {
+    if (!gridForm) return;
+    const data = new FormData(gridForm);
+    data.set("quiet", "1");
+    try {
+      const res = await fetch(gridForm.action, { method: "POST", body: data, redirect: "manual" });
+      const ok = res.type === "opaqueredirect" || res.ok;
+      if (status) status.textContent = ok ? "Saved ✓ · your group sees it live" : "Couldn't save. Press Save to retry";
+    } catch {
+      if (status) status.textContent = "Offline? Press Save to retry";
+    }
+  }
   const changed = () => {
-    if (status) status.textContent = "Unsaved changes";
-    saveBar?.classList.add("dirty");
+    if (status) status.textContent = "Saving…";
+    clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(save, 450);
   };
   grid?.addEventListener("change", changed);
   // from here on, ticking an hour pops (but the page load doesn't)

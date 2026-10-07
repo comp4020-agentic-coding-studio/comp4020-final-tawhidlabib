@@ -66,6 +66,7 @@ const first = person.name.split(" ")[0];
   </a>
 </div>
 
+<div id="home-waiting" data-live="person:me">
 {
   (requests.length > 0 || invites.length > 0) && (
     <section class="next-step" aria-label="Waiting on you">
@@ -96,8 +97,9 @@ const first = person.name.split(" ")[0];
     </section>
   )
 }
+</div>
 
-<div class="home-grid">
+<div class="home-grid" id="home-grid" data-live="person:me">
   <section aria-labelledby="next-h">
     <div class="panel-head">
       <h2 id="next-h">Up next</h2>

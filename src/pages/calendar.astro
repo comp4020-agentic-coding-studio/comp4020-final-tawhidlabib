@@ -64,7 +64,7 @@ const busyDays = grid.filter((d) => onDay(d).length > 0);
     ) : (
       <div class="cal-layout">
         <div class="stack">
-          <div class="card month-card">
+          <div class="card month-card" id="month-card" data-live="person:me">
             <div class="month-grid">
               <div class="month-row head" aria-hidden="true">
                 {WEEKDAYS.map((d) => (
@@ -141,7 +141,7 @@ const busyDays = grid.filter((d) => onDay(d).length > 0);
           ))}
         </div>
 
-        <section id="up-next" aria-labelledby="up-next-h">
+        <section id="up-next" aria-labelledby="up-next-h" data-live="person:me">
           <h2 id="up-next-h">Up next</h2>
           {upNext.length === 0 ? (
             <div class="empty">

@@ -18,7 +18,7 @@ export type AgendaItem = {
   /** The group's name, or the event's location. */
   where: string;
   href: string;
-  status: "in" | "out" | "unanswered" | "hosting" | "going" | "maybe" | "invited" | "declined";
+  status: "in" | "out" | "unanswered" | "hosting" | "going" | "maybe" | "invited" | "declined" | "waitlisted";
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");

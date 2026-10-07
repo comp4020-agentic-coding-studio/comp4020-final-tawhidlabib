@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { publish } from "../../lib/live";
 import { addComment, openThread } from "../../lib/talk";
 
 /** Say something on a plan's thread. */
@@ -11,5 +12,6 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   const body = String(form.get("body") ?? "").trim().slice(0, 500);
   if (body) addComment(thread.target, thread.person.id, body);
+  publish(`thread:${thread.kind}:${thread.ref}`);
   return redirect(thread.page, 303);
 };

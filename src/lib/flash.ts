@@ -24,6 +24,10 @@ export const FLASHES = {
   going: { text: "You're going! Add it to your calendar.", party: true },
   maybe: { text: "Marked as maybe.", party: false },
   notGoing: { text: "Got it, you can't make it.", party: false },
+  waitlisted: {
+    text: "It's full, so you're on the waitlist. You'll move in automatically if a spot frees up.",
+    party: false,
+  },
   invited: { text: "Invites sent.", party: false },
   cancelled: { text: "Event cancelled.", party: false },
 } as const;

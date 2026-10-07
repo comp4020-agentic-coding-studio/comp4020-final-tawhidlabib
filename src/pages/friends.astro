@@ -28,7 +28,7 @@ const suggestions = person ? mayKnow(person, cookie) : [];
     !person ? (
       <Onboard back="/friends" lead="Make your profile, then add friends with your friend link." />
     ) : (
-      <div class="stack-lg">
+      <div class="stack-lg" id="friends-body" data-live="person:me">
         <section class="start-card stack" aria-labelledby="link-h">
           <div class="split">
             <div class="icon-bubble">

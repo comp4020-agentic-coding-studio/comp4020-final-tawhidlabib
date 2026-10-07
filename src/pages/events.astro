@@ -11,7 +11,8 @@ const today = todayIn(person?.timezone ?? DEFAULT_TIMEZONE);
 const mine = person ? eventsFor(person.id, today) : [];
 const waiting = mine.filter((e) => e.response === "invited" && e.event.hostId !== person?.id);
 const rest = mine.filter((e) => !waiting.includes(e));
-const explore = publicEvents(today);
+const search = (Astro.url.searchParams.get("q") ?? "").slice(0, 60);
+const explore = publicEvents(today, 30, search);
 const going = goingCounts([...mine.map((e) => e.event.id), ...explore.map((e) => e.id)]);
 ---
 
@@ -33,7 +34,7 @@ const going = goingCounts([...mine.map((e) => e.event.id), ...explore.map((e) =>
     <a href="#explore">Explore</a>
   </nav>
 
-  <section id="yours" class="section" aria-labelledby="yours-h">
+  <section id="yours" class="section" aria-labelledby="yours-h" data-live={person ? "person:me" : undefined}>
     <h2 id="yours-h">Your events</h2>
     {
       !person ? (
@@ -84,7 +85,14 @@ const going = goingCounts([...mine.map((e) => e.event.id), ...explore.map((e) =>
 
   <section id="explore" class="section" aria-labelledby="explore-h">
     <h2 id="explore-h">Explore</h2>
-    <p class="muted">Public events anyone can join.</p>
+    <form method="get" action="/events#explore" class="search">
+      <label class="vh" for="q">Search public events</label>
+      <input type="search" name="q" id="q" value={search} placeholder="Search by name or place" />
+      <button type="submit" class="button small">Search</button>
+    </form>
+    <p class="muted">
+      {search ? `Public events matching "${search}".` : "Public events anyone can join."}
+    </p>
     {
       explore.length === 0 ? (
         <div class="empty">

@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { getHangout, setRsvp } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
+import { publish } from "../../../../lib/live";
 import { currentMember } from "../../../../lib/identity";
 import { weekStartOf } from "../../../../lib/time";
 
@@ -17,6 +18,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   }
 
   setRsvp(hangout.id, me.id, response);
+  publish(`group:${hangout.groupId}`, "plans");
   flash(cookies, response);
   return redirect(`/g/${hangout.groupId}?week=${weekStartOf(hangout.date)}#plans`, 303);
 };

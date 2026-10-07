@@ -77,7 +77,25 @@ const today = todayIn(person?.timezone ?? DEFAULT_TIMEZONE);
             Details
             <textarea name="details" rows="4" maxlength="1000" placeholder="What to bring, how to find it, anything people should know"></textarea>
           </label>
-          <p class="muted fine">Times are in {person.timezone}.</p>
+          <div class="row-3">
+            <label class="field">
+              Spots
+              <input type="number" name="capacity" min="1" max="1000" inputmode="numeric" placeholder="No limit" />
+            </label>
+            <label class="field">
+              +1s per guest
+              <select name="maxPlusOnes">
+                <option value="0">None</option>
+                <option value="1">Up to 1</option>
+                <option value="2">Up to 2</option>
+                <option value="3">Up to 3</option>
+              </select>
+            </label>
+          </div>
+          <p class="muted fine">
+            Times are in {person.timezone}. With a spot limit, once it's full people join a
+            waitlist and move in automatically, first come first served, when someone drops out.
+          </p>
         </div>
 
         <fieldset class="card stack visibility">

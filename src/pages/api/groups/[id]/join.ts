@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { addMember, getGroup } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
+import { publish } from "../../../../lib/live";
 import { field } from "../../../../lib/forms";
 import { currentPerson, remember, rememberPerson } from "../../../../lib/identity";
 import { claimMembers, createPerson, memberOfPerson } from "../../../../lib/people";
@@ -27,6 +28,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect, url }
     rememberPerson(cookies, url, person.token);
     claimMembers(person.id, [member.id]);
   }
+  publish(`group:${group.id}`, "people");
   flash(cookies, "joined");
   return redirect(`/g/${group.id}`, 303);
 };

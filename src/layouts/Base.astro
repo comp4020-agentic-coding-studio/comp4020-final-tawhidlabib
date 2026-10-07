@@ -66,7 +66,7 @@ const NAV = [
     <title>{title}</title>
     <slot name="head" />
   </head>
-  <body>
+  <body data-person={person?.name}>
     <a class="skip" href="#main">Skip to content</a>
     <header class="site">
       <div class="bar">
@@ -74,7 +74,7 @@ const NAV = [
           <Logo />
           <span>Hangout</span>
         </a>
-        <nav aria-label="Main" class="main-nav">
+        <nav aria-label="Main" class="main-nav" id="main-nav" data-live={person ? "person:me" : undefined}>
           <ul>
             {
               NAV.map((item) => (
@@ -183,6 +183,8 @@ const NAV = [
 </html>
 
 <script>
+  import "../scripts/live";
+
   // The picker works as a plain form; with JS, a choice applies instantly
   // instead of reloading the page.
   const picker = document.querySelector<HTMLDetailsElement>("details.theme-picker");
@@ -244,34 +246,39 @@ const NAV = [
   if (toast?.hasAttribute("data-party")) setTimeout(confetti, 250);
 
   // ─── forms that ask first (cancelling an event, say) ──────────────────
-  for (const form of document.querySelectorAll<HTMLFormElement>("form[data-confirm]")) {
-    form.addEventListener("submit", (event) => {
-      if (!confirm(form.dataset.confirm)) event.preventDefault();
-    });
-  }
+  document.addEventListener(
+    "submit",
+    (event) => {
+      const form = event.target as HTMLFormElement;
+      if (form.dataset.confirm && !confirm(form.dataset.confirm)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
 
-  // ─── copy and share buttons, anywhere on any page ─────────────────────
-  if (navigator.clipboard) {
-    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
-      button.hidden = false;
+  // ─── copy and share buttons, anywhere, including parts swapped in live ─
+  document.addEventListener("click", async (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>("[data-copy], [data-share]");
+    if (!button) return;
+    if (button.dataset.copy !== undefined && navigator.clipboard) {
+      await navigator.clipboard.writeText(button.dataset.copy);
       const original = button.innerHTML;
-      button.addEventListener("click", async () => {
-        await navigator.clipboard.writeText(button.dataset.copy ?? "");
-        button.textContent = "Copied ✓";
-        setTimeout(() => (button.innerHTML = original), 2000);
-      });
+      button.textContent = "Copied ✓";
+      setTimeout(() => (button.innerHTML = original), 2000);
+    } else if (button.dataset.share !== undefined && "share" in navigator) {
+      navigator.share({ title: document.title, url: button.dataset.share }).catch(() => {});
     }
-    // a no-JS fallback link isn't needed once Copy works
-    document
-      .querySelectorAll<HTMLElement>("[data-copy-fallback]")
-      .forEach((link) => (link.hidden = true));
-  }
-  if (navigator.share) {
-    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-share]")) {
-      button.hidden = false;
-      button.addEventListener("click", () =>
-        navigator.share({ title: document.title, url: button.dataset.share }).catch(() => {}),
-      );
+  });
+  function enhance(root: ParentNode) {
+    if (navigator.clipboard) {
+      root.querySelectorAll<HTMLElement>("[data-copy]").forEach((b) => (b.hidden = false));
+      // a no-JS fallback link isn't needed once Copy works
+      root.querySelectorAll<HTMLElement>("[data-copy-fallback]").forEach((l) => (l.hidden = true));
     }
+    if ("share" in navigator) root.querySelectorAll<HTMLElement>("[data-share]").forEach((b) => (b.hidden = false));
   }
+  enhance(document);
+  document.addEventListener("live:swapped", (e) => enhance((e as CustomEvent<HTMLElement>).detail));
 </script>

@@ -22,7 +22,12 @@ const me = thread.person;
 const canDelete = (authorId: number) => !!me && (me.id === authorId || me.id === thread.moderatorId);
 ---
 
-<div class:list={["thread", { compact }]} data-thread={`${thread.kind}:${thread.ref}`} id={id}>
+<div
+  class:list={["thread", { compact }]}
+  data-thread={`${thread.kind}:${thread.ref}`}
+  data-live={`thread:${thread.kind}:${thread.ref}`}
+  id={id}
+>
   <form method="post" action="/api/reactions" class="reactions" data-thread-form>
     <input type="hidden" name="kind" value={thread.kind} />
     <input type="hidden" name="ref" value={thread.ref} />

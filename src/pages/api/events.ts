@@ -3,6 +3,7 @@ import { allowedInvitees, groupInvitees } from "../../lib/circle";
 import { createEvent } from "../../lib/events";
 import { flash } from "../../lib/flash";
 import { field } from "../../lib/forms";
+import { publish } from "../../lib/live";
 import { currentPerson } from "../../lib/identity";
 import { isClock, isDate } from "../../lib/time";
 
@@ -43,10 +44,19 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       details: String(form.get("details") ?? "").trim().slice(0, 1000),
       timezone: me.timezone,
       visibility: form.get("visibility") === "private" ? "private" : "public",
+      capacity: spots(form.get("capacity")),
+      maxPlusOnes: Math.max(0, Math.min(3, Number(form.get("maxPlusOnes")) || 0)),
     },
     me.id,
     invites,
   );
+  for (const id of invites) publish(`person:${id}`, "invited");
   flash(cookies, "hosted");
   return redirect(`/e/${event.shareId}`, 303);
 };
+
+/** A guest limit from the form: a whole number of spots, or no limit. */
+function spots(value: FormDataEntryValue | null): number | null {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? Math.min(n, 1000) : null;
+}

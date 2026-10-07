@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, asc, eq, gte, inArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import { db } from "./db";
 import type { Person } from "./people";
 import { type Event, eventGuests, events, people } from "./schema";
@@ -10,8 +10,14 @@ import { type Event, eventGuests, events, people } from "./schema";
 // is going.
 
 export type { Event };
-export type Response = "invited" | "going" | "maybe" | "declined";
-export type Guest = { person: Person; response: Response; invitedBy: number | null };
+export type Response = "invited" | "going" | "maybe" | "declined" | "waitlisted";
+export type Guest = {
+  person: Person;
+  response: Response;
+  invitedBy: number | null;
+  plusOnes: number;
+  waitlistSeq: number | null;
+};
 
 export function eventByShareId(shareId: string): Event | undefined {
   return db.select().from(events).where(eq(events.shareId, shareId)).get();
@@ -42,12 +48,25 @@ export function createEvent(
 
 export function guestsOf(eventId: number): Guest[] {
   return db
-    .select({ person: people, response: eventGuests.response, invitedBy: eventGuests.invitedBy })
+    .select({
+      person: people,
+      response: eventGuests.response,
+      invitedBy: eventGuests.invitedBy,
+      plusOnes: eventGuests.plusOnes,
+      waitlistSeq: eventGuests.waitlistSeq,
+    })
     .from(eventGuests)
     .innerJoin(people, eq(people.id, eventGuests.personId))
     .where(eq(eventGuests.eventId, eventId))
-    .orderBy(asc(people.name))
+    .orderBy(asc(eventGuests.waitlistSeq), asc(people.name))
     .all();
+}
+
+/** Spots taken: every going guest and their +1s, the host aside. */
+export function spotsTaken(event: Event): number {
+  return guestsOf(event.id)
+    .filter((g) => g.response === "going" && g.person.id !== event.hostId)
+    .reduce((n, g) => n + 1 + g.plusOnes, 0);
 }
 
 export function responseOf(eventId: number, personId: number): Response | undefined {
@@ -65,11 +84,81 @@ export function canSee(event: Event, person: Person | undefined): boolean {
   return event.hostId === person.id || responseOf(event.id, person.id) !== undefined;
 }
 
-export function respond(eventId: number, personId: number, response: Exclude<Response, "invited">): void {
-  db.insert(eventGuests)
-    .values({ eventId, personId, response })
-    .onConflictDoUpdate({ target: [eventGuests.eventId, eventGuests.personId], set: { response } })
-    .run();
+// Arrival order for the waitlist: strictly increasing within this process,
+// even for two taps in the same millisecond.
+let lastSeq = 0;
+const nextSeq = () => (lastSeq = Math.max(lastSeq + 1, Date.now() * 1000));
+
+/**
+ * Answer an event, by the rule in ADR 6. Going takes a spot if one is free
+ * (with your +1s, capped at what the host allows); if not, you join the end
+ * of the waitlist. Leaving a spot --- maybe, can't go, fewer +1s --- moves
+ * the earliest person waiting who fits into it.
+ *
+ * All of it is one SQLite transaction, and better-sqlite3 runs transactions
+ * one at a time, so of two people tapping Going on the last spot at once,
+ * exactly one sees it free. Returns your answer as recorded (going or
+ * waitlisted) and who was moved in from the waitlist.
+ */
+export function respond(
+  event: Event,
+  personId: number,
+  response: Exclude<Response, "invited" | "waitlisted">,
+  plusOnes = 0,
+): { recorded: Response; promoted: number[] } {
+  return db.transaction((tx) => {
+    const guests = tx
+      .select()
+      .from(eventGuests)
+      .where(eq(eventGuests.eventId, event.id))
+      .all();
+    const before = guests.find((g) => g.personId === personId);
+    const plus = response === "going" ? Math.max(0, Math.min(plusOnes, event.maxPlusOnes)) : 0;
+    const taken = guests
+      .filter((g) => g.response === "going" && g.personId !== event.hostId && g.personId !== personId)
+      .reduce((n, g) => n + 1 + g.plusOnes, 0);
+
+    let recorded: Response = response;
+    if (response === "going" && event.capacity !== null && personId !== event.hostId) {
+      if (taken + 1 + plus > event.capacity) recorded = "waitlisted";
+    }
+    // keep your place if you were already waiting
+    const waitlistSeq =
+      recorded === "waitlisted" ? (before?.response === "waitlisted" ? before.waitlistSeq : nextSeq()) : null;
+    const row = { response: recorded, plusOnes: plus, waitlistSeq };
+    tx.insert(eventGuests)
+      .values({ eventId: event.id, personId, ...row })
+      .onConflictDoUpdate({ target: [eventGuests.eventId, eventGuests.personId], set: row })
+      .run();
+
+    return { recorded, promoted: fillFromWaitlist(tx, event) };
+  });
+}
+
+/** Move people from the waitlist into free spots, earliest first; someone
+ *  whose party doesn't fit waits while a smaller party behind them goes in. */
+function fillFromWaitlist(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], event: Event): number[] {
+  if (event.capacity === null) return [];
+  const promoted: number[] = [];
+  const guests = tx.select().from(eventGuests).where(eq(eventGuests.eventId, event.id)).all();
+  let free =
+    event.capacity -
+    guests
+      .filter((g) => g.response === "going" && g.personId !== event.hostId)
+      .reduce((n, g) => n + 1 + g.plusOnes, 0);
+  const waiting = guests
+    .filter((g) => g.response === "waitlisted")
+    .sort((a, b) => (a.waitlistSeq ?? 0) - (b.waitlistSeq ?? 0));
+  for (const g of waiting) {
+    if (1 + g.plusOnes > free) continue;
+    tx.update(eventGuests)
+      .set({ response: "going", waitlistSeq: null })
+      .where(and(eq(eventGuests.eventId, event.id), eq(eventGuests.personId, g.personId)))
+      .run();
+    free -= 1 + g.plusOnes;
+    promoted.push(g.personId);
+  }
+  return promoted;
 }
 
 export function invite(eventId: number, by: number, personIds: number[]): void {
@@ -96,12 +185,23 @@ export function eventsFor(personId: number, fromDate: string): { event: Event; r
     .all();
 }
 
-/** Upcoming public events, for Explore. */
-export function publicEvents(fromDate: string, limit = 30): Event[] {
+/** Upcoming public events, for Explore: soonest first, optionally only
+ *  those whose title or place matches a search, or within a date range. */
+export function publicEvents(fromDate: string, limit = 30, search = "", toDate?: string): Event[] {
+  const words = search.trim().toLowerCase();
   return db
     .select()
     .from(events)
-    .where(and(eq(events.visibility, "public"), gte(events.date, fromDate)))
+    .where(
+      and(
+        eq(events.visibility, "public"),
+        gte(events.date, fromDate),
+        toDate ? lte(events.date, toDate) : undefined,
+        words
+          ? or(like(sql`lower(${events.title})`, `%${words}%`), like(sql`lower(${events.location})`, `%${words}%`))
+          : undefined,
+      ),
+    )
     .orderBy(asc(events.date), asc(events.startTime))
     .limit(limit)
     .all();

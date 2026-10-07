@@ -27,6 +27,22 @@ const going = by("going");
 const maybe = by("maybe");
 const invited = by("invited");
 const declined = by("declined");
+const waitlisted = by("waitlisted");
+const myGuest = guests.find((g) => g.person.id === person?.id);
+const myPlace = waitlisted.findIndex((g) => g.person.id === person?.id) + 1;
+// spots: going guests and their +1s, the host aside (ADR 6)
+const taken = going.filter((g) => g.person.id !== event?.hostId).reduce((n, g) => n + 1 + g.plusOnes, 0);
+const capacity = event?.capacity ?? null;
+const full = capacity !== null && taken >= capacity;
+const rsvpHeading = isHost
+  ? "You're hosting"
+  : mine === "going"
+    ? `You're going${myGuest?.plusOnes ? ` (+${myGuest.plusOnes})` : ""}`
+    : mine === "waitlisted"
+      ? `You're on the waitlist (#${myPlace})`
+      : full
+        ? "It's full. Join the waitlist?"
+        : "Are you going?";
 const url = event ? new URL(`/e/${event.shareId}`, Astro.url).href : "";
 const google = event && visible ? googleCalendarUrl(eventEvent(event, Astro.url.origin)) : "";
 const today = event ? todayIn(event.timezone) : "";
@@ -91,6 +107,13 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
               <span class="pill">
                 <Icon name="clock" size={13} /> {relativeDay(event.date, today)}
               </span>
+              {capacity !== null && (
+                <span class="pill">
+                  {full
+                    ? `Full${waitlisted.length ? ` · ${waitlisted.length} waiting` : ""}`
+                    : `${capacity - taken} of ${capacity} spots left`}
+                </span>
+              )}
             </div>
             <h1>{event.title}</h1>
             {host && (
@@ -103,6 +126,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
             )}
           </div>
         </header>
+        <p class="here-now" data-presence={`event:${event.shareId}`} hidden />
 
         <div class="ev-layout">
           <div class="stack">
@@ -145,8 +169,19 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
               </section>
             )}
 
-            <section class="card stack" aria-labelledby="rsvp-h">
-              <h2 id="rsvp-h">{isHost ? "You're hosting" : "Are you going?"}</h2>
+            <section class="card stack" aria-labelledby="rsvp-h" id="rsvp" data-live={`event:${event.shareId}`}>
+              <h2 id="rsvp-h">{rsvpHeading}</h2>
+              {capacity !== null && (
+                <div class="spots">
+                  <div class="spots-bar" aria-hidden="true">
+                    <span style={`--filled: ${Math.min(1, taken / capacity)}`} />
+                  </div>
+                  <p class="muted fine">
+                    {taken} of {capacity} spots taken{waitlisted.length > 0 && ` · ${waitlisted.length} on the waitlist`}.
+                    {full && !isHost && mine !== "going" && " Join the waitlist and you'll move in automatically if a spot frees up."}
+                  </p>
+                </div>
+              )}
               {!person ? (
                 <Onboard
                   back={`/e/${event.shareId}`}
@@ -155,9 +190,28 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                 />
               ) : (
                 <>
-                  <form method="post" action={`/api/events/${event.shareId}/rsvp`} class="rsvp three">
-                    <button type="submit" name="response" value="going" aria-pressed={mine === "going" ? "true" : "false"}>
-                      <Icon name="check" size={16} /> Going
+                  <form method="post" action={`/api/events/${event.shareId}/rsvp`} class="stack rsvp-form">
+                    {event.maxPlusOnes > 0 && !isHost && (
+                      <label class="plus-ones">
+                        Bringing
+                        <select name="plusOnes">
+                          {Array.from({ length: event.maxPlusOnes + 1 }, (_, n) => (
+                            <option value={n} selected={n === (myGuest?.plusOnes ?? 0)}>
+                              {n === 0 ? "just me" : `+${n}`}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <div class="rsvp three">
+                    <button
+                      type="submit"
+                      name="response"
+                      value="going"
+                      aria-pressed={mine === "going" || mine === "waitlisted" ? "true" : "false"}
+                    >
+                      <Icon name="check" size={16} />{" "}
+                      {mine === "waitlisted" ? "Waitlisted" : full && mine !== "going" && !isHost ? "Join waitlist" : "Going"}
                     </button>
                     <button type="submit" name="response" value="maybe" aria-pressed={mine === "maybe" ? "true" : "false"}>
                       Maybe
@@ -171,6 +225,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                     >
                       Can't go
                     </button>
+                    </div>
                   </form>
                   {(mine === "going" || mine === "maybe") && (
                     <div class="cal-links">
@@ -242,7 +297,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
             )}
           </div>
 
-          <div class="guests">
+          <div class="guests" id="guests" data-live={`event:${event.shareId}`}>
             <section id="going" class="card" aria-labelledby="going-h">
               <h2 id="going-h">
                 Going <span class="pill solid">{going.length}</span>
@@ -254,11 +309,30 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                       {initials(g.person.name)}
                     </span>
                     {g.person.name}
+                    {g.plusOnes > 0 && <span class="pill">+{g.plusOnes}</span>}
                     {g.person.id === event.hostId && <span class="pill">host</span>}
                   </li>
                 ))}
               </ul>
             </section>
+            {waitlisted.length > 0 && (
+              <section id="waitlist" class="card" aria-labelledby="waitlist-h">
+                <h2 id="waitlist-h">
+                  Waitlist <span class="pill">{waitlisted.length}</span>
+                </h2>
+                <ol class="guest-list numbered">
+                  {waitlisted.map((g) => (
+                    <li>
+                      <span class="avatar" style={`--hue: ${hue(g.person.name)}`} aria-hidden="true">
+                        {initials(g.person.name)}
+                      </span>
+                      {g.person.name}
+                      {g.plusOnes > 0 && <span class="pill">+{g.plusOnes}</span>}
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
             {maybe.length > 0 && (
               <section id="maybe" class="card" aria-labelledby="maybe-h">
                 <h2 id="maybe-h">

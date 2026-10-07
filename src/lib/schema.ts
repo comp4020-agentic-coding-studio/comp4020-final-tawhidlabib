@@ -140,6 +140,10 @@ export const events = sqliteTable("events", {
   endTime: text("end_time").notNull(),
   timezone: text().notNull(),
   visibility: text({ enum: ["public", "private"] }).notNull(),
+  /** Spots for guests (the host doesn't take one); null means no limit. */
+  capacity: int(),
+  /** How many +1s each guest may bring; they take spots too. */
+  maxPlusOnes: int("max_plus_ones").notNull().default(0),
   createdAt: createdAt(),
 });
 
@@ -154,7 +158,11 @@ export const eventGuests = sqliteTable(
       .notNull()
       .references(() => people.id, { onDelete: "cascade" }),
     invitedBy: int("invited_by").references(() => people.id, { onDelete: "set null" }),
-    response: text({ enum: ["invited", "going", "maybe", "declined"] }).notNull(),
+    response: text({ enum: ["invited", "going", "maybe", "declined", "waitlisted"] }).notNull(),
+    plusOnes: int("plus_ones").notNull().default(0),
+    /** Arrival order on the waitlist (ADR 6): a strictly increasing stamp, so
+     *  two people waitlisted in the same millisecond still have an order. */
+    waitlistSeq: int("waitlist_seq"),
   },
   (t) => [primaryKey({ columns: [t.eventId, t.personId] })],
 );

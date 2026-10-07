@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { publish } from "../../lib/live";
 import { isReaction, openThread, react } from "../../lib/talk";
 
 /** React to a plan: one reaction each, and the same again takes it back. */
@@ -12,5 +13,6 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const emoji = form.get("emoji");
   if (!isReaction(emoji)) return new Response("Not a reaction", { status: 400 });
   react(thread.target, thread.person.id, String(emoji));
+  publish(`thread:${thread.kind}:${thread.ref}`);
   return redirect(thread.page, 303);
 };
