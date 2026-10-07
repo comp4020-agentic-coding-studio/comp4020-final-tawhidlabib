@@ -4348,3 +4348,171 @@ button:disabled {
   font-weight: 700;
   text-decoration: none;
 }
+
+/* ─── memories: ratings, albums, the lightbox ─────────────────────────── */
+
+.memories {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface));
+  border: 1px solid color-mix(in oklab, var(--accent) 20%, var(--line));
+}
+
+.memories-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.memories h3 {
+  margin: 0;
+}
+
+.rating {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.scores {
+  display: inline-flex;
+  gap: 0.15rem;
+}
+
+.scores button {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  filter: grayscale(0.7);
+  transition:
+    transform 0.2s var(--spring),
+    filter 0.2s;
+}
+
+.scores button:hover:not(:disabled) {
+  filter: none;
+  transform: scale(1.2);
+}
+
+.scores button[aria-pressed="true"] {
+  filter: none;
+  border-color: var(--accent);
+  background: var(--surface);
+  animation: pop 0.4s var(--spring);
+}
+
+.rating-summary {
+  font-weight: 700;
+}
+
+.album {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.album li {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  animation: rise 0.4s var(--ease) both;
+}
+
+.album a,
+.album img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.album img {
+  object-fit: cover;
+  transition: transform 0.4s var(--ease);
+}
+
+.album a:hover img {
+  transform: scale(1.06);
+}
+
+.album form {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+}
+
+.album .icon-button {
+  width: 1.7rem;
+  height: 1.7rem;
+  background: color-mix(in oklab, var(--surface) 85%, transparent);
+}
+
+.upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.upload-button {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.upload-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.upload-button:has(input:focus-visible) {
+  outline: 3px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.lightbox {
+  max-width: min(92vw, 60rem);
+  max-height: 90vh;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  animation: rise 0.25s var(--spring);
+}
+
+.lightbox::backdrop {
+  background: rgb(0 0 0 / 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.lightbox img {
+  display: block;
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+}
+
+.past {
+  margin-top: 2rem;
+}
+
+.past-card {
+  opacity: 0.95;
+}

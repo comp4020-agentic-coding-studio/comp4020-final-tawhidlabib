@@ -1,0 +1,112 @@
+---
+import { photosOn, ratingOn, SCORES } from "../lib/memories";
+import type { Thread } from "../lib/talk";
+import Icon from "./Icon.astro";
+
+// A plan's memories, once its day has come: "how was it?" and a shared
+// album. Live with the plan's thread; photos open full size in a lightbox.
+
+interface Props {
+  thread: Thread;
+}
+
+const { thread } = Astro.props;
+const album = photosOn(thread.target);
+const rating = ratingOn(thread.target, thread.person?.id);
+const me = thread.person;
+const id = `memories-${thread.kind}-${thread.ref}`;
+---
+
+<div class="memories" id={id} data-live={`thread:${thread.kind}:${thread.ref}`}>
+  <div class="memories-head">
+    <h3>Memories</h3>
+    <form method="post" action="/api/ratings" class="rating">
+      <input type="hidden" name="kind" value={thread.kind} />
+      <input type="hidden" name="ref" value={thread.ref} />
+      <span class="muted">How was it?</span>
+      <span role="group" aria-label="How was it?" class="scores">
+        {
+          SCORES.map((s) => (
+            <button
+              type="submit"
+              name="score"
+              value={s.score}
+              aria-pressed={rating.mine === s.score ? "true" : "false"}
+              disabled={!thread.canTalk}
+              title={s.name}
+            >
+              <span aria-hidden="true">{s.emoji}</span>
+              <span class="vh">{s.name}</span>
+            </button>
+          ))
+        }
+      </span>
+      <span class="rating-summary">
+        {rating.average === null ? "No ratings yet" : `${rating.average.toFixed(1)} · ${rating.count} ${rating.count === 1 ? "rating" : "ratings"}`}
+      </span>
+    </form>
+  </div>
+
+  {
+    album.length > 0 && (
+      <ul class="album">
+        {album.map((p) => (
+          <li>
+            <a href={`/media/${p.file}`} data-lightbox>
+              <img src={`/media/${p.file}`} alt={`Photo added by ${p.by}`} loading="lazy" />
+            </a>
+            {me && (me.id === p.uploaderId || me.id === thread.moderatorId) && (
+              <form method="post" action={`/api/photos/${p.id}/delete`} data-confirm="Take this photo down?">
+                <button type="submit" class="icon-button" aria-label={`Delete the photo added by ${p.by}`}>
+                  <Icon name="x" size={14} />
+                </button>
+              </form>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  {
+    thread.canTalk && (
+      <form method="post" action="/api/photos" enctype="multipart/form-data" class="upload">
+        <input type="hidden" name="kind" value={thread.kind} />
+        <input type="hidden" name="ref" value={thread.ref} />
+        <label class="button small ghost upload-button">
+          <Icon name="plus" size={15} /> Add photos
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" multiple data-autosubmit />
+        </label>
+        <noscript>
+          <button type="submit" class="button small">Upload</button>
+        </noscript>
+        <span class="muted fine">JPEG, PNG or WebP, up to 5 MB each.</span>
+      </form>
+    )
+  }
+</div>
+
+<script>
+  // Choosing photos uploads them straight away; the album opens full size.
+  document.addEventListener("change", (event) => {
+    const input = event.target as HTMLInputElement;
+    if (input.matches("[data-autosubmit]") && input.files?.length) input.form?.requestSubmit();
+  });
+  let box: HTMLDialogElement | null = null;
+  document.addEventListener("click", (event) => {
+    const link = (event.target as Element).closest<HTMLAnchorElement>("a[data-lightbox]");
+    if (!link || !("HTMLDialogElement" in window)) return;
+    event.preventDefault();
+    if (!box) {
+      box = document.createElement("dialog");
+      box.className = "lightbox";
+      box.addEventListener("click", () => box?.close());
+      document.body.append(box);
+    }
+    const img = document.createElement("img");
+    img.src = link.href;
+    img.alt = link.querySelector("img")?.alt ?? "";
+    box.replaceChildren(img);
+    box.showModal();
+  });
+</script>

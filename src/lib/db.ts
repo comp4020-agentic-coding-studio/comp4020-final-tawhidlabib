@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import Database from "better-sqlite3";
-import { and, asc, eq, gte, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import {
@@ -168,6 +168,17 @@ export function upcomingHangouts(groupId: string, fromDate: string): Hangout[] {
     .from(hangouts)
     .where(and(eq(hangouts.groupId, groupId), gte(hangouts.date, fromDate)))
     .orderBy(asc(hangouts.date), asc(hangouts.startHour), asc(hangouts.id))
+    .all();
+}
+
+/** The group's hangouts before `beforeDate`, most recent first. */
+export function pastHangouts(groupId: string, beforeDate: string, limit = 10): Hangout[] {
+  return db
+    .select()
+    .from(hangouts)
+    .where(and(eq(hangouts.groupId, groupId), lt(hangouts.date, beforeDate)))
+    .orderBy(desc(hangouts.date), desc(hangouts.startHour))
+    .limit(limit)
     .all();
 }
 

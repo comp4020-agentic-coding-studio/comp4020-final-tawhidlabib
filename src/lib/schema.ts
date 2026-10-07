@@ -330,6 +330,43 @@ export const everyoneFree = sqliteTable(
   (t) => [primaryKey({ columns: [t.groupId, t.date, t.startHour, t.endHour] })],
 );
 
+/** A photo in a plan's album, stored as a file in the uploads folder on
+ *  the volume (src/lib/media.ts). */
+export const photos = sqliteTable(
+  "photos",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    eventId: int("event_id").references(() => events.id, { onDelete: "cascade" }),
+    hangoutId: int("hangout_id").references(() => hangouts.id, { onDelete: "cascade" }),
+    uploaderId: int("uploader_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    file: text().notNull().unique(),
+    mime: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [check("photos_one_target", sql`(${t.eventId} IS NULL) != (${t.hangoutId} IS NULL)`)],
+);
+
+/** "How was it?", 1–5, one each per plan. */
+export const ratings = sqliteTable(
+  "ratings",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    eventId: int("event_id").references(() => events.id, { onDelete: "cascade" }),
+    hangoutId: int("hangout_id").references(() => hangouts.id, { onDelete: "cascade" }),
+    personId: int("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    score: int().notNull(),
+  },
+  (t) => [
+    check("ratings_one_target", sql`(${t.eventId} IS NULL) != (${t.hangoutId} IS NULL)`),
+    uniqueIndex("ratings_event_person").on(t.eventId, t.personId),
+    uniqueIndex("ratings_hangout_person").on(t.hangoutId, t.personId),
+  ],
+);
+
 export type Notification = typeof notifications.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Person = typeof people.$inferSelect;

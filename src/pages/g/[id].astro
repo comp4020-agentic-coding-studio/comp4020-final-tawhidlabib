@@ -1,10 +1,11 @@
 ---
 import Icon from "../../components/Icon.astro";
+import Memories from "../../components/Memories.astro";
 import Thread from "../../components/Thread.astro";
 import Base from "../../layouts/Base.astro";
 import { hue, initials } from "../../lib/avatar";
 import { googleCalendarUrl, hangoutEvent } from "../../lib/calendar";
-import { availabilityOn, getGroup, listMembers, rsvpsFor, upcomingHangouts } from "../../lib/db";
+import { availabilityOn, getGroup, listMembers, pastHangouts, rsvpsFor, upcomingHangouts } from "../../lib/db";
 import { ERRORS } from "../../lib/forms";
 import { type Relationship, relationship } from "../../lib/friends";
 import { currentMember } from "../../lib/identity";
@@ -93,7 +94,12 @@ const best =
     : [];
 
 const plans = group && me ? upcomingHangouts(group.id, today) : [];
-const answers = rsvpsFor(plans.map((p) => p.id));
+const before = group && me ? pastHangouts(group.id, today) : [];
+const answers = rsvpsFor([...plans, ...before].map((p) => p.id));
+const past = before.map((plan) => ({
+  plan,
+  going: answers.filter((a) => a.hangoutId === plan.id && a.response === "in").map((a) => a.memberId),
+}));
 const hangouts = plans.map((plan) => {
   const mine = answers.filter((a) => a.hangoutId === plan.id);
   return {
@@ -693,11 +699,50 @@ const TABS = ["week", "best", "plans", "people"];
                   )}
                   {(() => {
                     const talk = openThread("hangout", String(plan.id), Astro.cookies);
-                    return talk && <Thread thread={talk} compact />;
+                    return (
+                      talk && (
+                        <>
+                          {talk.arrived && <Memories thread={talk} />}
+                          <Thread thread={talk} compact />
+                        </>
+                      )
+                    );
                   })()}
                 </article>
               );
             })}
+          </div>
+        )}
+        {past.length > 0 && (
+          <div class="past">
+            <h3 class="list-label">Past</h3>
+            <div class="cards">
+              {past.map(({ plan, going }) => {
+                const [weekday, day] = dayParts(plan.date);
+                const talk = openThread("hangout", String(plan.id), Astro.cookies);
+                return (
+                  <article class="card past-card">
+                    <div class="when">
+                      <div class="date-tile" aria-hidden="true">
+                        <small>{weekday}</small>
+                        <b>{day}</b>
+                      </div>
+                      <div>
+                        <p class="time">{spanLabel(plan.date, plan.startHour, plan.endHour)}</p>
+                        <p class="plan-title">{plan.title}</p>
+                        <p class="who">{going.length ? `${namesOf(going)} went` : "Nobody said they were in"}</p>
+                      </div>
+                    </div>
+                    {talk && (
+                      <>
+                        <Memories thread={talk} />
+                        <Thread thread={talk} compact />
+                      </>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
           </div>
         )}
         </div>

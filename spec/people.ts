@@ -49,7 +49,7 @@ export class Person {
   }
 
   /** A form POST with files, as a browser sends an upload. */
-  async upload(path: string, fields: Record<string, string>, files: { name: string; type: string; bytes: Uint8Array }[]) {
+  async upload(path: string, fields: Record<string, string>, files: { name: string; type: string; bytes: Uint8Array<ArrayBuffer> }[]) {
     const body = new FormData();
     for (const [key, value] of Object.entries(fields)) body.append(key, value);
     for (const f of files) body.append("photo", new Blob([f.bytes], { type: f.type }), f.name);

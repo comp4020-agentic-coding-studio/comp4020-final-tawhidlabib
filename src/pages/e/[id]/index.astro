@@ -1,5 +1,6 @@
 ---
 import Icon from "../../../components/Icon.astro";
+import Memories from "../../../components/Memories.astro";
 import Onboard from "../../../components/Onboard.astro";
 import Thread from "../../../components/Thread.astro";
 import Base from "../../../layouts/Base.astro";
@@ -262,6 +263,12 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                 </>
               )}
             </section>
+
+            {talk?.arrived && (
+              <section class="card" aria-label="Memories">
+                <Memories thread={talk} />
+              </section>
+            )}
 
             {talk && (
               <section class="card stack" aria-labelledby="talk-h">
