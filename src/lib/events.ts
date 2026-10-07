@@ -123,3 +123,7 @@ export function goingCounts(eventIds: number[]): Map<number, number> {
   for (const r of rows) counts.set(r.eventId, (counts.get(r.eventId) ?? 0) + 1);
   return counts;
 }
+
+export function eventById(id: number): Event | undefined {
+  return db.select().from(events).where(eq(events.id, id)).get();
+}

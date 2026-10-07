@@ -1,6 +1,7 @@
 ---
 import Icon from "../../components/Icon.astro";
 import Onboard from "../../components/Onboard.astro";
+import Thread from "../../components/Thread.astro";
 import Base from "../../layouts/Base.astro";
 import { hue, initials } from "../../lib/avatar";
 import { eventEvent, googleCalendarUrl } from "../../lib/calendar";
@@ -8,6 +9,7 @@ import { allowedInvitees } from "../../lib/circle";
 import { canSee, eventByShareId, type Guest, guestsOf } from "../../lib/events";
 import { groupsFor } from "../../lib/identity";
 import { peopleByIds, personById } from "../../lib/people";
+import { openThread } from "../../lib/talk";
 import { clockLabel, dayLabel, relativeDay, todayIn } from "../../lib/time";
 
 const event = eventByShareId(Astro.params.id ?? "");
@@ -40,6 +42,7 @@ const more =
       )
     : [];
 const hostGroups = isHost && person ? groupsFor(person, cookie) : [];
+const talk = event && visible ? openThread("event", event.shareId, Astro.cookies) : undefined;
 ---
 
 <Base
@@ -182,6 +185,13 @@ const hostGroups = isHost && person ? groupsFor(person, cookie) : [];
                 </>
               )}
             </section>
+
+            {talk && (
+              <section class="card stack" aria-labelledby="talk-h">
+                <h2 id="talk-h">Discussion</h2>
+                <Thread thread={talk} />
+              </section>
+            )}
 
             {isHost && (
               <section class="card stack" aria-labelledby="host-h">

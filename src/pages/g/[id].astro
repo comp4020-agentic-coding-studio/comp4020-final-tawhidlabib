@@ -1,5 +1,6 @@
 ---
 import Icon from "../../components/Icon.astro";
+import Thread from "../../components/Thread.astro";
 import Base from "../../layouts/Base.astro";
 import { hue, initials } from "../../lib/avatar";
 import { googleCalendarUrl, hangoutEvent } from "../../lib/calendar";
@@ -8,6 +9,7 @@ import { ERRORS } from "../../lib/forms";
 import { type Relationship, relationship } from "../../lib/friends";
 import { currentMember } from "../../lib/identity";
 import { recommend } from "../../lib/recommend";
+import { openThread } from "../../lib/talk";
 import {
   addDays,
   currentWeekStart,
@@ -655,6 +657,10 @@ const TABS = ["week", "best", "plans", "people"];
                       </a>
                     </div>
                   )}
+                  {(() => {
+                    const talk = openThread("hangout", String(plan.id), Astro.cookies);
+                    return talk && <Thread thread={talk} compact />;
+                  })()}
                 </article>
               );
             })}

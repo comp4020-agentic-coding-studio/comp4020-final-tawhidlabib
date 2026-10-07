@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { int, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { check, index, int, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 // The schema is the ground truth for the database. To change it: edit here,
 // run `pnpm db:generate` to turn the diff into a migration under drizzle/,
@@ -159,6 +159,50 @@ export const eventGuests = sqliteTable(
   (t) => [primaryKey({ columns: [t.eventId, t.personId] })],
 );
 
+/** Talk about a plan: a comment on exactly one event or one hangout, so the
+ *  conversation lives with the plan and goes when it does. */
+export const comments = sqliteTable(
+  "comments",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    eventId: int("event_id").references(() => events.id, { onDelete: "cascade" }),
+    hangoutId: int("hangout_id").references(() => hangouts.id, { onDelete: "cascade" }),
+    authorId: int("author_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    body: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check("comments_one_target", sql`(${t.eventId} IS NULL) != (${t.hangoutId} IS NULL)`),
+    index("comments_event").on(t.eventId),
+    index("comments_hangout").on(t.hangoutId),
+  ],
+);
+
+/** One reaction per person per plan, like Facebook: changing it replaces
+ *  it. The unique indexes hold that (SQLite treats the NULL side of each as
+ *  distinct, so event and hangout reactions never collide). */
+export const reactions = sqliteTable(
+  "reactions",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    eventId: int("event_id").references(() => events.id, { onDelete: "cascade" }),
+    hangoutId: int("hangout_id").references(() => hangouts.id, { onDelete: "cascade" }),
+    personId: int("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    emoji: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check("reactions_one_target", sql`(${t.eventId} IS NULL) != (${t.hangoutId} IS NULL)`),
+    uniqueIndex("reactions_event_person").on(t.eventId, t.personId),
+    uniqueIndex("reactions_hangout_person").on(t.hangoutId, t.personId),
+  ],
+);
+
+export type Comment = typeof comments.$inferSelect;
 export type Person = typeof people.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type EventGuest = typeof eventGuests.$inferSelect;

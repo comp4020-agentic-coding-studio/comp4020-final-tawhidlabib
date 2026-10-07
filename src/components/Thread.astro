@@ -1,0 +1,158 @@
+---
+import { hue, initials } from "../lib/avatar";
+import { ago, commentsOn, reactionsOn, type Thread } from "../lib/talk";
+import Icon from "./Icon.astro";
+
+// A plan's reactions and comments. Plain forms that post and come back to
+// the plan; with JS, the thread re-renders in place from /partials/thread
+// instead of reloading the page. Deliberately not a landmark (no accessible
+// name), since a group page can hold a thread per hangout.
+
+interface Props {
+  thread: Thread;
+  /** Tighter spacing, for a thread inside a hangout card. */
+  compact?: boolean;
+}
+
+const { thread, compact = false } = Astro.props;
+const said = commentsOn(thread.target);
+const reacted = reactionsOn(thread.target, thread.person?.id);
+const id = `talk-${thread.kind}-${thread.ref}`;
+const me = thread.person;
+const canDelete = (authorId: number) => !!me && (me.id === authorId || me.id === thread.moderatorId);
+---
+
+<div class:list={["thread", { compact }]} data-thread={`${thread.kind}:${thread.ref}`} id={id}>
+  <form method="post" action="/api/reactions" class="reactions" data-thread-form>
+    <input type="hidden" name="kind" value={thread.kind} />
+    <input type="hidden" name="ref" value={thread.ref} />
+    <div role="group" aria-label="Reactions" class="reaction-row">
+      {
+        reacted.map((r) => (
+          <button
+            type="submit"
+            name="emoji"
+            value={r.emoji}
+            class:list={["reaction", { given: r.who.length > 0 }]}
+            aria-pressed={r.mine ? "true" : "false"}
+            disabled={!thread.canTalk}
+            title={r.who.length ? `${r.name}: ${r.who.join(", ")}` : r.name}
+          >
+            <span class="emoji" aria-hidden="true">
+              {r.emoji}
+            </span>
+            <span class="vh">{r.name}</span>
+            <span class="count">{r.who.length || ""}</span>
+          </button>
+        ))
+      }
+    </div>
+  </form>
+
+  {
+    said.length > 0 && (
+      <ul class="comments">
+        {said.map((c) => (
+          <li class="comment">
+            <span class="avatar" style={`--hue: ${hue(c.author.name)}`} aria-hidden="true">
+              {initials(c.author.name)}
+            </span>
+            <div class="comment-body">
+              <p class="comment-head">
+                <b>{c.author.name}</b>
+                <span class="muted"> · {ago(c.createdAt)}</span>
+              </p>
+              <p class="comment-text">{c.body}</p>
+            </div>
+            {canDelete(c.author.id) && (
+              <form method="post" action={`/api/comments/${c.id}/delete`} data-thread-form class="comment-delete">
+                <button type="submit" class="icon-button" aria-label={`Delete ${c.author.name}'s comment`}>
+                  <Icon name="x" size={14} />
+                </button>
+              </form>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  {
+    thread.canTalk && me ? (
+      <form method="post" action="/api/comments" class="comment-form" data-thread-form>
+        <input type="hidden" name="kind" value={thread.kind} />
+        <input type="hidden" name="ref" value={thread.ref} />
+        <span class="avatar" style={`--hue: ${hue(me.name)}`} aria-hidden="true">
+          {initials(me.name)}
+        </span>
+        <label class="vh" for={`${id}-body`}>
+          Write a comment
+        </label>
+        <textarea
+          id={`${id}-body`}
+          name="body"
+          rows="1"
+          required
+          maxlength="500"
+          placeholder={said.length ? "Add a comment…" : "Start the conversation…"}
+        />
+        <button type="submit" class="button small">
+          Post
+        </button>
+      </form>
+    ) : (
+      !me && (
+        <p class="muted fine">
+          <a href="/me">Make your profile</a> to comment and react.
+        </p>
+      )
+    )
+  }
+</div>
+
+<script>
+  // Post comments and reactions without leaving the page: send the form,
+  // then swap in the thread as the server now renders it. Any failure falls
+  // back to a reload, which shows the same thing.
+  document.addEventListener("submit", async (event) => {
+    const form = event.target as HTMLFormElement;
+    if (!form.matches("[data-thread-form]")) return;
+    const section = form.closest<HTMLElement>("[data-thread]");
+    if (!section) return;
+    event.preventDefault();
+
+    const submitter = (event as SubmitEvent).submitter as HTMLButtonElement | null;
+    const data = new FormData(form);
+    if (submitter?.name) data.set(submitter.name, submitter.value);
+    const [kind, ...rest] = (section.dataset.thread ?? "").split(":");
+    const wasComment = form.classList.contains("comment-form");
+    section.classList.add("busy");
+    try {
+      await fetch(form.action, { method: "POST", body: data, redirect: "manual" });
+      const res = await fetch(`/partials/thread?kind=${kind}&ref=${encodeURIComponent(rest.join(":"))}`);
+      if (!res.ok) throw new Error(String(res.status));
+      const template = document.createElement("template");
+      template.innerHTML = (await res.text()).trim();
+      const fresh = template.content.querySelector<HTMLElement>("[data-thread]");
+      if (!fresh) throw new Error("no thread");
+      section.replaceWith(fresh);
+      if (wasComment) fresh.querySelector("textarea")?.focus();
+    } catch {
+      location.reload();
+    }
+  });
+
+  // Enter posts a comment, Shift+Enter starts a new line; the box grows.
+  document.addEventListener("keydown", (event) => {
+    const box = event.target as HTMLElement;
+    if (!box.matches(".comment-form textarea") || event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    box.closest("form")?.requestSubmit();
+  });
+  document.addEventListener("input", (event) => {
+    const box = event.target as HTMLTextAreaElement;
+    if (!box.matches(".comment-form textarea")) return;
+    box.style.height = "auto";
+    box.style.height = `${Math.min(box.scrollHeight, 160)}px`;
+  });
+</script>

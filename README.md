@@ -22,8 +22,8 @@ to die: forty messages of "I'm free Thursday-ish", and nobody ever says
 2. **It answers the question, honestly.** It recommends the longest
    stretch the most people share, and says who that leaves out ("3 of 4 free: you, Ana, Ben"), so nobody
    has to guess who can't come.
-3. **This week, not a template.** People's weeks aren't the same twice, so
-   free hours belong to a specific week. A recurring schedule goes stale.
+3. **This week, not a template.** Free hours belong to a specific week; a
+   recurring schedule goes stale.
 4. **It ends in a calendar.** Saying "I'm in" gives you an Add to Google
    Calendar link and an `.ics` file.
 5. **It works on the phone in your pocket,** and the core works without
@@ -39,22 +39,22 @@ simple; we love it; no one else will ever use it." Clay Shirky's
 (2004) describes software "designed for use by a specific social group,
 rather than for a generic set of 'users'."
 
-Both pull against my choice to build for *any* small group, and that tension
+Both pull against building for *any* small group, and that tension
 is the design. Hangout is generic, but each group's copy is situated: its own
 link, its own names, its own week. Friends and private events reach past a
 group only by invitation: nobody finds you without your link.
 
-I also looked at what people use. When2meet gets everyone to paint a
-grid, then stops at the overlap. Doodle starts from a few times one organiser
-guesses at. Hangout starts from everyone's real week, and ends with a plan.
+When2meet gets everyone to paint a grid, then stops at the overlap. Doodle
+starts from a few times one organiser guesses at. Hangout starts from
+everyone's real week, and ends with a plan.
 
 ## What I chose not to build
 
 - **Passwords and Google sign-in.** Writing straight into Google Calendar
   needs OAuth, which an unverified app only offers to listed test users.
   Links do the same job without the wall.
-- **Chat, notifications, recurring availability.** The group chat already
-  exists, and Hangout's job is to end it.
+- **A chat, notifications, recurring availability.** Comments live on a
+  plan, not in an endless channel: Hangout's job is to end the group chat.
 
 The cost of no passwords: whoever holds your sign-in link is you, so it's
 private, and your profile can replace it.
@@ -69,7 +69,8 @@ private, and your profile can replace it.
 - a proposal can be shortened
 - calendar times are right across a daylight-saving change
 - a friend request isn't a friendship until it's accepted
-- a private event answers 403 to anyone not invited
+- a private event answers 403 to anyone not invited, and only a plan's
+  people can comment or react
 
 The quality floor checks accessibility basics on every page state. Whether
 the recommendations feel right, and whether Hangout really beats the group

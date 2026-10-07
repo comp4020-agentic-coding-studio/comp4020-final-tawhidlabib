@@ -1,0 +1,18 @@
+---
+// One plan's thread on its own, for the script that refreshes a thread in
+// place after a comment or reaction. Same rules as the page it sits on.
+import Thread from "../../components/Thread.astro";
+import { openThread } from "../../lib/talk";
+
+export const partial = true;
+
+const thread = openThread(
+  Astro.url.searchParams.get("kind") ?? "",
+  Astro.url.searchParams.get("ref") ?? "",
+  Astro.cookies,
+);
+if (!thread) Astro.response.status = 404;
+else if (!thread.visible) Astro.response.status = 403;
+---
+
+{thread?.visible && <Thread thread={thread} />}
