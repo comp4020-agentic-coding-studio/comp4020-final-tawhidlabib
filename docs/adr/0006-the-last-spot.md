@@ -76,3 +76,10 @@ devices.
   there's one database file and one process. If Hangout ever ran on several
   machines, the live channel and this decision would need a shared database
   or queue.
+
+## Later
+
+ADR 6 promised that a promotion notice would be hard to miss. It is: a live
+push wherever the person is on the site, and an inbox item that waits for
+them ([ADR 7](0007-notifications-in-app.md)). A host raising the spot limit
+moves people in by the same rule, and they're told the same way.

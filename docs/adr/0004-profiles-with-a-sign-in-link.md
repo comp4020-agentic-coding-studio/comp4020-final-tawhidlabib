@@ -42,3 +42,12 @@ recovery if you lose every device and the link. Names aren't unique, so
 "Ana" could be two people; friends tell them apart by how they met. Per-group
 cookies still exist alongside profiles, so a browser can know you two ways.
 `currentMember()` resolves that by trusting the group cookie first.
+
+## Later
+
+**Logging out** (from `/me`) deletes the profile cookie and every group's
+cookie on that device, and nothing on the server. The sign-in link brings
+you back with your groups, so `/me` says to copy it before logging out,
+and the button asks first. Profiles also grew an emoji or photo avatar and
+a bio ([ADR 8](0008-photos-on-the-volume.md)), and a way to block people
+([ADR 9](0009-block-and-mute.md)).

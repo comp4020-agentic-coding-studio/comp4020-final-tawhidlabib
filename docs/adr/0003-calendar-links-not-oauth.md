@@ -33,3 +33,11 @@ Sydney's daylight-saving change.
 You have to click to save the event, and if a hangout changes, your
 calendar doesn't follow it. The `.ics` is members-only. The Google link
 carries the hangout's details in its URL to whoever it's shared with.
+
+## Later
+
+Events ([ADR 5](0005-event-visibility.md)) use the same approach: Google
+Calendar links and an `.ics` file, in UTC from the host's timezone, offered
+once you're going or maybe. When a host edits an event, guests get an inbox
+notice ([ADR 7](0007-notifications-in-app.md)). Calendars that already
+saved it still don't follow the change.

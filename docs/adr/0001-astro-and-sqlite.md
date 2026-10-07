@@ -32,3 +32,11 @@ SQLite means one machine, which is fine for friend groups and is what the
 course setup allows anyway. Server-rendered forms reload the page on every
 save. Crit 9's real-time layer will need a push channel (server-sent events
 are the likely fit) on top of a stack that doesn't give me one for free.
+
+## Later
+
+**Crit 9.** The push channel is server-sent events (`/api/live`). They run
+through the same Node server, with no extra service, and pages swap the
+parts that changed instead of reloading. The forms still work, and still
+reload, without JavaScript. In-process pub/sub keeps this a one-machine
+design; [ADR 6](0006-the-last-spot.md) says what more machines would need.

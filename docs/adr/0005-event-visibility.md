@@ -41,3 +41,11 @@ There's no "friends can see it" middle ground. A host who wants all their
 friends has to tick them, or invite whole groups. A public event's link,
 once shared, can travel anywhere. Members of a group who never made a
 profile can't be invited until they do.
+
+## Later
+
+Events grew spot limits and a waitlist ([ADR 6](0006-the-last-spot.md)),
++1s, an RSVP deadline, covers, host editing, comments, polls and a photo
+album. All of them follow the same rule: private means only the host and
+guests, so the event's thread, album and live updates answer 403 to
+everyone else.
