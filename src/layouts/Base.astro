@@ -1,15 +1,18 @@
 ---
 import "../styles.css";
+import { MODES, THEMES, themeOf } from "../lib/theme";
 
 interface Props {
   title: string;
 }
 
 const { title } = Astro.props;
+const { theme, mode } = themeOf(Astro.cookies);
+const back = Astro.url.pathname + Astro.url.search;
 ---
 
 <!doctype html>
-<html lang="en-AU">
+<html lang="en-AU" data-theme={theme} data-mode={mode}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -18,16 +21,102 @@ const { title } = Astro.props;
       content="Hangout: tell your friend group when you're free this week, and find the time that works for the most of you."
     />
     <title>{title}</title>
+    <slot name="head" />
   </head>
   <body>
+    <a class="skip" href="#main">Skip to content</a>
     <header class="site">
-      <nav aria-label="site">
-        <a href="/" class="brand">Hangout</a>
-        <a href="/readme/">About</a>
-      </nav>
+      <div class="bar">
+        <a href="/" class="brand">
+          <span class="logo" aria-hidden="true"></span>
+          Hangout
+        </a>
+        <nav aria-label="site">
+          <a href="/readme/">About</a>
+        </nav>
+        <details class="theme-picker">
+          <summary>
+            <span class="current-dot" aria-hidden="true"></span>
+            Theme
+          </summary>
+          <form method="post" action="/api/theme" class="theme-menu">
+            <input type="hidden" name="back" value={back} />
+            <fieldset>
+              <legend>Colour</legend>
+              <div class="swatches">
+                {
+                  THEMES.map((t) => (
+                    <button
+                      type="submit"
+                      name="theme"
+                      value={t.id}
+                      data-swatch={t.id}
+                      aria-pressed={t.id === theme ? "true" : "false"}
+                    >
+                      <span class="dot" aria-hidden="true" />
+                      {t.label}
+                    </button>
+                  ))
+                }
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Mode</legend>
+              <div class="modes">
+                {
+                  MODES.map((m) => (
+                    <button
+                      type="submit"
+                      name="mode"
+                      value={m.id}
+                      aria-pressed={m.id === mode ? "true" : "false"}
+                    >
+                      {m.label}
+                    </button>
+                  ))
+                }
+              </div>
+            </fieldset>
+          </form>
+        </details>
+      </div>
     </header>
-    <main>
+    <main id="main">
       <slot />
     </main>
+    <footer class="site-foot">
+      <p>
+        Hangout · for small groups who'd rather meet than message ·
+        <a href="/readme/">What good means here</a>
+      </p>
+    </footer>
   </body>
 </html>
+
+<script>
+  // The picker works as a plain form; with JS, a choice applies instantly
+  // instead of reloading the page.
+  const picker = document.querySelector<HTMLDetailsElement>("details.theme-picker");
+  const menu = picker?.querySelector<HTMLFormElement>("form.theme-menu");
+  menu?.addEventListener("submit", (event) => {
+    const button = event.submitter as HTMLButtonElement | null;
+    if (!button || (button.name !== "theme" && button.name !== "mode")) return;
+    event.preventDefault();
+    document.documentElement.dataset[button.name] = button.value;
+    const secure = location.protocol === "https:" ? "; secure" : "";
+    document.cookie = `${button.name}=${button.value}; path=/; max-age=31536000; samesite=lax${secure}`;
+    for (const b of menu.querySelectorAll<HTMLButtonElement>(`button[name="${button.name}"]`)) {
+      b.setAttribute("aria-pressed", String(b === button));
+    }
+  });
+  // Close on Escape or a click elsewhere, like any menu.
+  document.addEventListener("click", (event) => {
+    if (picker?.open && !picker.contains(event.target as Node)) picker.open = false;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && picker?.open) {
+      picker.open = false;
+      picker.querySelector("summary")?.focus();
+    }
+  });
+</script>
