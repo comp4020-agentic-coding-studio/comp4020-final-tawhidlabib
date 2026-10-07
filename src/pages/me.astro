@@ -1,0 +1,118 @@
+---
+import Icon from "../components/Icon.astro";
+import Onboard from "../components/Onboard.astro";
+import Base from "../layouts/Base.astro";
+import { hue, initials } from "../lib/avatar";
+import { ERRORS } from "../lib/forms";
+import { groupsFor } from "../lib/identity";
+
+const person = Astro.locals.person;
+const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
+const signInUrl = person ? new URL(`/me/sign-in/${person.token}`, Astro.url).href : "";
+const friendUrl = person ? new URL(`/f/${person.friendCode}`, Astro.url).href : "";
+const groups = person ? groupsFor(person, Astro.request.headers.get("cookie")) : [];
+---
+
+<Base title={person ? `${person.name} · Hangout` : "Your profile · Hangout"}>
+  {
+    person ? (
+      <div class="page-head">
+        <span class="avatar xl" style={`--hue: ${hue(person.name)}`} aria-hidden="true">
+          {initials(person.name)}
+        </span>
+        <div>
+          <span class="kicker">Your profile</span>
+          <h1>{person.name}</h1>
+        </div>
+      </div>
+    ) : (
+      <div class="page-head">
+        <div>
+          <span class="kicker">Your profile</span>
+          <h1>Make yourself at home</h1>
+        </div>
+      </div>
+    )
+  }
+
+  {
+    error && (
+      <p class="error" role="alert">
+        {error}
+      </p>
+    )
+  }
+
+  {
+    !person ? (
+      <Onboard back="/me" />
+    ) : (
+      <div class="tiles stagger">
+        <section class="card stack" aria-labelledby="name-h" style="--i: 0">
+          <h2 id="name-h">Your name</h2>
+          <form method="post" action="/api/me" class="inline-form">
+            <label class="vh" for="rename">
+              Your name
+            </label>
+            <input type="text" name="name" id="rename" required maxlength="40" value={person.name} />
+            <input type="hidden" name="back" value="/me" />
+            <button type="submit" class="button ghost">
+              Save
+            </button>
+          </form>
+          <p class="muted fine">
+            Groups you join from now on use this name. Times for your events are in{" "}
+            {person.timezone}.
+          </p>
+        </section>
+
+        <section class="card stack" aria-labelledby="link-h" style="--i: 1">
+          <h2 id="link-h">Sign in on your other devices</h2>
+          <p class="muted">
+            Open this private link on your phone or laptop to be you there too. Anyone with it can
+            act as you, so keep it to yourself.
+          </p>
+          <div class="invite-row">
+            <label class="vh" for="sign-in-link">
+              Your private sign-in link
+            </label>
+            <input type="url" readonly value={signInUrl} id="sign-in-link" />
+            <button type="button" class="button" data-copy={signInUrl} hidden>
+              <Icon name="copy" size={18} /> Copy
+            </button>
+          </div>
+          <form method="post" action="/api/me/link">
+            <button type="submit" class="button ghost small">
+              Make a new link (signs out other devices)
+            </button>
+          </form>
+        </section>
+
+        <section class="card stack" aria-labelledby="friend-h" style="--i: 2">
+          <h2 id="friend-h">Your friend link</h2>
+          <p class="muted">Send it to someone and they can add you as a friend.</p>
+          <div class="invite-row">
+            <label class="vh" for="friend-link">
+              Your friend link
+            </label>
+            <input type="url" readonly value={friendUrl} id="friend-link" />
+            <button type="button" class="button" data-copy={friendUrl} hidden>
+              <Icon name="copy" size={18} /> Copy
+            </button>
+          </div>
+          <a href="/friends">See your friends →</a>
+        </section>
+
+        <section class="card stack" aria-labelledby="groups-h" style="--i: 3">
+          <h2 id="groups-h">Your groups</h2>
+          <p class="muted">
+            {groups.length === 0
+              ? "You're not in any groups yet."
+              : `You're in ${groups.length} ${groups.length === 1 ? "group" : "groups"}.`}
+          </p>
+          <a href="/groups">See your groups →</a>
+        </section>
+      </div>
+    )
+  }
+</Base>

@@ -8,6 +8,13 @@
       "when": 1791271536106,
       "tag": "0000_watery_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791352755003,
+      "tag": "0001_black_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }

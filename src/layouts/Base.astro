@@ -2,8 +2,14 @@
 import "@fontsource-variable/bricolage-grotesque";
 import "@fontsource-variable/inter";
 import "../styles.css";
+import Icon from "../components/Icon.astro";
 import Logo from "../components/Logo.astro";
+import { hue, initials } from "../lib/avatar";
+import { unansweredCount } from "../lib/events";
+import { FLASHES } from "../lib/flash";
+import { pendingCount } from "../lib/friends";
 import { MODES, THEMES, themeOf } from "../lib/theme";
+import { DEFAULT_TIMEZONE, todayIn } from "../lib/time";
 
 interface Props {
   title: string;
@@ -12,6 +18,38 @@ interface Props {
 const { title } = Astro.props;
 const { theme, mode } = themeOf(Astro.cookies);
 const back = Astro.url.pathname + Astro.url.search;
+const toast = Astro.locals.flash ? FLASHES[Astro.locals.flash] : undefined;
+const person = Astro.locals.person;
+
+// The main navigation: which item is this page, and what's waiting in each.
+const path = Astro.url.pathname;
+const NAV = [
+  { key: "home", href: "/", label: "Home", icon: "home", on: path === "/" },
+  {
+    key: "groups",
+    href: "/groups",
+    label: "Groups",
+    icon: "users",
+    on: path.startsWith("/groups") || path.startsWith("/g/"),
+  },
+  { key: "calendar", href: "/calendar", label: "Calendar", icon: "calendar", on: path.startsWith("/calendar") },
+  {
+    key: "events",
+    href: "/events",
+    label: "Events",
+    icon: "ticket",
+    on: path.startsWith("/events") || path.startsWith("/e/"),
+    badge: person ? unansweredCount(person.id, todayIn(person.timezone ?? DEFAULT_TIMEZONE)) : 0,
+  },
+  {
+    key: "friends",
+    href: "/friends",
+    label: "Friends",
+    icon: "heart",
+    on: path.startsWith("/friends") || path.startsWith("/f/"),
+    badge: person ? pendingCount(person.id) : 0,
+  },
+] as const;
 ---
 
 <!doctype html>
@@ -36,13 +74,47 @@ const back = Astro.url.pathname + Astro.url.search;
           <Logo />
           <span>Hangout</span>
         </a>
-        <nav aria-label="site">
-          <a href="/readme/">About</a>
+        <nav aria-label="Main" class="main-nav">
+          <ul>
+            {
+              NAV.map((item) => (
+                <li>
+                  <a href={item.href} class="nav-link" aria-current={item.on ? "page" : undefined}>
+                    {item.on && <span class="nav-pill" aria-hidden="true" />}
+                    <span class="nav-icon">
+                      <Icon name={item.icon} size={20} />
+                    </span>
+                    <span class="nav-label">{item.label}</span>
+                    {"badge" in item && item.badge > 0 && (
+                      <span class="badge">
+                        <span aria-hidden="true">{item.badge}</span>
+                        <span class="vh">, {item.badge} waiting</span>
+                      </span>
+                    )}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
         </nav>
+        {
+          person ? (
+            <a href="/me" class="me-link" aria-current={path === "/me" ? "page" : undefined}>
+              <span class="avatar" style={`--hue: ${hue(person.name)}`} aria-hidden="true">
+                {initials(person.name)}
+              </span>
+              <span class="vh">Your profile, {person.name}</span>
+            </a>
+          ) : (
+            <a href="/me" class="button small get-started">
+              Get started
+            </a>
+          )
+        }
         <details class="theme-picker">
           <summary>
             <span class="current-dot" aria-hidden="true"></span>
-            Theme
+            <span class="theme-word">Theme</span>
           </summary>
           <form method="post" action="/api/theme" class="theme-menu">
             <input type="hidden" name="back" value={back} />
@@ -86,6 +158,16 @@ const back = Astro.url.pathname + Astro.url.search;
         </details>
       </div>
     </header>
+    {
+      toast && (
+        <div class="toast" role="status" data-party={toast.party ? "" : undefined}>
+          <span class="toast-icon" aria-hidden="true">
+            <Icon name={toast.party ? "sparkles" : "check"} size={16} />
+          </span>
+          {toast.text}
+        </div>
+      )
+    }
     <main id="main">
       <slot />
     </main>
@@ -126,4 +208,63 @@ const back = Astro.url.pathname + Astro.url.search;
       picker.querySelector("summary")?.focus();
     }
   });
+
+  // ─── the toast a form action left, and confetti for the happy ones ─────
+  const toast = document.querySelector<HTMLElement>(".toast");
+  if (toast) setTimeout(() => toast.remove(), 5500);
+  function confetti() {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const box = document.createElement("div");
+    box.className = "confetti";
+    box.setAttribute("aria-hidden", "true");
+    const style = getComputedStyle(document.documentElement);
+    const colours = [
+      style.getPropertyValue("--accent"),
+      style.getPropertyValue("--accent-2"),
+      "#facc15",
+      "#ffffff",
+      "#38bdf8",
+    ];
+    for (let i = 0; i < 90; i++) {
+      const piece = document.createElement("i");
+      const set = (k: string, v: string) => piece.style.setProperty(k, v);
+      set("--x", `${Math.random() * 100}vw`);
+      set("--dx", `${(Math.random() - 0.5) * 30}vw`);
+      set("--r", `${(Math.random() - 0.5) * 1080}deg`);
+      set("--d", `${Math.random() * 0.5}s`);
+      set("--t", `${2.2 + Math.random() * 1.6}s`);
+      set("--w", `${0.35 + Math.random() * 0.35}rem`);
+      set("--h", `${0.6 + Math.random() * 0.6}rem`);
+      set("--c", colours[i % colours.length]);
+      box.append(piece);
+    }
+    document.body.append(box);
+    setTimeout(() => box.remove(), 4800);
+  }
+  if (toast?.hasAttribute("data-party")) setTimeout(confetti, 250);
+
+  // ─── copy and share buttons, anywhere on any page ─────────────────────
+  if (navigator.clipboard) {
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
+      button.hidden = false;
+      const original = button.innerHTML;
+      button.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(button.dataset.copy ?? "");
+        button.textContent = "Copied ✓";
+        setTimeout(() => (button.innerHTML = original), 2000);
+      });
+    }
+    // a no-JS fallback link isn't needed once Copy works
+    document
+      .querySelectorAll<HTMLElement>("[data-copy-fallback]")
+      .forEach((link) => (link.hidden = true));
+  }
+  if (navigator.share) {
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-share]")) {
+      button.hidden = false;
+      button.addEventListener("click", () =>
+        navigator.share({ title: document.title, url: button.dataset.share }).catch(() => {}),
+      );
+    }
+  }
 </script>

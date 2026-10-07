@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { safeBack } from "../../lib/forms";
 import { isMode, isTheme } from "../../lib/theme";
 
 const YEAR = 60 * 60 * 24 * 365;
@@ -20,7 +21,5 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
   const mode = form.get("mode");
   if (isMode(mode)) cookies.set("mode", mode, options);
 
-  // Only ever back to a path on this site.
-  const back = String(form.get("back") ?? "/");
-  return redirect(back.startsWith("/") && !back.startsWith("//") ? back : "/", 303);
+  return redirect(safeBack(form.get("back")), 303);
 };

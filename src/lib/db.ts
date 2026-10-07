@@ -48,7 +48,12 @@ export function getGroup(id: string): Group | undefined {
   return db.select().from(groups).where(eq(groups.id, id)).get();
 }
 
-export function createGroup(input: { name: string; timezone: string; you: string }): {
+export function createGroup(input: {
+  name: string;
+  timezone: string;
+  you: string;
+  personId?: number;
+}): {
   group: Group;
   member: Member;
 } {
@@ -60,7 +65,13 @@ export function createGroup(input: { name: string; timezone: string; you: string
       .get();
     const member = tx
       .insert(members)
-      .values({ groupId: group.id, name: input.you, nameKey: nameKey(input.you), token: secret(24) })
+      .values({
+        groupId: group.id,
+        name: input.you,
+        nameKey: nameKey(input.you),
+        token: secret(24),
+        personId: input.personId,
+      })
       .returning()
       .get();
     return { group, member };
@@ -69,7 +80,7 @@ export function createGroup(input: { name: string; timezone: string; you: string
 
 /** A new member, or undefined if someone in the group already goes by that
  *  name. */
-export function addMember(groupId: string, name: string): Member | undefined {
+export function addMember(groupId: string, name: string, personId?: number): Member | undefined {
   const taken = db
     .select({ id: members.id })
     .from(members)
@@ -78,7 +89,7 @@ export function addMember(groupId: string, name: string): Member | undefined {
   if (taken) return undefined;
   return db
     .insert(members)
-    .values({ groupId, name, nameKey: nameKey(name), token: secret(24) })
+    .values({ groupId, name, nameKey: nameKey(name), token: secret(24), personId })
     .returning()
     .get();
 }

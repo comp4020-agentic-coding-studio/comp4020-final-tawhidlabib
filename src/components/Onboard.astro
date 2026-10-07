@@ -1,0 +1,66 @@
+---
+import { yourGroups } from "../lib/identity";
+import { DEFAULT_TIMEZONE } from "../lib/time";
+import Icon from "./Icon.astro";
+
+// What a page that needs a profile shows someone who hasn't made one: a
+// name and one button. If this browser is already in a group, the name it
+// goes by there is filled in, and making the profile claims those groups.
+
+interface Props {
+  /** Where to land once the profile exists. */
+  back: string;
+  title?: string;
+  lead?: string;
+}
+
+const {
+  back,
+  title = "Pick a name to get started",
+  lead = "Your groups, friends, events and calendar all hang off one profile.",
+} = Astro.props;
+const known = yourGroups(Astro.request.headers.get("cookie"))[0]?.member.name ?? "";
+---
+
+<div class="start-card stack onboard">
+  <div>
+    <div class="icon-bubble"><Icon name="users" size={22} /></div>
+    <h2>{title}</h2>
+    <p class="muted">{lead}</p>
+  </div>
+  <form method="post" action="/api/me" class="stack">
+    <label class="field">
+      Your name
+      <input
+        type="text"
+        name="name"
+        required
+        maxlength="40"
+        value={known}
+        autocomplete="given-name"
+        placeholder="What your friends call you"
+      />
+    </label>
+    <input type="hidden" name="timezone" value={DEFAULT_TIMEZONE} data-timezone />
+    <input type="hidden" name="back" value={back} />
+    <div>
+      <button type="submit" class="button">
+        Get started
+        <span class="icon-arrow"><Icon name="arrow" /></span>
+      </button>
+    </div>
+  </form>
+  <p class="muted fine">
+    No password. Hangout remembers you on this device, and gives you a private link to sign in
+    on your others.
+  </p>
+</div>
+
+<script is:inline>
+  // Your timezone, so your events' times mean what you meant; Sydney without JS.
+  for (const input of document.querySelectorAll("[data-timezone]")) {
+    try {
+      input.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {}
+  }
+</script>

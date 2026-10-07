@@ -4,7 +4,6 @@ import Base from "../../layouts/Base.astro";
 import { hue, initials } from "../../lib/avatar";
 import { googleCalendarUrl, hangoutEvent } from "../../lib/calendar";
 import { availabilityOn, getGroup, listMembers, rsvpsFor, upcomingHangouts } from "../../lib/db";
-import { FLASHES, takeFlash } from "../../lib/flash";
 import { ERRORS } from "../../lib/forms";
 import { currentMember } from "../../lib/identity";
 import { recommend } from "../../lib/recommend";
@@ -33,8 +32,7 @@ const me = group && currentMember(Astro.cookies, group.id);
 const members = group ? listMembers(group.id) : [];
 const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
 const inviteUrl = group ? new URL(`/g/${group.id}`, Astro.url).href : "";
-const flashed = takeFlash(Astro.cookies);
-const toast = flashed ? FLASHES[flashed] : undefined;
+const flashed = Astro.locals.flash;
 
 // The week on show: ?week= when it names a Monday, otherwise this week.
 const asked = Astro.url.searchParams.get("week") ?? "";
@@ -170,28 +168,56 @@ const TABS = ["week", "best", "plans", "group"];
             {error}
           </p>
         )}
-        <form method="post" action={`/api/groups/${group.id}/join`} class="stack">
-          <label class="field">
-            Your name
-            <input
-              type="text"
-              name="name"
-              required
-              maxlength="40"
-              autocomplete="given-name"
-              placeholder="What your friends call you"
-            />
-          </label>
-          <div>
-            <button type="submit" class="button large">
-              Join the group
-              <span class="icon-arrow">
-                <Icon name="arrow" />
-              </span>
-            </button>
-          </div>
-        </form>
-        <p class="muted">No account or password. This browser will remember you.</p>
+        {Astro.locals.person ? (
+          <>
+            <form method="post" action={`/api/groups/${group.id}/join`}>
+              <input type="hidden" name="name" value={Astro.locals.person.name} />
+              <button type="submit" class="button large">
+                Join as {Astro.locals.person.name}
+                <span class="icon-arrow">
+                  <Icon name="arrow" />
+                </span>
+              </button>
+            </form>
+            <details class="other-name">
+              <summary>Use a different name in this group</summary>
+              <form method="post" action={`/api/groups/${group.id}/join`} class="inline-form">
+                <label class="vh" for="other-name">
+                  Your name in this group
+                </label>
+                <input type="text" name="name" id="other-name" required maxlength="40" />
+                <button type="submit" class="button ghost">
+                  Join
+                </button>
+              </form>
+            </details>
+          </>
+        ) : (
+          <>
+            <form method="post" action={`/api/groups/${group.id}/join`} class="stack">
+              <label class="field">
+                Your name
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  maxlength="40"
+                  autocomplete="given-name"
+                  placeholder="What your friends call you"
+                />
+              </label>
+              <div>
+                <button type="submit" class="button large">
+                  Join the group
+                  <span class="icon-arrow">
+                    <Icon name="arrow" />
+                  </span>
+                </button>
+              </div>
+            </form>
+            <p class="muted">No account or password. This browser will remember you.</p>
+          </>
+        )}
       </div>
     </Base>
   ) : (
@@ -204,15 +230,6 @@ const TABS = ["week", "best", "plans", "group"];
           document.documentElement.dataset.tab = tabs.includes(asked) ? asked : "week";
         </script>
       </Fragment>
-
-      {toast && (
-        <div class="toast" role="status" data-party={toast.party ? "" : undefined}>
-          <span class="toast-icon" aria-hidden="true">
-            <Icon name={toast.party ? "sparkles" : "check"} size={16} />
-          </span>
-          {toast.text}
-        </div>
-      )}
 
       <div class="group-head">
         <div>
@@ -679,7 +696,6 @@ const TABS = ["week", "best", "plans", "group"];
   // Enhancements only: without JS the tabs are links to sections on one page
   // and every form still submits.
   const root = document.documentElement;
-  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ─── tabs, with an indicator that slides between them ──────────────────
   const tablist = document.querySelector<HTMLElement>("[data-tabs]");
@@ -761,66 +777,6 @@ const TABS = ["week", "best", "plans", "group"];
     select(name, { focus: link.closest("[data-tabs]") !== null });
   });
   addEventListener("hashchange", () => select(location.hash.slice(1), { remember: false }));
-
-  // ─── toast and confetti ────────────────────────────────────────────────
-  const toast = document.querySelector<HTMLElement>(".toast");
-  if (toast) setTimeout(() => toast.remove(), 5500);
-
-  function confetti() {
-    if (calm) return;
-    const box = document.createElement("div");
-    box.className = "confetti";
-    box.setAttribute("aria-hidden", "true");
-    const style = getComputedStyle(root);
-    const colours = [
-      style.getPropertyValue("--accent"),
-      style.getPropertyValue("--accent-2"),
-      "#facc15",
-      "#ffffff",
-      "#38bdf8",
-    ];
-    for (let i = 0; i < 90; i++) {
-      const piece = document.createElement("i");
-      const set = (k: string, v: string) => piece.style.setProperty(k, v);
-      set("--x", `${Math.random() * 100}vw`);
-      set("--dx", `${(Math.random() - 0.5) * 30}vw`);
-      set("--r", `${(Math.random() - 0.5) * 1080}deg`);
-      set("--d", `${Math.random() * 0.5}s`);
-      set("--t", `${2.2 + Math.random() * 1.6}s`);
-      set("--w", `${0.35 + Math.random() * 0.35}rem`);
-      set("--h", `${0.6 + Math.random() * 0.6}rem`);
-      set("--c", colours[i % colours.length]);
-      box.append(piece);
-    }
-    document.body.append(box);
-    setTimeout(() => box.remove(), 4800);
-  }
-  if (toast?.hasAttribute("data-party")) setTimeout(confetti, 250);
-
-  // ─── copy and share the invite ─────────────────────────────────────────
-  if (navigator.clipboard) {
-    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
-      button.hidden = false;
-      const original = button.innerHTML;
-      button.addEventListener("click", async () => {
-        await navigator.clipboard.writeText(button.dataset.copy ?? "");
-        button.textContent = "Copied ✓";
-        setTimeout(() => (button.innerHTML = original), 2000);
-      });
-    }
-    // the next-step banner's no-JS fallback link isn't needed once Copy works
-    document
-      .querySelectorAll<HTMLElement>(".next-step [data-copy-fallback]")
-      .forEach((link) => (link.hidden = true));
-  }
-  if (navigator.share) {
-    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-share]")) {
-      button.hidden = false;
-      button.addEventListener("click", () =>
-        navigator.share({ title: document.title, url: button.dataset.share }).catch(() => {}),
-      );
-    }
-  }
 
   // ─── the week grid ─────────────────────────────────────────────────────
   const grid = document.querySelector<HTMLTableElement>("table.week");

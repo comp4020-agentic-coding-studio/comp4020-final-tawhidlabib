@@ -288,10 +288,6 @@ main {
   navigation: auto;
 }
 
-header.site {
-  view-transition-name: site-header;
-}
-
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 0.28s;
@@ -299,13 +295,22 @@ header.site {
 
 /* ─── header, logo, theme picker, footer ──────────────────────────────── */
 
+/* The blur lives on a pseudo-element: a backdrop-filter on the header itself
+   would become the containing block for the fixed bottom nav on phones. */
 header.site {
   position: sticky;
   top: 0;
   z-index: 20;
+  border-bottom: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
+}
+
+header.site::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: color-mix(in oklab, var(--bg) 78%, transparent);
   backdrop-filter: saturate(1.6) blur(14px);
-  border-bottom: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
 }
 
 header.site .bar {
@@ -327,7 +332,6 @@ header.site .bar {
   letter-spacing: -0.03em;
   color: var(--text);
   text-decoration: none;
-  margin-right: auto;
 }
 
 .logo-mark {
@@ -380,15 +384,185 @@ header.site .logo-mark .ring-c {
   }
 }
 
-header.site nav a {
-  color: var(--muted);
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.15s;
+/* ─── the main navigation ──────────────────────────────────────────────
+   Desktop: links in the header. Phones: a floating tab bar at the bottom.
+   The current page's pill carries a view-transition-name, so on every
+   navigation it glides to the new item (where view transitions exist). */
+
+.main-nav {
+  margin: 0 auto;
 }
 
-header.site nav a:hover {
+.main-nav ul {
+  display: flex;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-link {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 650;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition:
+    color 0.2s,
+    background-color 0.2s;
+}
+
+.nav-link:hover {
   color: var(--text);
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+}
+
+.nav-link[aria-current="page"] {
+  color: var(--text);
+}
+
+.nav-link[aria-current="page"]:hover {
+  background: transparent;
+}
+
+.nav-pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 25%, transparent);
+  view-transition-name: nav-pill;
+}
+
+::view-transition-group(nav-pill) {
+  animation-duration: 0.5s;
+  animation-timing-function: var(--spring);
+}
+
+.nav-icon {
+  display: inline-flex;
+}
+
+.nav-link[aria-current="page"] .nav-icon {
+  color: var(--accent);
+  animation: hop 0.55s var(--spring);
+}
+
+@keyframes hop {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(-4px) scale(1.15);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.badge {
+  display: grid;
+  place-items: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--gradient);
+  color: var(--on-accent);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  animation: pulse-in 0.5s var(--spring);
+}
+
+@keyframes pulse-in {
+  from {
+    transform: scale(0);
+  }
+}
+
+.me-link {
+  display: inline-flex;
+  border-radius: 50%;
+  text-decoration: none;
+  transition: transform 0.2s var(--spring);
+}
+
+.me-link:hover {
+  transform: scale(1.08);
+}
+
+.me-link .avatar {
+  border-color: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.me-link[aria-current="page"] .avatar {
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+@media (max-width: 47.99rem) {
+  .main-nav {
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    z-index: 30;
+    margin: 0;
+    padding: 0.35rem;
+    border-radius: 1.4rem;
+    background: color-mix(in oklab, var(--surface) 86%, transparent);
+    backdrop-filter: saturate(1.6) blur(16px);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .main-nav ul {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .nav-link {
+    flex-direction: column;
+    gap: 0.15rem;
+    width: 100%;
+    padding: 0.45rem 0.2rem;
+    border-radius: 1rem;
+    font-size: 0.7rem;
+  }
+
+  .nav-pill {
+    border-radius: 1rem;
+  }
+
+  .nav-link .badge {
+    position: absolute;
+    top: 0.2rem;
+    right: calc(50% - 1.3rem);
+  }
+
+  .brand {
+    margin-right: auto;
+  }
+
+  .theme-word {
+    display: none;
+  }
+
+  body {
+    padding-bottom: 5.5rem;
+  }
+
+  .save-bar {
+    bottom: calc(5.6rem + env(safe-area-inset-bottom));
+  }
 }
 
 .theme-picker {
@@ -2189,4 +2363,85 @@ html.ready .slot:has(input:checked) {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ─── profile, pages with a heading row, tiles ─────────────────────────── */
+
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  animation: rise 0.5s var(--ease) both;
+}
+
+.page-head h1 {
+  margin: 0;
+}
+
+.page-head .kicker {
+  margin-bottom: 0.2rem;
+}
+
+.page-head .actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.avatar.xl {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.4rem;
+  border-width: 3px;
+  box-shadow: var(--shadow);
+}
+
+.avatar.md {
+  width: 2.6rem;
+  height: 2.6rem;
+  font-size: 0.95rem;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  gap: 1rem;
+}
+
+.tiles h2 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.inline-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.inline-form input {
+  flex: 1;
+  min-width: 0;
+}
+
+.fine {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.onboard {
+  max-width: 34rem;
+}
+
+.other-name {
+  width: 100%;
+  text-align: left;
+}
+
+.other-name summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 0.6rem;
 }

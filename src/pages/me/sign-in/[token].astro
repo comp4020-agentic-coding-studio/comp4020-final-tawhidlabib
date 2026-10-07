@@ -1,0 +1,66 @@
+---
+import Icon from "../../../components/Icon.astro";
+import Base from "../../../layouts/Base.astro";
+import { hue, initials } from "../../../lib/avatar";
+import { personByToken } from "../../../lib/people";
+
+// Someone's private sign-in link. Opening it only asks; the button is what
+// signs this device in, so a chat app's link preview can't.
+const person = personByToken(Astro.params.token ?? "");
+if (!person) Astro.response.status = 404;
+const already = person && Astro.locals.person?.id === person.id;
+---
+
+<Base title={person ? `Sign in as ${person.name} · Hangout` : "Link not found · Hangout"}>
+  <div class="narrow start-card join-card stack">
+    {
+      !person ? (
+        <>
+          <div class="icon-bubble">
+            <Icon name="link" size={22} />
+          </div>
+          <h1>This sign-in link doesn't work</h1>
+          <p class="muted">
+            It may have been replaced with a new one. Open Hangout on a device where you're
+            signed in and copy your link from your profile.
+          </p>
+          <a class="button" href="/">
+            Go to Hangout
+          </a>
+        </>
+      ) : already ? (
+        <>
+          <span class="avatar xl" style={`--hue: ${hue(person.name)}`} aria-hidden="true">
+            {initials(person.name)}
+          </span>
+          <h1>You're already signed in as {person.name}</h1>
+          <a class="button" href="/">
+            Go to Hangout
+          </a>
+        </>
+      ) : (
+        <>
+          <span class="avatar xl" style={`--hue: ${hue(person.name)}`} aria-hidden="true">
+            {initials(person.name)}
+          </span>
+          <div>
+            <span class="pill">
+              <Icon name="link" size={14} /> Private sign-in link
+            </span>
+            <h1>Sign in as {person.name}?</h1>
+            <p class="muted">
+              This makes this device {person.name} on Hangout, with all their groups, friends and
+              events. Only continue if this is you.
+            </p>
+          </div>
+          <form method="post" action="/api/me/sign-in">
+            <input type="hidden" name="token" value={person.token} />
+            <button type="submit" class="button large">
+              Sign in as {person.name}
+            </button>
+          </form>
+        </>
+      )
+    }
+  </div>
+</Base>

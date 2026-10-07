@@ -13,6 +13,19 @@ const createdAt = () =>
     .notNull()
     .default(sql`(datetime('now'))`);
 
+/** A person, across every group they're in: a name, the token that is both
+ *  their cookie and their private sign-in link, and a shareable friend code.
+ *  No password: the token is the credential (ADR 4). */
+export const people = sqliteTable("people", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text().notNull(),
+  token: text().notNull().unique(),
+  friendCode: text("friend_code").notNull().unique(),
+  /** IANA zone their events' times are wall-clock times in. */
+  timezone: text().notNull(),
+  createdAt: createdAt(),
+});
+
 /** A friend group. Its id is also the invite secret: anyone with the link
  *  can join, which is the whole of the access model. */
 export const groups = sqliteTable("groups", {
@@ -36,6 +49,9 @@ export const members = sqliteTable(
     /** Lowercased, trimmed name: "Ana" and "ana " are the same person here. */
     nameKey: text("name_key").notNull(),
     token: text().notNull().unique(),
+    /** The profile behind this membership; null for memberships made before
+     *  profiles existed, until their owner makes one and claims them. */
+    personId: int("person_id").references(() => people.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("members_group_name").on(t.groupId, t.nameKey)],
@@ -89,6 +105,63 @@ export const rsvps = sqliteTable(
   (t) => [primaryKey({ columns: [t.hangoutId, t.memberId] })],
 );
 
+/** A friend request, and once accepted, a friendship. Friends are accepted
+ *  rows in either direction. */
+export const friendships = sqliteTable(
+  "friendships",
+  {
+    requesterId: int("requester_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    addresseeId: int("addressee_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    status: text({ enum: ["pending", "accepted"] }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.requesterId, t.addresseeId] })],
+);
+
+/** An event someone hosts. Public: anyone with the link, listed on Explore.
+ *  Private: the host and the people they invite (ADR 5). The URL carries
+ *  shareId, not id, so private events can't be found by counting. */
+export const events = sqliteTable("events", {
+  id: int().primaryKey({ autoIncrement: true }),
+  shareId: text("share_id").notNull().unique(),
+  hostId: int("host_id")
+    .notNull()
+    .references(() => people.id, { onDelete: "cascade" }),
+  title: text().notNull(),
+  details: text().notNull().default(""),
+  location: text().notNull().default(""),
+  /** YYYY-MM-DD and HH:MM, wall-clock in `timezone`. */
+  date: text().notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+  timezone: text().notNull(),
+  visibility: text({ enum: ["public", "private"] }).notNull(),
+  createdAt: createdAt(),
+});
+
+/** Who's invited to an event, and what they've said. The host is going. */
+export const eventGuests = sqliteTable(
+  "event_guests",
+  {
+    eventId: int("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    personId: int("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    invitedBy: int("invited_by").references(() => people.id, { onDelete: "set null" }),
+    response: text({ enum: ["invited", "going", "maybe", "declined"] }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.personId] })],
+);
+
+export type Person = typeof people.$inferSelect;
+export type Event = typeof events.$inferSelect;
+export type EventGuest = typeof eventGuests.$inferSelect;
 export type Group = typeof groups.$inferSelect;
 export type Member = typeof members.$inferSelect;
 export type Hangout = typeof hangouts.$inferSelect;
