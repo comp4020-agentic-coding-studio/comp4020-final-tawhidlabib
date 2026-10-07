@@ -13,6 +13,7 @@ export const ROUTES = [
   "/friends",
   "/me",
   "/inbox",
+  "/welcome",
 ];
 
 type Page = { label: string; path: string; cookie?: string };
@@ -146,6 +147,7 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
     { label: "/g/[id], the admin's people", path: `${path}#people`, cookie: as(host) },
     { label: "/g/[id], archived", path: oldPath, cookie: as(host) },
     { label: "home, signed in", path: "/", cookie: as(host) },
+    { label: "/welcome, signed in", path: "/welcome", cookie: as(host) },
     { label: "/groups, signed in", path: "/groups", cookie: as(host) },
     { label: "/calendar, with plans", path: "/calendar?month=2030-01&day=2030-01-08", cookie: as(host) },
     { label: "/events, signed in", path: "/events", cookie: as(wall) },
