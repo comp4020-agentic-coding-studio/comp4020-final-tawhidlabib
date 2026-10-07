@@ -48,6 +48,21 @@ export class Person {
     return res;
   }
 
+  /** A form POST with files, as a browser sends an upload. */
+  async upload(path: string, fields: Record<string, string>, files: { name: string; type: string; bytes: Uint8Array }[]) {
+    const body = new FormData();
+    for (const [key, value] of Object.entries(fields)) body.append(key, value);
+    for (const f of files) body.append("photo", new Blob([f.bytes], { type: f.type }), f.name);
+    const res = await fetch(new URL(path, this.baseUrl), {
+      method: "POST",
+      headers: { origin: this.baseUrl, ...this.header() },
+      body,
+      redirect: "manual",
+    });
+    this.keep(res);
+    return res;
+  }
+
   async get(path: string): Promise<{ res: Response; html: string; doc: Document }> {
     const res = await fetch(new URL(path, this.baseUrl), {
       headers: this.header(),
