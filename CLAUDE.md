@@ -83,6 +83,11 @@ The accessibility floor (`spec/quality-floor.test.ts`) runs in jsdom, without a
 browser: contrast and overlap rules are off, so a green axe pass is a floor and
 not a clean bill of health.
 
+JSDOM's selector engine doesn't match emoji outside the basic plane (🎉, 🙌)
+in attribute selectors: `[value="🎉"]` finds nothing, and the test reads a
+count of zero while the app is right. Find the element in code and compare
+its value instead. Check the running app with curl before blaming the code.
+
 `pnpm check:evidence` is the extra gate before shipping. It works out the
 current deliverable from the repo name and the course API, so the reflection is
 named for the current crit --- `reflections/crit-8.md`, then `crit-9.md` and

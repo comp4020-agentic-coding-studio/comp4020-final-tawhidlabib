@@ -10,8 +10,13 @@ const baseUrl = inject("baseUrl");
 const thread = (doc: Document, ref: string) => doc.querySelector(`[data-thread="${ref}"]`);
 const commentsIn = (doc: Document, ref: string) =>
   [...(thread(doc, ref)?.querySelectorAll(".comment") ?? [])].map((c) => c.textContent ?? "");
+// Found by comparing values, not by a [value="🎉"] selector: JSDOM's selector
+// engine doesn't match emoji outside the basic plane in attribute selectors.
 const countOf = (doc: Document, ref: string, emoji: string) =>
-  thread(doc, ref)?.querySelector(`button[name="emoji"][value="${emoji}"] .count`)?.textContent?.trim() || "0";
+  [...(thread(doc, ref)?.querySelectorAll<HTMLButtonElement>('button[name="emoji"]') ?? [])]
+    .find((b) => b.value === emoji)
+    ?.querySelector(".count")
+    ?.textContent?.trim() || "0";
 
 /** A private event Ana hosts with Ben invited. */
 async function privateEvent() {
