@@ -19,7 +19,8 @@
   --accent-2-dark: #fb7185;
 
   color-scheme: light;
-  --bg: #faf8f5;
+  --bg: #ffffff;
+  --aurora: 0;
   --surface: #ffffff;
   --surface-2: #f2efea;
   --text: #1c1917;
@@ -89,6 +90,7 @@
   :root:not([data-mode="light"]) {
     color-scheme: dark;
     --bg: #0d0d10;
+    --aurora: 1;
     --surface: #17171b;
     --surface-2: #222227;
     --text: #f5f5f4;
@@ -106,6 +108,7 @@
 :root[data-mode="dark"] {
   color-scheme: dark;
   --bg: #0d0d10;
+  --aurora: 1;
   --surface: #17171b;
   --surface-2: #222227;
   --text: #f5f5f4;
@@ -142,13 +145,15 @@ body {
   overflow-x: hidden;
 }
 
-/* a slow aurora of the accent behind everything, over a faint dot grid */
+/* a slow aurora of the accent behind everything in dark mode (light mode
+   keeps the page plain white), over a faint dot grid */
 body::before {
   content: "";
   position: fixed;
   inset: -20vmax;
   z-index: -1;
   pointer-events: none;
+  opacity: var(--aurora);
   background:
     radial-gradient(
       40vmax 40vmax at 15% 10%,
