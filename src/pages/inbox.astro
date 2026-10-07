@@ -1,0 +1,93 @@
+---
+import Icon from "../components/Icon.astro";
+import Onboard from "../components/Onboard.astro";
+import Base from "../layouts/Base.astro";
+import { hue, initials } from "../lib/avatar";
+import { inboxOf, type Note } from "../lib/notify";
+import { ago } from "../lib/talk";
+import { addDays, todayIn } from "../lib/time";
+
+const person = Astro.locals.person;
+const notes = person ? inboxOf(person.id) : [];
+const today = person ? todayIn(person.timezone) : "";
+const dayOf = (note: Note) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: person?.timezone ?? "UTC" }).format(
+    new Date(`${note.createdAt.replace(" ", "T")}Z`),
+  );
+const sections: { label: string; notes: Note[] }[] = [
+  { label: "Today", notes: notes.filter((n) => dayOf(n) === today) },
+  { label: "Yesterday", notes: notes.filter((n) => dayOf(n) === addDays(today, -1)) },
+  { label: "Earlier", notes: notes.filter((n) => dayOf(n) < addDays(today, -1)) },
+].filter((s) => s.notes.length > 0);
+const ICON = { friend: "heart", invite: "ticket", promoted: "sparkles", comment: "chat", proposed: "calendar" } as const;
+const unread = notes.filter((n) => !n.readAt).length;
+---
+
+<Base title="Inbox · Hangout">
+  <div class="page-head">
+    <div>
+      <span class="kicker">What you missed</span>
+      <h1>Inbox</h1>
+    </div>
+    {
+      unread > 0 && (
+        <div class="actions">
+          <form method="post" action="/api/inbox/read-all">
+            <button type="submit" class="button ghost small">
+              <Icon name="check" size={16} /> Mark all read
+            </button>
+          </form>
+        </div>
+      )
+    }
+  </div>
+
+  {
+    !person ? (
+      <Onboard back="/inbox" lead="Make your profile and invites, requests and replies land here." />
+    ) : (
+      <div id="inbox" data-live="person:me">
+        {notes.length === 0 ? (
+          <div class="empty">
+            <div class="icon-bubble">
+              <Icon name="bell" size={22} />
+            </div>
+            <strong>You're all caught up</strong>
+            <span>Invites, friend requests and replies to your plans will show up here.</span>
+          </div>
+        ) : (
+          sections.map((section) => (
+            <section class="inbox-day" aria-label={section.label}>
+              <h2 class="list-label">{section.label}</h2>
+              <ul class="notes stagger">
+                {section.notes.map((note, i) => (
+                  <li class:list={["note", { unread: !note.readAt }]} style={`--i: ${i}`}>
+                    <a href={`/api/inbox/${note.id}`}>
+                      {note.actorName ? (
+                        <span class="avatar" style={`--hue: ${hue(note.actorName)}`} aria-hidden="true">
+                          {initials(note.actorName)}
+                        </span>
+                      ) : (
+                        <span class="icon-bubble small" aria-hidden="true">
+                          <Icon name={ICON[note.kind as keyof typeof ICON] ?? "bell"} size={16} />
+                        </span>
+                      )}
+                      <span class="note-body">
+                        <span class="note-text">{note.text}</span>
+                        <span class="muted">
+                          <Icon name={ICON[note.kind as keyof typeof ICON] ?? "bell"} size={12} /> {ago(note.createdAt)}
+                          {!note.readAt && <span class="vh">, unread</span>}
+                        </span>
+                      </span>
+                      {!note.readAt && <span class="unread-dot" aria-hidden="true" />}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        )}
+      </div>
+    )
+  }
+</Base>

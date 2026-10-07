@@ -4,6 +4,7 @@ import { eventByShareId, invite } from "../../../../lib/events";
 import { flash } from "../../../../lib/flash";
 import { currentPerson } from "../../../../lib/identity";
 import { publish } from "../../../../lib/live";
+import { notify } from "../../../../lib/notify";
 
 /** The host invites more people: friends, or a whole group. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
@@ -24,7 +25,12 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   ];
   invite(event.id, me.id, invited);
   publish(`event:${event.shareId}`, "guests");
-  for (const id of invited) publish(`person:${id}`, "invited");
+  notify(invited, {
+    kind: "invite",
+    text: `${me.name} invited you to ${event.title}`,
+    href: `/e/${event.shareId}`,
+    actorId: me.id,
+  });
   flash(cookies, "invited");
   return redirect(`/e/${event.shareId}`, 303);
 };

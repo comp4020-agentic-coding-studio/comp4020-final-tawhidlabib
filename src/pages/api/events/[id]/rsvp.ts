@@ -3,6 +3,7 @@ import { canSee, eventByShareId, respond } from "../../../../lib/events";
 import { flash } from "../../../../lib/flash";
 import { currentPerson } from "../../../../lib/identity";
 import { publish } from "../../../../lib/live";
+import { notify } from "../../../../lib/notify";
 
 const FLASH = { going: "going", maybe: "maybe", declined: "notGoing", waitlisted: "waitlisted" } as const;
 
@@ -23,8 +24,13 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   }
   const { recorded, promoted } = respond(event, me.id, response, Number(form.get("plusOnes")) || 0);
   publish(`event:${event.shareId}`, "guests");
-  // the people moved in from the waitlist are told wherever they are
-  for (const id of promoted) publish(`person:${id}`, "promoted");
+  // the people moved in from the waitlist are told wherever they are, and
+  // in their inbox for when they're not (ADR 6)
+  notify(promoted, {
+    kind: "promoted",
+    text: `A spot opened up: you're going to ${event.title}`,
+    href: `/e/${event.shareId}`,
+  });
   flash(cookies, FLASH[recorded as keyof typeof FLASH] ?? "going");
   return redirect(`/e/${event.shareId}`, 303);
 };

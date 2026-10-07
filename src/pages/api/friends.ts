@@ -4,6 +4,7 @@ import { field, safeBack } from "../../lib/forms";
 import { requestFriend } from "../../lib/friends";
 import { currentPerson } from "../../lib/identity";
 import { publish } from "../../lib/live";
+import { notify } from "../../lib/notify";
 import { personByCode, personById } from "../../lib/people";
 
 /** Ask to be someone's friend: by their friend link's code, or by their id
@@ -23,7 +24,13 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const now = requestFriend(me.id, them.id);
   publish(`person:${them.id}`, "friends");
   publish(`person:${me.id}`, "friends");
-  if (now === "sent") flash(cookies, "requested");
-  if (now === "friends") flash(cookies, "befriended");
+  if (now === "sent") {
+    flash(cookies, "requested");
+    notify([them.id], { kind: "friend", text: `${me.name} wants to be friends`, href: "/friends#requests", actorId: me.id });
+  }
+  if (now === "friends") {
+    flash(cookies, "befriended");
+    notify([them.id], { kind: "friend", text: `${me.name} accepted your friend request`, href: "/friends", actorId: me.id });
+  }
   return redirect(back, 303);
 };

@@ -4,6 +4,7 @@ import { createEvent } from "../../lib/events";
 import { flash } from "../../lib/flash";
 import { field } from "../../lib/forms";
 import { publish } from "../../lib/live";
+import { notify } from "../../lib/notify";
 import { currentPerson } from "../../lib/identity";
 import { isClock, isDate } from "../../lib/time";
 
@@ -50,7 +51,12 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     me.id,
     invites,
   );
-  for (const id of invites) publish(`person:${id}`, "invited");
+  notify(invites, {
+    kind: "invite",
+    text: `${me.name} invited you to ${title}`,
+    href: `/e/${event.shareId}`,
+    actorId: me.id,
+  });
   flash(cookies, "hosted");
   return redirect(`/e/${event.shareId}`, 303);
 };

@@ -4,6 +4,7 @@ import { safeBack } from "../../../lib/forms";
 import { accept, relationship, removeTie } from "../../../lib/friends";
 import { currentPerson } from "../../../lib/identity";
 import { publish } from "../../../lib/live";
+import { notify } from "../../../lib/notify";
 
 /** Accept or decline a request someone sent you, or remove a friend (which
  *  also cancels a request you sent). */
@@ -20,6 +21,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (action === "accept" && relationship(me.id, them) === "received") {
     accept(me.id, them);
     flash(cookies, "befriended");
+    notify([them], { kind: "friend", text: `${me.name} accepted your friend request`, href: "/friends", actorId: me.id });
   } else if (action === "decline") {
     removeTie(me.id, them);
     flash(cookies, "declined");

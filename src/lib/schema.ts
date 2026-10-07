@@ -210,6 +210,27 @@ export const reactions = sqliteTable(
   ],
 );
 
+/** Something that happened that a person should hear about: a request, an
+ *  invite, a comment on their plan. Read when they open it. */
+export const notifications = sqliteTable(
+  "notifications",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    personId: int("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    kind: text().notNull(),
+    text: text().notNull(),
+    /** Where opening it goes: always a path on this site. */
+    href: text().notNull(),
+    actorId: int("actor_id").references(() => people.id, { onDelete: "set null" }),
+    readAt: text("read_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("notifications_person").on(t.personId, t.id)],
+);
+
+export type Notification = typeof notifications.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Person = typeof people.$inferSelect;
 export type Event = typeof events.$inferSelect;

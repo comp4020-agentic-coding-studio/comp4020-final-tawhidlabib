@@ -1,7 +1,7 @@
 import type { AstroCookies } from "astro";
 import { and, asc, count, eq, inArray } from "drizzle-orm";
-import { db, getHangout } from "./db";
-import { canSee, eventByShareId } from "./events";
+import { db, getHangout, listMembers } from "./db";
+import { canSee, eventByShareId, guestsOf } from "./events";
 import { currentMember, currentPerson } from "./identity";
 import type { Person } from "./people";
 import { comments, people, reactions } from "./schema";
@@ -39,6 +39,11 @@ export type Thread = {
   canTalk: boolean;
   /** Besides authors, who may delete comments: an event's host. */
   moderatorId: number | null;
+  /** The plan's name, for notifications. */
+  title: string;
+  /** Everyone the plan is for: an event's host and guests (not those who
+   *  can't go), a hangout's group. */
+  audience: () => number[];
 };
 
 const column = (kind: Kind, table: typeof comments | typeof reactions) =>
@@ -61,6 +66,13 @@ export function openThread(kind: string, ref: string, cookies: AstroCookies): Th
       visible,
       canTalk: visible && !!person,
       moderatorId: event.hostId,
+      title: event.title,
+      audience: () => [
+        event.hostId,
+        ...guestsOf(event.id)
+          .filter((g) => g.response !== "declined")
+          .map((g) => g.person.id),
+      ],
     };
   }
   if (kind === "hangout") {
@@ -76,6 +88,11 @@ export function openThread(kind: string, ref: string, cookies: AstroCookies): Th
       visible,
       canTalk: visible && !!person,
       moderatorId: null,
+      title: hangout.title,
+      audience: () =>
+        listMembers(hangout.groupId)
+          .map((m) => m.personId)
+          .filter((id): id is number => id !== null),
     };
   }
   return undefined;

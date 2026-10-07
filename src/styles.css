@@ -3842,3 +3842,118 @@ input[type="search"]:focus {
   gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
+
+/* ─── the bell and the inbox ──────────────────────────────────────────── */
+
+.bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  color: var(--muted);
+  transition:
+    color 0.2s,
+    background 0.2s,
+    transform 0.2s var(--spring);
+}
+
+.bell:hover,
+.bell[aria-current="page"] {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.bell .badge {
+  position: absolute;
+  top: 0.05rem;
+  right: -0.1rem;
+}
+
+.bell:has(.badge) .icon {
+  animation: ring 1.2s var(--ease) 0.3s;
+  transform-origin: 50% 10%;
+}
+
+@keyframes ring {
+  10%,
+  30% {
+    transform: rotate(14deg);
+  }
+  20%,
+  40% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: none;
+  }
+}
+
+.inbox-day {
+  margin-bottom: 1.75rem;
+}
+
+.notes {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.note a {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s,
+    border-color 0.2s;
+}
+
+.note a:hover {
+  transform: translateX(3px);
+  box-shadow: var(--shadow);
+}
+
+.note.unread a {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklab, var(--accent) 30%, var(--line));
+}
+
+.note .avatar {
+  border: 0;
+}
+
+.note-body {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.note.unread .note-text {
+  font-weight: 650;
+}
+
+.note-body .muted {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.unread-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--gradient);
+  flex: none;
+}

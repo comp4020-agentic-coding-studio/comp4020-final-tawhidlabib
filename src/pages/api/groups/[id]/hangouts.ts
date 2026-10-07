@@ -1,10 +1,11 @@
 import type { APIRoute } from "astro";
-import { getGroup, proposeHangout } from "../../../../lib/db";
+import { getGroup, listMembers, proposeHangout } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { publish } from "../../../../lib/live";
+import { notify } from "../../../../lib/notify";
 import { field } from "../../../../lib/forms";
 import { currentMember } from "../../../../lib/identity";
-import { HOURS, isDate, LAST_HOUR, weekStartOf } from "../../../../lib/time";
+import { HOURS, isDate, LAST_HOUR, spanLabel, weekStartOf } from "../../../../lib/time";
 
 /** Propose a hangout: usually a recommended stretch, maybe shortened. Whoever
  *  proposes it is in. */
@@ -22,15 +23,20 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
     return redirect(`/g/${group.id}?error=bad-time`, 303);
   }
 
-  proposeHangout({
-    groupId: group.id,
-    date,
-    startHour: start,
-    endHour: end,
-    title: field(form.get("title"), 80) || "Hangout",
-    proposedBy: me.id,
-  });
+  const title = field(form.get("title"), 80) || "Hangout";
+  proposeHangout({ groupId: group.id, date, startHour: start, endHour: end, title, proposedBy: me.id });
   publish(`group:${group.id}`, "plans");
+  notify(
+    listMembers(group.id)
+      .map((m) => m.personId)
+      .filter((id): id is number => id !== null),
+    {
+      kind: "proposed",
+      text: `${me.name} proposed ${title} in ${group.name}, ${spanLabel(date, start, end)}`,
+      href: `/g/${group.id}?week=${weekStartOf(date)}#plans`,
+      actorId: me.personId,
+    },
+  );
   flash(cookies, "proposed");
   return redirect(`/g/${group.id}?week=${weekStartOf(date)}#plans`, 303);
 };

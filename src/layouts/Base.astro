@@ -8,6 +8,7 @@ import { hue, initials } from "../lib/avatar";
 import { unansweredCount } from "../lib/events";
 import { FLASHES } from "../lib/flash";
 import { pendingCount } from "../lib/friends";
+import { unreadCount } from "../lib/notify";
 import { MODES, THEMES, themeOf } from "../lib/theme";
 import { DEFAULT_TIMEZONE, todayIn } from "../lib/time";
 
@@ -20,6 +21,7 @@ const { theme, mode } = themeOf(Astro.cookies);
 const back = Astro.url.pathname + Astro.url.search;
 const toast = Astro.locals.flash ? FLASHES[Astro.locals.flash] : undefined;
 const person = Astro.locals.person;
+const unread = person ? unreadCount(person.id) : 0;
 
 // The main navigation: which item is this page, and what's waiting in each.
 const path = Astro.url.pathname;
@@ -97,6 +99,25 @@ const NAV = [
             }
           </ul>
         </nav>
+        {
+          person && (
+            <a
+              href="/inbox"
+              id="bell"
+              class="bell"
+              data-live="person:me"
+              aria-current={path === "/inbox" ? "page" : undefined}
+              aria-label={unread > 0 ? `Inbox, ${unread} unread` : "Inbox"}
+            >
+              <Icon name="bell" size={20} />
+              {unread > 0 && (
+                <span class="badge" aria-hidden="true">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
+            </a>
+          )
+        }
         {
           person ? (
             <a href="/me" class="me-link" aria-current={path === "/me" ? "page" : undefined}>

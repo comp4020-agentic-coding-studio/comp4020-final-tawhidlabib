@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { publish } from "../../lib/live";
+import { notify, snippet } from "../../lib/notify";
 import { addComment, openThread } from "../../lib/talk";
 
 /** Say something on a plan's thread. */
@@ -11,7 +12,15 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!thread.person) return redirect(thread.page, 303);
 
   const body = String(form.get("body") ?? "").trim().slice(0, 500);
-  if (body) addComment(thread.target, thread.person.id, body);
+  if (body) {
+    addComment(thread.target, thread.person.id, body);
+    notify(thread.audience(), {
+      kind: "comment",
+      text: `${thread.person.name} commented on ${thread.title}: ${snippet(body)}`,
+      href: thread.page,
+      actorId: thread.person.id,
+    });
+  }
   publish(`thread:${thread.kind}:${thread.ref}`);
   return redirect(thread.page, 303);
 };
