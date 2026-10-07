@@ -12,6 +12,7 @@ export const ROUTES = [
   "/events/new",
   "/friends",
   "/me",
+  "/inbox",
 ];
 
 type Page = { label: string; path: string; cookie?: string };
@@ -103,6 +104,7 @@ export async function dynamicRoutes(baseUrl: string): Promise<Page[]> {
     { label: "/events/new, with friends", path: "/events/new", cookie: as(host) },
     { label: "/friends, with requests", path: "/friends", cookie: as(host) },
     { label: "/me, signed in", path: "/me", cookie: as(host) },
+    { label: "/inbox, with notifications", path: "/inbox", cookie: as(host) },
     { label: "/e/[id], host", path: party, cookie: as(host) },
     { label: "/e/[id], stranger", path: party },
     { label: "/e/[id], private, invited", path: secret, cookie: as(wall) },
