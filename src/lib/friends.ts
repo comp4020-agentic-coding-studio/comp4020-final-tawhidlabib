@@ -1,4 +1,5 @@
 import { and, eq, or } from "drizzle-orm";
+import { eitherBlocked } from "./blocks";
 import { db } from "./db";
 import { peopleByIds, type Person } from "./people";
 import { friendships } from "./schema";
@@ -26,6 +27,7 @@ export function relationship(me: number, other: number): Relationship {
 /** Ask to be friends. If they'd already asked you, that's a yes from both,
  *  so you're friends straight away. */
 export function requestFriend(from: number, to: number): Relationship {
+  if (eitherBlocked(from, to)) return "none";
   const now = relationship(from, to);
   if (now === "received") {
     accept(from, to);

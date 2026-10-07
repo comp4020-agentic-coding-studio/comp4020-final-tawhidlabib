@@ -1,4 +1,5 @@
 ---
+import Avatar from "../../../components/Avatar.astro";
 import Icon from "../../../components/Icon.astro";
 import Memories from "../../../components/Memories.astro";
 import Onboard from "../../../components/Onboard.astro";
@@ -126,9 +127,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
             <h1>{event.title}</h1>
             {host && (
               <p class="host">
-                <span class="avatar" style={`--hue: ${hue(host.name)}`} aria-hidden="true">
-                  {initials(host.name)}
-                </span>
+                <Avatar name={host.name} photo={host.avatarPhoto} emoji={host.avatarEmoji} />
                 Hosted by <b>{isHost ? "you" : host.name}</b>
               </p>
             )}
@@ -301,9 +300,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                       {more.map((p) => (
                         <label class="invite-chip">
                           <input type="checkbox" name="invite" value={p.id} />
-                          <span class="avatar" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
-                            {initials(p.name)}
-                          </span>
+                          <Avatar name={p.name} photo={p.avatarPhoto} emoji={p.avatarEmoji} />
                           {p.name}
                         </label>
                       ))}
@@ -339,9 +336,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
               <ul class="guest-list">
                 {going.map((g) => (
                   <li>
-                    <span class="avatar" style={`--hue: ${hue(g.person.name)}`} aria-hidden="true">
-                      {initials(g.person.name)}
-                    </span>
+                    <Avatar name={g.person.name} photo={g.person.avatarPhoto} emoji={g.person.avatarEmoji} />
                     {g.person.name}
                     {g.plusOnes > 0 && <span class="pill">+{g.plusOnes}</span>}
                     {g.person.id === event.hostId && <span class="pill">host</span>}
@@ -357,9 +352,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                 <ol class="guest-list numbered">
                   {waitlisted.map((g) => (
                     <li>
-                      <span class="avatar" style={`--hue: ${hue(g.person.name)}`} aria-hidden="true">
-                        {initials(g.person.name)}
-                      </span>
+                      <Avatar name={g.person.name} photo={g.person.avatarPhoto} emoji={g.person.avatarEmoji} />
                       {g.person.name}
                       {g.plusOnes > 0 && <span class="pill">+{g.plusOnes}</span>}
                     </li>
@@ -375,9 +368,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                 <ul class="guest-list">
                   {maybe.map((g) => (
                     <li>
-                      <span class="avatar" style={`--hue: ${hue(g.person.name)}`} aria-hidden="true">
-                        {initials(g.person.name)}
-                      </span>
+                      <Avatar name={g.person.name} photo={g.person.avatarPhoto} emoji={g.person.avatarEmoji} />
                       {g.person.name}
                     </li>
                   ))}
@@ -392,9 +383,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                 <ul class="guest-list">
                   {invited.map((g) => (
                     <li class="muted">
-                      <span class="avatar" style={`--hue: ${hue(g.person.name)}`} aria-hidden="true">
-                        {initials(g.person.name)}
-                      </span>
+                      <Avatar name={g.person.name} photo={g.person.avatarPhoto} emoji={g.person.avatarEmoji} />
                       {g.person.name}
                     </li>
                   ))}

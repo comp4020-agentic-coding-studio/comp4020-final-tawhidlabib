@@ -1,6 +1,7 @@
 import type { AstroCookies } from "astro";
 import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { db, getGroup, getHangout, listMembers } from "./db";
+import { blockedBy } from "./blocks";
 import { canSee, eventById, eventByShareId, guestsOf } from "./events";
 import { currentMember, currentPerson } from "./identity";
 import type { Person } from "./people";
@@ -43,6 +44,8 @@ export type Thread = {
   title: string;
   /** Whether the plan's day has come (in its timezone): its album opens. */
   arrived: boolean;
+  /** A hangout's group, so its notifications respect muting. */
+  groupId?: string;
   /** Everyone the plan is for: an event's host and guests (not those who
    *  can't go), a hangout's group. */
   audience: () => number[];
@@ -94,6 +97,7 @@ export function openThread(kind: string, ref: string, cookies: AstroCookies): Th
       canTalk: visible && !!person && !archived,
       moderatorId: null,
       title: hangout.title,
+      groupId: hangout.groupId,
       arrived: hangout.date <= todayIn(getGroup(hangout.groupId)?.timezone ?? "Australia/Sydney"),
       audience: () =>
         listMembers(hangout.groupId)
@@ -113,14 +117,16 @@ export function threadFor(target: Target, cookies: AstroCookies): Thread | undef
 
 export type Said = { id: number; body: string; createdAt: string; author: Person };
 
-export function commentsOn(target: Target): Said[] {
+export function commentsOn(target: Target, viewerId?: number): Said[] {
+  const hidden = viewerId ? blockedBy(viewerId) : new Set<number>();
   return db
     .select({ id: comments.id, body: comments.body, createdAt: comments.createdAt, author: people })
     .from(comments)
     .innerJoin(people, eq(people.id, comments.authorId))
     .where(eq(column(target.kind, comments), target.id))
     .orderBy(asc(comments.id))
-    .all();
+    .all()
+    .filter((c) => !hidden.has(c.author.id));
 }
 
 export function addComment(target: Target, authorId: number, body: string): void {

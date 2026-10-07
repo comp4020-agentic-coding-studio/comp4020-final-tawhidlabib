@@ -1,25 +1,28 @@
 ---
+import Avatar from "../components/Avatar.astro";
 import Icon from "../components/Icon.astro";
 import Onboard from "../components/Onboard.astro";
 import Base from "../layouts/Base.astro";
 import { hue, initials } from "../lib/avatar";
 import { ERRORS } from "../lib/forms";
+import { EMOJI } from "../lib/avatars";
+import { blockedBy } from "../lib/blocks";
 import { groupsFor } from "../lib/identity";
+import { peopleByIds } from "../lib/people";
 
 const person = Astro.locals.person;
 const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
 const signInUrl = person ? new URL(`/me/sign-in/${person.token}`, Astro.url).href : "";
 const friendUrl = person ? new URL(`/f/${person.friendCode}`, Astro.url).href : "";
 const groups = person ? groupsFor(person, Astro.request.headers.get("cookie")) : [];
+const blocked = person ? peopleByIds([...blockedBy(person.id)]) : [];
 ---
 
 <Base title={person ? `${person.name} · Hangout` : "Your profile · Hangout"}>
   {
     person ? (
       <div class="page-head">
-        <span class="avatar xl" style={`--hue: ${hue(person.name)}`} aria-hidden="true">
-          {initials(person.name)}
-        </span>
+        <Avatar name={person.name} photo={person.avatarPhoto} emoji={person.avatarEmoji} class="xl" />
         <div>
           <span class="kicker">Your profile</span>
           <h1>{person.name}</h1>
@@ -49,21 +52,74 @@ const groups = person ? groupsFor(person, Astro.request.headers.get("cookie")) :
     ) : (
       <div class="tiles stagger">
         <section class="card stack" aria-labelledby="name-h" style="--i: 0">
-          <h2 id="name-h">Your name</h2>
-          <form method="post" action="/api/me" class="inline-form">
-            <label class="vh" for="rename">
+          <h2 id="name-h">You</h2>
+          <form method="post" action="/api/me" class="stack">
+            <label class="field">
               Your name
+              <input type="text" name="name" id="rename" required maxlength="40" value={person.name} />
             </label>
-            <input type="text" name="name" id="rename" required maxlength="40" value={person.name} />
+            <label class="field">
+              A line about you (optional)
+              <textarea name="bio" rows="2" maxlength="160" placeholder="Board games, long walks, always late">{person.bio}</textarea>
+            </label>
             <input type="hidden" name="back" value="/me" />
-            <button type="submit" class="button ghost">
-              Save
-            </button>
+            <div>
+              <button type="submit" class="button ghost">
+                Save
+              </button>
+            </div>
           </form>
+          {person.bio && <p id="bio" class="muted">“{person.bio}”</p>}
           <p class="muted fine">
             Groups you join from now on use this name. Times for your events are in{" "}
             {person.timezone}.
           </p>
+        </section>
+
+        <section class="card stack" aria-labelledby="avatar-h" style="--i: 1">
+          <h2 id="avatar-h">How you look</h2>
+          <form method="post" action="/api/me" class="stack">
+            <input type="hidden" name="name" value={person.name} />
+            <input type="hidden" name="back" value="/me" />
+            <fieldset class="emoji-picker">
+              <legend class="vh">Pick an emoji avatar</legend>
+              <label class="emoji-choice">
+                <input type="radio" name="avatarEmoji" value="" checked={!person.avatarEmoji} />
+                <span>Aa</span>
+                <span class="vh">Just my initials</span>
+              </label>
+              {EMOJI.map((e) => (
+                <label class="emoji-choice">
+                  <input type="radio" name="avatarEmoji" value={e} checked={person.avatarEmoji === e} />
+                  <span aria-hidden="true">{e}</span>
+                  <span class="vh">{e}</span>
+                </label>
+              ))}
+            </fieldset>
+            <div>
+              <button type="submit" class="button ghost small">
+                Use this
+              </button>
+            </div>
+          </form>
+          <form method="post" action="/api/me/avatar" enctype="multipart/form-data" class="upload">
+            <label class="button small upload-button">
+              <Icon name="plus" size={15} /> {person.avatarPhoto ? "Change photo" : "Upload a photo"}
+              <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-autosubmit />
+            </label>
+            <noscript>
+              <button type="submit" class="button small">Upload</button>
+            </noscript>
+          </form>
+          {person.avatarPhoto && (
+            <form method="post" action="/api/me/avatar">
+              <input type="hidden" name="action" value="remove" />
+              <button type="submit" class="link-button">
+                Remove photo
+              </button>
+            </form>
+          )}
+          <p class="muted fine">A photo shows instead of your emoji. Anyone who sees your name can see it.</p>
         </section>
 
         <section class="card stack" aria-labelledby="link-h" style="--i: 1">
@@ -102,6 +158,29 @@ const groups = person ? groupsFor(person, Astro.request.headers.get("cookie")) :
           </div>
           <a href="/friends">See your friends →</a>
         </section>
+
+        {blocked.length > 0 && (
+          <section class="card stack" aria-labelledby="blocked-h" style="--i: 3">
+            <h2 id="blocked-h">Blocked</h2>
+            <ul class="people-list">
+              {blocked.map((p) => (
+                <li class="person-row">
+                  <span class="who-name">
+                    <b>{p.name}</b>
+                  </span>
+                  <form method="post" action="/api/blocks" class="row-actions">
+                    <input type="hidden" name="person" value={p.id} />
+                    <input type="hidden" name="action" value="unblock" />
+                    <input type="hidden" name="back" value="/me" />
+                    <button type="submit" class="button small ghost">
+                      Unblock
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section class="card stack" aria-labelledby="groups-h" style="--i: 3">
           <h2 id="groups-h">Your groups</h2>

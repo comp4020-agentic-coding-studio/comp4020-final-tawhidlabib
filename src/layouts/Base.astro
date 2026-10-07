@@ -2,6 +2,7 @@
 import "@fontsource-variable/bricolage-grotesque";
 import "@fontsource-variable/inter";
 import "../styles.css";
+import Avatar from "../components/Avatar.astro";
 import Icon from "../components/Icon.astro";
 import Logo from "../components/Logo.astro";
 import { hue, initials } from "../lib/avatar";
@@ -121,9 +122,7 @@ const NAV = [
         {
           person ? (
             <a href="/me" class="me-link" aria-current={path === "/me" ? "page" : undefined}>
-              <span class="avatar" style={`--hue: ${hue(person.name)}`} aria-hidden="true">
-                {initials(person.name)}
-              </span>
+              <Avatar name={person.name} photo={person.avatarPhoto} emoji={person.avatarEmoji} />
               <span class="vh">Your profile, {person.name}</span>
             </a>
           ) : (
@@ -278,6 +277,12 @@ const NAV = [
     },
     true,
   );
+
+  // ─── choosing a file uploads it straight away (album photos, avatars) ──
+  document.addEventListener("change", (event) => {
+    const input = event.target as HTMLInputElement;
+    if (input.matches("[data-autosubmit]") && input.files?.length) input.form?.requestSubmit();
+  });
 
   // ─── copy and share buttons, anywhere, including parts swapped in live ─
   document.addEventListener("click", async (event) => {

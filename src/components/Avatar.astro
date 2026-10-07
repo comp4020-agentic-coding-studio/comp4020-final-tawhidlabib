@@ -1,0 +1,23 @@
+---
+import { hue, initials } from "../lib/avatar";
+
+// How a person looks: their photo, else their emoji, else their initials on
+// a colour that's always theirs. Decorative: their name is always beside it.
+
+interface Props {
+  name: string;
+  photo?: string | null;
+  emoji?: string | null;
+  class?: string;
+}
+
+const { name, photo, emoji, class: extra } = Astro.props;
+---
+
+<span
+  class:list={["avatar", extra, { "has-photo": !!photo, "has-emoji": !photo && !!emoji }]}
+  style={`--hue: ${hue(name)}`}
+  aria-hidden="true"
+>
+  {photo ? <img src={`/avatars/${photo}`} alt="" loading="lazy" /> : emoji ? emoji : initials(name)}
+</span>

@@ -1,4 +1,5 @@
 ---
+import Avatar from "../../../components/Avatar.astro";
 import Icon from "../../../components/Icon.astro";
 import Base from "../../../layouts/Base.astro";
 import { hue, initials } from "../../../lib/avatar";
@@ -30,9 +31,7 @@ const already = person && Astro.locals.person?.id === person.id;
         </>
       ) : already ? (
         <>
-          <span class="avatar xl" style={`--hue: ${hue(person.name)}`} aria-hidden="true">
-            {initials(person.name)}
-          </span>
+          <Avatar name={person.name} photo={person.avatarPhoto} emoji={person.avatarEmoji} class="xl" />
           <h1>You're already signed in as {person.name}</h1>
           <a class="button" href="/">
             Go to Hangout
@@ -40,9 +39,7 @@ const already = person && Astro.locals.person?.id === person.id;
         </>
       ) : (
         <>
-          <span class="avatar xl" style={`--hue: ${hue(person.name)}`} aria-hidden="true">
-            {initials(person.name)}
-          </span>
+          <Avatar name={person.name} photo={person.avatarPhoto} emoji={person.avatarEmoji} class="xl" />
           <div>
             <span class="pill">
               <Icon name="link" size={14} /> Private sign-in link

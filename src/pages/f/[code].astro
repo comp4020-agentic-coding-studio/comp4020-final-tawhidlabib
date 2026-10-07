@@ -1,8 +1,11 @@
 ---
+import Avatar from "../../components/Avatar.astro";
 import Icon from "../../components/Icon.astro";
 import Onboard from "../../components/Onboard.astro";
 import Base from "../../layouts/Base.astro";
 import { hue, initials } from "../../lib/avatar";
+import { hasBlocked } from "../../lib/blocks";
+import { sharedGroups } from "../../lib/circle";
 import { relationship } from "../../lib/friends";
 import { personByCode } from "../../lib/people";
 
@@ -13,6 +16,8 @@ const them = personByCode(code);
 if (!them) Astro.response.status = 404;
 const me = Astro.locals.person;
 const tie = them && me ? relationship(me.id, them.id) : "none";
+const blocked = !!them && !!me && hasBlocked(me.id, them.id);
+const inCommon = them && me ? (sharedGroups(me, Astro.request.headers.get("cookie")).get(them.id) ?? []) : [];
 ---
 
 <Base title={them ? `Add ${them.name} · Hangout` : "Link not found · Hangout"}>
@@ -31,9 +36,9 @@ const tie = them && me ? relationship(me.id, them.id) : "none";
         </>
       ) : (
         <>
-          <span class="avatar xl" style={`--hue: ${hue(them.name)}`} aria-hidden="true">
-            {initials(them.name)}
-          </span>
+          <Avatar name={them.name} photo={them.avatarPhoto} emoji={them.avatarEmoji} class="xl" />
+          {them.bio && <p class="bio">“{them.bio}”</p>}
+          {inCommon.length > 0 && <p class="muted fine">In {inCommon.join(", ")} with you</p>}
           {tie === "self" ? (
             <>
               <h1>This is your friend link</h1>
@@ -98,6 +103,18 @@ const tie = them && me ? relationship(me.id, them.id) : "none";
             </>
           )}
         </>
+      )
+    }
+    {
+      them && me && tie !== "self" && (
+        <form method="post" action="/api/blocks" class="block-form">
+          <input type="hidden" name="code" value={code} />
+          <input type="hidden" name="action" value={blocked ? "unblock" : "block"} />
+          {blocked && <p class="muted">You've blocked {them.name}. They can't reach you here.</p>}
+          <button type="submit" class="link-button">
+            {blocked ? `Unblock ${them.name}` : `Block ${them.name}`}
+          </button>
+        </form>
       )
     }
   </div>

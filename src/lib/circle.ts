@@ -1,3 +1,4 @@
+import { eitherBlocked } from "./blocks";
 import { listMembers } from "./db";
 import { friendsOf, relationship } from "./friends";
 import { groupsFor } from "./identity";
@@ -23,7 +24,9 @@ export function sharedGroups(
 
 export function mayKnow(person: Person, cookieHeader: string | null): Person[] {
   const shared = sharedGroups(person, cookieHeader);
-  const candidates = [...shared.keys()].filter((id) => relationship(person.id, id) === "none");
+  const candidates = [...shared.keys()].filter(
+    (id) => relationship(person.id, id) === "none" && !eitherBlocked(person.id, id),
+  );
   return peopleByIds(candidates).sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -34,7 +37,8 @@ export const invitable = (person: Person) => friendsOf(person.id);
  *  group they're in. Ids from a form are checked against this, so nobody can
  *  invite strangers by guessing ids. */
 export function allowedInvitees(person: Person, cookieHeader: string | null): Set<number> {
-  return new Set([...friendsOf(person.id).map((p) => p.id), ...sharedGroups(person, cookieHeader).keys()]);
+  const ids = [...friendsOf(person.id).map((p) => p.id), ...sharedGroups(person, cookieHeader).keys()];
+  return new Set(ids.filter((id) => !eitherBlocked(person.id, id)));
 }
 
 /** Everyone with a profile in the given groups, if the person is in them. */
@@ -43,5 +47,5 @@ export function groupInvitees(person: Person, cookieHeader: string | null, group
   return groupIds
     .filter((id) => mine.has(id))
     .flatMap((id) => listMembers(id).map((m) => m.personId))
-    .filter((id): id is number => id !== null && id !== person.id);
+    .filter((id): id is number => id !== null && id !== person.id && !eitherBlocked(person.id, id));
 }

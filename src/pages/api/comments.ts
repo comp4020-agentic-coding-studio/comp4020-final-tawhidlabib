@@ -20,6 +20,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
       text: `${thread.person.name} commented on ${thread.title}: ${snippet(body)}`,
       href: thread.page,
       actorId: thread.person.id,
+      groupId: thread.groupId,
     });
   }
   publish(`thread:${thread.kind}:${thread.ref}`);

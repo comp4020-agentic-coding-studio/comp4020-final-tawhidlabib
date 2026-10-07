@@ -23,6 +23,11 @@ export const people = sqliteTable("people", {
   friendCode: text("friend_code").notNull().unique(),
   /** IANA zone their events' times are wall-clock times in. */
   timezone: text().notNull(),
+  /** How they look: an uploaded photo (a file in uploads), else an emoji,
+   *  else their initials. */
+  avatarPhoto: text("avatar_photo"),
+  avatarEmoji: text("avatar_emoji"),
+  bio: text(),
   createdAt: createdAt(),
 });
 
@@ -57,6 +62,8 @@ export const members = sqliteTable(
     /** The profile behind this membership; null for memberships made before
      *  profiles existed, until their owner makes one and claims them. */
     personId: int("person_id").references(() => people.id, { onDelete: "set null" }),
+    /** No notifications from this group. */
+    muted: int({ mode: "boolean" }).notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("members_group_name").on(t.groupId, t.nameKey)],
@@ -365,6 +372,21 @@ export const ratings = sqliteTable(
     uniqueIndex("ratings_event_person").on(t.eventId, t.personId),
     uniqueIndex("ratings_hangout_person").on(t.hangoutId, t.personId),
   ],
+);
+
+/** Who has blocked whom. */
+export const blocks = sqliteTable(
+  "blocks",
+  {
+    blockerId: int("blocker_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    blockedId: int("blocked_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] })],
 );
 
 export type Notification = typeof notifications.$inferSelect;

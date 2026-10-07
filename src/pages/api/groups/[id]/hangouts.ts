@@ -37,6 +37,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
       text: `${me.name} proposed ${title} in ${group.name}, ${spanLabel(date, start, end)}`,
       href: `/g/${group.id}?week=${weekStartOf(date)}#plans`,
       actorId: me.personId,
+      groupId: group.id,
     },
   );
   flash(cookies, "proposed");

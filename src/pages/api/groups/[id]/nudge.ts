@@ -27,6 +27,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
       text: `${me.name} nudged you to mark your hours in ${group.name} for the week of ${dayLabel(week)}`,
       href: `/g/${group.id}?week=${week}#week`,
       actorId: me.personId,
+      groupId: group.id,
     });
   }
   flash(cookies, "nudged");

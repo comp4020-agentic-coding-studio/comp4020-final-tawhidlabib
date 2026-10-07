@@ -4516,3 +4516,92 @@ button:disabled {
 .past-card {
   opacity: 0.95;
 }
+
+/* ─── avatars with photos and emoji, the picker, blocking ─────────────── */
+
+.avatar.has-photo {
+  overflow: hidden;
+  padding: 0;
+  background: var(--surface-2);
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.avatar.has-emoji {
+  background: var(--surface-2);
+  font-size: 1.1em;
+  filter: none;
+}
+
+.avatars > li {
+  display: inline-flex;
+  list-style: none;
+}
+
+.avatars > li + li {
+  margin-left: -0.55rem;
+}
+
+.avatars > li:hover .avatar {
+  transform: translateY(-3px) scale(1.08);
+}
+
+.emoji-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.6rem, 1fr));
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.emoji-choice {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 2.6rem;
+  border-radius: 0.6rem;
+  border: 1.5px solid var(--line);
+  font-size: 1.3rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.2s var(--spring),
+    border-color 0.2s;
+}
+
+.emoji-choice:hover {
+  transform: scale(1.1);
+}
+
+.emoji-choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.emoji-choice:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.emoji-choice:has(input:focus-visible) {
+  outline: 3px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.bio {
+  max-width: 24rem;
+  font-size: 1.05rem;
+  font-style: italic;
+}
+
+.block-form {
+  margin-top: 0.5rem;
+}

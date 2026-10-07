@@ -40,6 +40,11 @@ export const FLASHES = {
   copied: { text: "Copied last week's hours. Tweak anything that's changed.", party: false },
   nothingToCopy: { text: "You didn't mark any hours last week, so there was nothing to copy.", party: false },
   nudged: { text: "Nudged. They'll see it in their inbox.", party: false },
+  avatar: { text: "Looking good.", party: false },
+  blocked: { text: "Blocked. You won't hear from them.", party: false },
+  unblocked: { text: "Unblocked.", party: false },
+  muted: { text: "Muted. This group won't notify you.", party: false },
+  unmuted: { text: "Unmuted.", party: false },
 } as const;
 
 export type Flash = keyof typeof FLASHES;

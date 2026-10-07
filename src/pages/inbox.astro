@@ -1,4 +1,5 @@
 ---
+import Avatar from "../components/Avatar.astro";
 import Icon from "../components/Icon.astro";
 import Onboard from "../components/Onboard.astro";
 import Base from "../layouts/Base.astro";
@@ -75,9 +76,7 @@ const unread = notes.filter((n) => !n.readAt).length;
                   <li class:list={["note", { unread: !note.readAt }]} style={`--i: ${i}`}>
                     <a href={`/api/inbox/${note.id}`}>
                       {note.actorName ? (
-                        <span class="avatar" style={`--hue: ${hue(note.actorName)}`} aria-hidden="true">
-                          {initials(note.actorName)}
-                        </span>
+                        <Avatar name={note.actorName} photo={note.actorPhoto} emoji={note.actorEmoji} />
                       ) : (
                         <span class="icon-bubble small" aria-hidden="true">
                           <Icon name={ICON[note.kind as keyof typeof ICON] ?? "bell"} size={16} />

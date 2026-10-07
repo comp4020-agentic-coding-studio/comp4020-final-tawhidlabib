@@ -26,6 +26,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     text: `${thread.person.name} asked on ${thread.title}: ${question}`,
     href: thread.page,
     actorId: thread.person.id,
+    groupId: thread.groupId,
   });
   return redirect(thread.page, 303);
 };

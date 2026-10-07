@@ -56,6 +56,7 @@ export function announceEveryoneFree(group: Group, week: string): void {
         kind: "everyone",
         text: `Everyone's free ${spanLabel(r.date, r.start, r.end)} in ${group.name}. Propose it?`,
         href: `/g/${group.id}?week=${week}#best`,
+        groupId: group.id,
       },
     );
   }

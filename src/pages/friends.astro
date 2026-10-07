@@ -1,4 +1,5 @@
 ---
+import Avatar from "../components/Avatar.astro";
 import Icon from "../components/Icon.astro";
 import Onboard from "../components/Onboard.astro";
 import Base from "../layouts/Base.astro";
@@ -65,9 +66,7 @@ const suggestions = person ? mayKnow(person, cookie) : [];
             <ul class="people-list stagger">
               {incoming.map((p, i) => (
                 <li class="card person-row" style={`--i: ${i}`}>
-                  <span class="avatar md" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
-                    {initials(p.name)}
-                  </span>
+                  <Avatar name={p.name} photo={p.avatarPhoto} emoji={p.avatarEmoji} class="md" />
                   <span class="who-name">
                     <b>{p.name}</b>
                     <span class="muted">wants to be friends</span>
@@ -101,9 +100,7 @@ const suggestions = person ? mayKnow(person, cookie) : [];
             <ul class="people-grid stagger">
               {friends.map((p, i) => (
                 <li class="card person-row" style={`--i: ${i}`}>
-                  <span class="avatar md" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
-                    {initials(p.name)}
-                  </span>
+                  <Avatar name={p.name} photo={p.avatarPhoto} emoji={p.avatarEmoji} class="md" />
                   <span class="who-name">
                     <b>{p.name}</b>
                     <span class="muted">
@@ -136,9 +133,7 @@ const suggestions = person ? mayKnow(person, cookie) : [];
             <ul class="people-list">
               {outgoing.map((p) => (
                 <li class="card person-row">
-                  <span class="avatar md" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
-                    {initials(p.name)}
-                  </span>
+                  <Avatar name={p.name} photo={p.avatarPhoto} emoji={p.avatarEmoji} class="md" />
                   <span class="who-name">
                     <b>{p.name}</b>
                     <span class="muted">Request sent</span>
@@ -162,9 +157,7 @@ const suggestions = person ? mayKnow(person, cookie) : [];
             <ul class="people-grid">
               {suggestions.map((p) => (
                 <li class="card person-row">
-                  <span class="avatar md" style={`--hue: ${hue(p.name)}`} aria-hidden="true">
-                    {initials(p.name)}
-                  </span>
+                  <Avatar name={p.name} photo={p.avatarPhoto} emoji={p.avatarEmoji} class="md" />
                   <span class="who-name">
                     <b>{p.name}</b>
                     <span class="muted">In {shared.get(p.id)?.join(", ")}</span>

@@ -1,4 +1,5 @@
 import { and, count, desc, eq, isNull } from "drizzle-orm";
+import { whoBlocked, whoMuted } from "./blocks";
 import { db } from "./db";
 import { publish } from "./live";
 import { type Notification, notifications, people } from "./schema";
@@ -8,30 +9,49 @@ import { type Notification, notifications, people } from "./schema";
 // Whoever caused it is never told about their own action.
 
 export type { Notification };
-export type Note = Notification & { actorName: string | null };
+export type Note = Notification & {
+  actorName: string | null;
+  actorPhoto: string | null;
+  actorEmoji: string | null;
+};
 
 export function notify(
   personIds: Iterable<number>,
-  note: { kind: string; text: string; href: string; actorId?: number | null },
+  note: { kind: string; text: string; href: string; actorId?: number | null; groupId?: string },
 ): void {
-  const to = [...new Set(personIds)].filter((id) => id !== note.actorId);
+  const { groupId, ...row } = note;
+  let to = [...new Set(personIds)].filter((id) => id !== note.actorId);
+  // nobody hears from someone they've blocked, or from a group they've muted
+  if (note.actorId) {
+    const blockers = whoBlocked(note.actorId, to);
+    to = to.filter((id) => !blockers.has(id));
+  }
+  if (groupId) {
+    const muted = whoMuted(groupId, to);
+    to = to.filter((id) => !muted.has(id));
+  }
   if (to.length === 0) return;
   db.insert(notifications)
-    .values(to.map((personId) => ({ personId, ...note, actorId: note.actorId ?? null })))
+    .values(to.map((personId) => ({ personId, ...row, actorId: row.actorId ?? null })))
     .run();
   for (const id of to) publish(`person:${id}`, "inbox");
 }
 
 export function inboxOf(personId: number, limit = 60): Note[] {
   return db
-    .select({ note: notifications, actorName: people.name })
+    .select({
+      note: notifications,
+      actorName: people.name,
+      actorPhoto: people.avatarPhoto,
+      actorEmoji: people.avatarEmoji,
+    })
     .from(notifications)
     .leftJoin(people, eq(people.id, notifications.actorId))
     .where(eq(notifications.personId, personId))
     .orderBy(desc(notifications.id))
     .limit(limit)
     .all()
-    .map((r) => ({ ...r.note, actorName: r.actorName }));
+    .map((r) => ({ ...r.note, actorName: r.actorName, actorPhoto: r.actorPhoto, actorEmoji: r.actorEmoji }));
 }
 
 export function unreadCount(personId: number): number {

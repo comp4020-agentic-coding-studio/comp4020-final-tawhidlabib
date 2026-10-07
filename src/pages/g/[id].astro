@@ -1,4 +1,5 @@
 ---
+import Avatar from "../../components/Avatar.astro";
 import Icon from "../../components/Icon.astro";
 import Memories from "../../components/Memories.astro";
 import Thread from "../../components/Thread.astro";
@@ -10,6 +11,7 @@ import { ERRORS } from "../../lib/forms";
 import { type Relationship, relationship } from "../../lib/friends";
 import { currentMember } from "../../lib/identity";
 import { adminIdOf, isArchived } from "../../lib/manage";
+import { peopleByIds } from "../../lib/people";
 import { recommend } from "../../lib/recommend";
 import { openThread } from "../../lib/talk";
 import {
@@ -56,6 +58,11 @@ if (group && me) {
   }
 }
 const nameOf = new Map(members.map((m) => [m.id, m.name]));
+// each member's profile, for how they look (photo, emoji or initials)
+const looks = new Map(
+  peopleByIds(members.map((m) => m.personId).filter((id): id is number => id !== null)).map((p) => [p.id, p]),
+);
+const lookOf = (m: { personId: number | null }) => (m.personId === null ? undefined : looks.get(m.personId));
 const others = me ? members.length - 1 : 0;
 
 function cell(date: string, hour: number) {
@@ -280,8 +287,8 @@ const TABS = ["week", "best", "plans", "people"];
           )}
           <ul class="avatars" aria-label="Members">
             {members.slice(0, 7).map((m) => (
-              <li class="avatar" style={`--hue: ${hue(m.name)}`} title={m.name}>
-                <span aria-hidden="true">{initials(m.name)}</span>
+              <li title={m.name}>
+                <Avatar name={m.name} photo={lookOf(m)?.avatarPhoto} emoji={lookOf(m)?.avatarEmoji} />
                 <span class="vh">{m.id === me.id ? `${m.name} (you)` : m.name}</span>
               </li>
             ))}
@@ -788,9 +795,7 @@ const TABS = ["week", "best", "plans", "people"];
                     return (
                       <tr>
                         <th scope="row">
-                          <span class="avatar" style={`--hue: ${hue(m.name)}`} aria-hidden="true">
-                            {initials(m.name)}
-                          </span>
+                          <Avatar name={m.name} photo={lookOf(m)?.avatarPhoto} emoji={lookOf(m)?.avatarEmoji} />
                           <span class="member-name">
                             {m.name}
                             {m.id === me.id && <span class="muted"> (you)</span>}
@@ -838,9 +843,7 @@ const TABS = ["week", "best", "plans", "people"];
                 const tie = ties.get(m.id);
                 return (
                   <li class="person-row" data-member={m.id}>
-                    <span class="avatar md" style={`--hue: ${hue(m.name)}`} aria-hidden="true">
-                      {initials(m.name)}
-                    </span>
+                    <Avatar name={m.name} photo={lookOf(m)?.avatarPhoto} emoji={lookOf(m)?.avatarEmoji} class="md" />
                     <span class="who-name">
                       <b>
                         {m.name}
@@ -960,6 +963,13 @@ const TABS = ["week", "best", "plans", "people"];
               </form>
             </div>
           )}
+
+          <form method="post" action={`/api/groups/${group.id}/mute`}>
+            <input type="hidden" name="muted" value={me.muted ? "0" : "1"} />
+            <button type="submit" class="button small ghost">
+              <Icon name="bell" size={15} /> {me.muted ? "Unmute this group" : "Mute this group's notifications"}
+            </button>
+          </form>
 
           <form
             method="post"

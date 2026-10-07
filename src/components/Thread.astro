@@ -1,4 +1,5 @@
 ---
+import Avatar from "./Avatar.astro";
 import { hue, initials } from "../lib/avatar";
 import { pollsOn } from "../lib/polls";
 import { ago, commentsOn, reactionsOn, type Thread } from "../lib/talk";
@@ -16,7 +17,7 @@ interface Props {
 }
 
 const { thread, compact = false } = Astro.props;
-const said = commentsOn(thread.target);
+const said = commentsOn(thread.target, thread.person?.id);
 const reacted = reactionsOn(thread.target, thread.person?.id);
 const asked = pollsOn(thread.target, thread.person?.id);
 const id = `talk-${thread.kind}-${thread.ref}`;
@@ -102,9 +103,7 @@ const canDelete = (authorId: number) => !!me && (me.id === authorId || me.id ===
       <ul class="comments">
         {said.map((c) => (
           <li class="comment">
-            <span class="avatar" style={`--hue: ${hue(c.author.name)}`} aria-hidden="true">
-              {initials(c.author.name)}
-            </span>
+            <Avatar name={c.author.name} photo={c.author.avatarPhoto} emoji={c.author.avatarEmoji} />
             <div class="comment-body">
               <p class="comment-head">
                 <b>{c.author.name}</b>
@@ -130,9 +129,7 @@ const canDelete = (authorId: number) => !!me && (me.id === authorId || me.id ===
       <form method="post" action="/api/comments" class="comment-form" data-thread-form>
         <input type="hidden" name="kind" value={thread.kind} />
         <input type="hidden" name="ref" value={thread.ref} />
-        <span class="avatar" style={`--hue: ${hue(me.name)}`} aria-hidden="true">
-          {initials(me.name)}
-        </span>
+        <Avatar name={me.name} photo={me.avatarPhoto} emoji={me.avatarEmoji} />
         <label class="vh" for={`${id}-body`}>
           Write a comment
         </label>

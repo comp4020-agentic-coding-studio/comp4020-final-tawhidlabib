@@ -87,11 +87,8 @@ const id = `memories-${thread.kind}-${thread.ref}`;
 </div>
 
 <script>
-  // Choosing photos uploads them straight away; the album opens full size.
-  document.addEventListener("change", (event) => {
-    const input = event.target as HTMLInputElement;
-    if (input.matches("[data-autosubmit]") && input.files?.length) input.form?.requestSubmit();
-  });
+  // The album opens full size (choosing photos uploads them straight away:
+  // see data-autosubmit in the layout).
   let box: HTMLDialogElement | null = null;
   document.addEventListener("click", (event) => {
     const link = (event.target as Element).closest<HTMLAnchorElement>("a[data-lightbox]");
