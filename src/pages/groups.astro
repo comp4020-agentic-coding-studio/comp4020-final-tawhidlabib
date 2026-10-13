@@ -9,7 +9,7 @@ import { DEFAULT_TIMEZONE, spanLabel } from "../lib/time";
 
 const person = Astro.locals.person;
 const mine = groupsFor(person, Astro.request.headers.get("cookie"));
-const all = mine.map(({ group, member }) => ({ group, member, ...groupOverview(group) }));
+const all = mine.map(({ group, member }) => ({ group, member, ...groupOverview(group, member) }));
 const cards = all.filter((c) => c.group.archivedAt === null);
 const archivedCards = all.filter((c) => c.group.archivedAt !== null);
 ---

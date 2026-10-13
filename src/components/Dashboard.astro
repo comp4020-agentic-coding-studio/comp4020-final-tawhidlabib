@@ -28,7 +28,7 @@ const invites = eventsFor(person.id, today).filter(
 );
 const groups = groupsFor(person, cookie)
   .slice(0, 4)
-  .map(({ group }) => ({ group, ...groupOverview(group) }));
+  .map(({ group, member }) => ({ group, ...groupOverview(group, member) }));
 const explore = publicEvents(today, 3).filter((e) => e.hostId !== person.id);
 const going = goingCounts(explore.map((e) => e.id));
 

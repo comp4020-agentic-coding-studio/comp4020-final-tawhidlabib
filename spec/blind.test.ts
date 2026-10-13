@@ -41,6 +41,31 @@ describe("the blind grid", () => {
     expect(doc.querySelector('#best-body form[action$="/hangouts"]'), "no best times yet").toBeNull();
   });
 
+  it("nor does the group's best time show anywhere else first: /groups and home wait too", async () => {
+    // the overviews read this week, so this test uses this week's Sunday 11pm
+    // (the last hour of the week: it hasn't started yet, so it's recommendable)
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+    const d = new Date(`${today}T00:00:00Z`);
+    const monday = new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * 86_400_000);
+    const sunday = new Date(monday.getTime() + 6 * 86_400_000).toISOString().slice(0, 10);
+    const week = monday.toISOString().slice(0, 10);
+
+    const ana = new Person(baseUrl, probe("Ana"));
+    const res = await ana.post("/api/groups", { group: probe("Overview crew"), name: ana.name, timezone: "Australia/Sydney" });
+    const id = (res.headers.get("location") ?? "").split("/").pop() ?? "";
+    const cat = new Person(baseUrl, probe("Cat"));
+    await cat.post(`/api/groups/${id}/join`, { name: cat.name });
+    for (const p of [ana, cat]) await p.post(`/api/groups/${id}/availability`, { week, slot: [`${sunday}T23`] });
+    expect((await ana.get("/groups")).html, "there is a best time, for someone who's answered").toMatch(/Best this week:/);
+
+    const ben = new Person(baseUrl, probe("Ben"));
+    await ben.post(`/api/groups/${id}/join`, { name: ben.name });
+    for (const path of ["/groups", "/"]) {
+      const { html } = await ben.get(path);
+      expect(html, `${path} shows no best time before Ben answers`).not.toMatch(/Best this week:|Best: /);
+    }
+  });
+
   it("once you've marked yours, the group's week appears", async () => {
     const { ana, ben, page, id } = await groupOfTwo();
     await ben.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`] });
