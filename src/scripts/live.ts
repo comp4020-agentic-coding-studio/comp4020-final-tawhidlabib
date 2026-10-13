@@ -76,6 +76,16 @@ function patchGrid(el: HTMLElement, fresh: Element) {
   }
 }
 
+/** After your first answer for the week: drop the "your answer first" note
+ *  and the hidden legend, and let the group's hours fade in. */
+function reveal(grid: HTMLElement) {
+  document.getElementById("blind-note")?.remove();
+  document.querySelector<HTMLElement>(".legend[hidden]")?.removeAttribute("hidden");
+  document.querySelector<HTMLElement>("button[data-none]")?.remove();
+  grid.querySelectorAll<HTMLElement>(".slot").forEach((slot, i) => slot.style.setProperty("--d", String((i % 7) * 40)));
+  grid.classList.add("week-revealed");
+}
+
 let page: Promise<Document> | null = null;
 /** The page as the server renders it now; one fetch shared by a burst. */
 function freshPage(): Promise<Document> {
@@ -102,7 +112,13 @@ async function refresh(topic: string) {
     if (!el.id) continue;
     const fresh = (await freshPage()).getElementById(el.id);
     if (!fresh) continue;
-    if (el.hasAttribute("data-live-grid")) patchGrid(el, fresh);
+    if (el.hasAttribute("data-live-grid")) {
+      const wasHidden = !!document.getElementById("blind-note");
+      patchGrid(el, fresh);
+      // the moment you've answered, the group's week appears (ADR 10): reveal
+      // the parts that were waiting on your answer, with a fade-in
+      if (wasHidden && !(await freshPage()).getElementById("blind-note")) reveal(el);
+    }
     else {
       const node = document.importNode(fresh, true) as HTMLElement;
       el.replaceWith(node);
@@ -146,6 +162,29 @@ function renderPresence(topic: string, people: { id: string; name: string }[], o
   }
 }
 
+// Say so when live updates stop (and when they're back), so nobody mistakes
+// a dropped connection for a quiet group.
+const conn = document.getElementById("conn");
+let dropped = false;
+function showConnection(state: "on" | "reconnecting" | "offline") {
+  if (!conn) return;
+  if (state === "on") {
+    if (dropped) {
+      conn.textContent = "Back online · up to date";
+      conn.dataset.state = "on";
+      conn.hidden = false;
+      setTimeout(() => (conn.hidden = true), 2500);
+    }
+    dropped = false;
+    return;
+  }
+  dropped = true;
+  conn.dataset.state = state;
+  conn.textContent = state === "offline" ? "You're offline · changes will appear when you're back" : "Reconnecting…";
+  conn.hidden = false;
+}
+addEventListener("offline", () => showConnection("offline"));
+
 function connect() {
   const topics = topicsOnPage();
   if (topics.length === 0 || !("EventSource" in window)) return;
@@ -153,6 +192,7 @@ function connect() {
   let connectedBefore = false;
   source.addEventListener("hello", () => {
     document.documentElement.dataset.live = "on";
+    showConnection("on");
     // back after a drop: catch up on anything missed
     if (connectedBefore) for (const t of topics) schedule(t);
     connectedBefore = true;
@@ -167,6 +207,10 @@ function connect() {
   });
   source.addEventListener("error", () => {
     document.documentElement.dataset.live = "reconnecting";
+    // a brief blip (a redeploy, a tunnel) isn't worth a banner
+    setTimeout(() => {
+      if (document.documentElement.dataset.live !== "on") showConnection(navigator.onLine ? "reconnecting" : "offline");
+    }, 1500);
   });
 }
 

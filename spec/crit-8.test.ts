@@ -138,6 +138,9 @@ describe("crit 8: a stranger does the core thing, and finds their trace when the
     );
     expect(slotBox(ana.doc, `${TUESDAY}T22`)?.checked).toBe(false);
 
+    // Since the blind grid (ADR 10) the group's hours appear once you've
+    // answered for the week yourself; Ben says none of his hours work.
+    await post(baseUrl, `/api/groups/${group.id}/availability`, { week: WEEK, none: "1" }, ben.cookie);
     const bens = await page(baseUrl, `${group.path}?week=${WEEK}`, ben.cookie);
     const box = slotBox(bens.doc, `${TUESDAY}T18`);
     expect(box?.checked, "Ben never said he was free then").toBe(false);

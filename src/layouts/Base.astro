@@ -188,6 +188,7 @@ const NAV = [
         </div>
       )
     }
+    <p class="conn" id="conn" role="status" aria-live="polite" hidden></p>
     <main id="main">
       <slot />
     </main>
@@ -277,6 +278,31 @@ const NAV = [
     },
     true,
   );
+
+  // ─── no double submits on a slow connection ───────────────────────────
+  // A form that navigates disables its button once it's on its way (after
+  // the browser has read the button's value), and says it's working; coming
+  // back to the page with the back button re-enables it.
+  document.addEventListener("submit", (event) => {
+    const form = event.target as HTMLFormElement;
+    if (event.defaultPrevented || form.matches("[data-thread-form]") || form.method === "get") return;
+    const button = (event as SubmitEvent).submitter as HTMLButtonElement | null;
+    setTimeout(() => {
+      form.setAttribute("aria-busy", "true");
+      form.querySelectorAll<HTMLButtonElement>("button[type=submit], button:not([type])").forEach((b) => (b.disabled = true));
+      button?.classList.add("is-busy");
+    });
+  });
+  addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+    document.querySelectorAll<HTMLFormElement>("form[aria-busy]").forEach((form) => {
+      form.removeAttribute("aria-busy");
+      form.querySelectorAll<HTMLButtonElement>("button").forEach((b) => {
+        b.disabled = false;
+        b.classList.remove("is-busy");
+      });
+    });
+  });
 
   // ─── choosing a file uploads it straight away (album photos, avatars) ──
   document.addEventListener("change", (event) => {

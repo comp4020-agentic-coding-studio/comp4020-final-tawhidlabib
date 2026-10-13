@@ -9,6 +9,7 @@ import { googleCalendarUrl, hangoutEvent } from "../../lib/calendar";
 import { availabilityOn, getGroup, listMembers, pastHangouts, rsvpsFor, upcomingHangouts } from "../../lib/db";
 import { ERRORS } from "../../lib/forms";
 import { type Relationship, relationship } from "../../lib/friends";
+import { hasAnswered } from "../../lib/blind";
 import { currentMember } from "../../lib/identity";
 import { adminIdOf, isArchived } from "../../lib/manage";
 import { peopleByIds } from "../../lib/people";
@@ -48,10 +49,15 @@ const week = isDate(asked) && weekStartOf(asked) === asked ? asked : thisWeek;
 const dates = group ? weekDates(week) : [];
 const today = group ? todayIn(group.timezone) : "";
 
+// The blind grid (ADR 10): until you've answered for this week, the page
+// reads only your own hours, so nothing derived from anyone else's --- heat,
+// counts, names, best times, everyone's week --- can reach it.
+const answered = !!me && hasAnswered(me.id, week);
 // Who's free in each hour of the week, by slot key.
 const free = new Map<string, Set<number>>();
 if (group && me) {
   for (const a of availabilityOn(group.id, dates)) {
+    if (!answered && a.memberId !== me.id) continue;
     const key = slotKey(a.date, a.hour);
     if (!free.has(key)) free.set(key, new Set());
     free.get(key)?.add(a.memberId);
@@ -77,7 +83,7 @@ function cell(date: string, hour: number) {
     // 0–4: how much of the rest of the group is free then
     heat: others === 0 ? 0 : Math.ceil((elsewhere.length / others) * 4),
     label: `${dayLabel(date)}, ${hourLabel(hour)}. ${
-      elsewhere.length ? `Also free: ${names}.` : "Nobody else free yet."
+      !answered ? "" : elsewhere.length ? `Also free: ${names}.` : "Nobody else free yet."
     }`,
   };
 }
@@ -452,12 +458,26 @@ const TABS = ["week", "best", "plans", "people"];
             </a>
           </nav>
         </div>
+        <p class="vh" id="grid-keys">
+          Arrow keys move between hours, Space ticks one, Shift with an arrow ticks as you go.
+        </p>
         <p class="muted">
           Tap every hour you could hang out{" "}
           <span class="desktop-hint">(or drag across them)</span>, then save. Times are in{" "}
           {group.timezone}.
         </p>
 
+        {!answered && !archived && (
+          <p class="blind-note" id="blind-note">
+            <Icon name="lock" size={16} />
+            <span>
+              <b>Your answer first.</b> You'll see when everyone else is free once you've marked
+              your hours for this week. In open polls people tend to pick what already looks
+              popular; this way the group gets your honest week.{" "}
+              <a href="/readme/#the-blind-grid">Why?</a>
+            </span>
+          </p>
+        )}
         <form method="post" action={`/api/groups/${group.id}/availability`}>
           <input type="hidden" name="week" value={week} />
           <div class="card grid-card" id="week-grid" data-live={`group:${group.id}`} data-live-grid>
@@ -500,7 +520,7 @@ const TABS = ["week", "best", "plans", "people"];
               </tbody>
             </table>
           </div>
-          <div class="legend" aria-hidden="true">
+          <div class="legend" aria-hidden="true" hidden={!answered}>
             <span>
               <span
                 class="key"
@@ -522,6 +542,11 @@ const TABS = ["week", "best", "plans", "people"];
             <span role="status" id="save-status">
               {flashed === "saved" ? "Saved ✓" : ""}
             </span>
+            {!answered && !archived && (
+              <button type="submit" name="none" value="1" class="button ghost" formnovalidate data-none>
+                None of these work
+              </button>
+            )}
             <button type="submit" class="button" disabled={archived}>
               <Icon name="check" size={18} /> Save my hours
             </button>
@@ -540,10 +565,12 @@ const TABS = ["week", "best", "plans", "people"];
             <div class="icon-bubble">
               <Icon name="sparkles" size={22} />
             </div>
-            <strong>No overlap yet</strong>
+            <strong>{answered ? "No overlap yet" : "Your answer first"}</strong>
             <span>
-              Recommendations appear once at least two of you have marked the same hours.{" "}
-              <a href="#week">Mark yours</a>.
+              {answered
+                ? "Recommendations appear once at least two of you have marked the same hours. "
+                : "Best times appear once you've said when you're free this week. "}
+              <a href="#week">{answered ? "Mark yours" : "Mark your hours"}</a>.
             </span>
           </div>
         ) : (
@@ -762,7 +789,8 @@ const TABS = ["week", "best", "plans", "people"];
         </div>
         <div id="people-body" data-live={`group:${group.id}`}>
         <div class="stack">
-          <div class="card everyone-card">
+          {answered ? (
+            <div class="card everyone-card">
             <h3>Everyone's week</h3>
             <p class="muted fine">
               Hours each person has marked free. Hover or focus a day to see when.
@@ -830,6 +858,15 @@ const TABS = ["week", "best", "plans", "people"];
               </table>
             </div>
           </div>
+          ) : (
+            <div class="card everyone-card">
+              <h3>Everyone's week</h3>
+              <p class="muted">
+                <Icon name="lock" size={14} /> Mark your own hours for this week (or say none of
+                them work) to see everyone else's.
+              </p>
+            </div>
+          )}
 
           <div class="card">
             <h3>Members</h3>
@@ -1079,27 +1116,130 @@ const TABS = ["week", "best", "plans", "people"];
   const status = document.querySelector<HTMLElement>("#save-status");
   const gridForm = grid?.closest("form");
   // With JS the grid saves itself a moment after you stop tapping, so the
-  // rest of the group sees your hours fill in live (crit 9). The Save button
-  // stays for anyone without JS, and as a retry.
+  // rest of the group sees your hours fill in live (crit 9). Built for a bad
+  // connection: only the latest week is ever sent (each save carries the
+  // whole week, so a newer one supersedes any that failed), one save is in
+  // flight at a time, a failure retries with backoff and says so, and going
+  // offline waits for the connection to come back. The Save button stays for
+  // anyone without JS.
   let saveTimer = 0;
+  let pending = false;
+  let inFlight = false;
+  let retryIn = 1000;
+  const say = (text: string) => {
+    if (status) status.textContent = text;
+  };
   async function save() {
-    if (!gridForm) return;
+    if (!gridForm || inFlight) return;
+    if (!navigator.onLine) {
+      say("Offline · will save when you're back");
+      return;
+    }
+    pending = false;
+    inFlight = true;
     const data = new FormData(gridForm);
     data.set("quiet", "1");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
     try {
-      const res = await fetch(gridForm.action, { method: "POST", body: data, redirect: "manual" });
-      const ok = res.type === "opaqueredirect" || res.ok;
-      if (status) status.textContent = ok ? "Saved ✓ · your group sees it live" : "Couldn't save. Press Save to retry";
+      const res = await fetch(gridForm.action, { method: "POST", body: data, redirect: "manual", signal: controller.signal });
+      if (!(res.type === "opaqueredirect" || res.ok)) throw new Error(String(res.status));
+      retryIn = 1000;
+      say(pending ? "Saving…" : "Saved ✓ · your group sees it live");
     } catch {
-      if (status) status.textContent = "Offline? Press Save to retry";
+      pending = true;
+      say(navigator.onLine ? `Couldn't save · retrying in ${Math.round(retryIn / 1000)}s` : "Offline · will save when you're back");
+      if (navigator.onLine) {
+        saveTimer = window.setTimeout(() => {
+          saveTimer = 0;
+          save();
+        }, retryIn);
+        retryIn = Math.min(retryIn * 2, 15_000);
+      }
+    } finally {
+      clearTimeout(timeout);
+      inFlight = false;
+      if (pending && navigator.onLine && !saveTimer) save();
     }
   }
   const changed = () => {
-    if (status) status.textContent = "Saving…";
+    pending = true;
+    say("Saving…");
     clearTimeout(saveTimer);
-    saveTimer = window.setTimeout(save, 450);
+    saveTimer = window.setTimeout(() => {
+      saveTimer = 0;
+      save();
+    }, 450);
   };
+  addEventListener("online", () => {
+    if (pending) {
+      say("Back online · saving…");
+      save();
+    }
+  });
+  addEventListener("offline", () => pending && say("Offline · will save when you're back"));
+  // leaving with a save still pending: send it on the way out
+  addEventListener("pagehide", () => {
+    if (pending && gridForm && navigator.sendBeacon) {
+      const data = new FormData(gridForm);
+      data.set("quiet", "1");
+      navigator.sendBeacon(gridForm.action, data);
+    }
+  });
   grid?.addEventListener("change", changed);
+  // ─── the grid from the keyboard ────────────────────────────────────────
+  // One tab stop for the whole grid (a roving tabindex), arrow keys to move
+  // between hours, Space to tick, Home/End for the ends of a day's row and
+  // PageUp/PageDown for the top and bottom of a day. Shift+arrow ticks as it
+  // moves, like dragging. Without JS every box is its own tab stop.
+  const boxes = [...(grid?.querySelectorAll<HTMLInputElement>('input[name="slot"]') ?? [])];
+  const columns = grid?.querySelectorAll("thead th").length ?? 7;
+  if (boxes.length) {
+    const start = boxes.find((b) => b.checked) ?? boxes[0];
+    for (const b of boxes) b.tabIndex = b === start ? 0 : -1;
+    grid?.setAttribute("aria-describedby", "grid-keys");
+    grid?.addEventListener("keydown", (event) => {
+      const at = boxes.indexOf(event.target as HTMLInputElement);
+      if (at < 0) return;
+      const row = Math.floor(at / columns);
+      const col = at % columns;
+      const rows = Math.ceil(boxes.length / columns);
+      const to =
+        event.key === "ArrowRight"
+          ? row * columns + Math.min(col + 1, columns - 1)
+          : event.key === "ArrowLeft"
+            ? row * columns + Math.max(col - 1, 0)
+            : event.key === "ArrowDown"
+              ? Math.min(row + 1, rows - 1) * columns + col
+              : event.key === "ArrowUp"
+                ? Math.max(row - 1, 0) * columns + col
+                : event.key === "Home"
+                  ? row * columns
+                  : event.key === "End"
+                    ? row * columns + columns - 1
+                    : event.key === "PageUp"
+                      ? col
+                      : event.key === "PageDown"
+                        ? (rows - 1) * columns + col
+                        : -1;
+      if (to < 0 || !boxes[to]) return;
+      event.preventDefault();
+      boxes[at].tabIndex = -1;
+      boxes[to].tabIndex = 0;
+      boxes[to].focus();
+      if (event.shiftKey && event.key.startsWith("Arrow") && boxes[to].checked !== boxes[at].checked) {
+        boxes[to].checked = boxes[at].checked;
+        changed();
+      }
+    });
+    // a tap or click moves the tab stop too
+    grid?.addEventListener("focusin", (event) => {
+      const box = event.target as HTMLInputElement;
+      if (!boxes.includes(box)) return;
+      for (const b of boxes) b.tabIndex = b === box ? 0 : -1;
+    });
+  }
+
   // from here on, ticking an hour pops (but the page load doesn't)
   requestAnimationFrame(() => root.classList.add("ready"));
 

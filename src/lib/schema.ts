@@ -389,6 +389,21 @@ export const blocks = sqliteTable(
   (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] })],
 );
 
+/** That a member has answered for a week (marked hours, or "none of these
+ *  work"): until they have, the group's hours for it stay hidden from them
+ *  (ADR 10). */
+export const weekAnswers = sqliteTable(
+  "week_answers",
+  {
+    memberId: int("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    week: text().notNull(),
+    answeredAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.memberId, t.week] })],
+);
+
 export type Notification = typeof notifications.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Person = typeof people.$inferSelect;

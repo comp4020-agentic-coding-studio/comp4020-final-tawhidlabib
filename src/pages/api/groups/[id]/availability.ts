@@ -5,6 +5,7 @@ import { publish } from "../../../../lib/live";
 import { currentMember } from "../../../../lib/identity";
 import { isArchived } from "../../../../lib/manage";
 import { announceEveryoneFree } from "../../../../lib/smarter";
+import { markAnswered } from "../../../../lib/blind";
 import { HOURS, isDate, weekDates, weekStartOf } from "../../../../lib/time";
 
 /** Save which hours you're free across one week. The submitted boxes are the
@@ -34,6 +35,8 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   }
 
   setAvailability(me.id, dates, free);
+  // any save answers for the week --- hours, or "none of these work" (ADR 10)
+  if (free.length > 0 || form.has("none")) markAnswered(me.id, week);
   publish(`group:${group.id}`, "availability");
   announceEveryoneFree(group, week);
   // the grid's autosave posts quietly: no toast on the next page load

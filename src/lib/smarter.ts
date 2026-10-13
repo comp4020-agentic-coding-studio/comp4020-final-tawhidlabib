@@ -4,6 +4,7 @@ import { notify } from "./notify";
 import { freeMap } from "./overview";
 import { recommend } from "./recommend";
 import { availability, everyoneFree, nudges } from "./schema";
+import { markAnswered } from "./blind";
 import { addDays, hasStarted, spanLabel, weekDates } from "./time";
 
 // Smarter availability: copying last week, nudging, and telling a group
@@ -24,6 +25,7 @@ export function copyLastWeek(memberId: number, week: string): number {
       weekDates(week),
       hours.map((h) => ({ date: addDays(h.date, 7), hour: h.hour })),
     );
+    markAnswered(memberId, week);
   }
   return hours.length;
 }
