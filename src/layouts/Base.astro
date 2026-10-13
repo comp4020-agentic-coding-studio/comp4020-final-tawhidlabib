@@ -280,13 +280,20 @@ const NAV = [
   );
 
   // ─── no double submits on a slow connection ───────────────────────────
-  // A form that navigates disables its button once it's on its way (after
-  // the browser has read the button's value), and says it's working; coming
-  // back to the page with the back button re-enables it.
+  // A form that navigates is sent once: a second submit while the first is
+  // on its way is cancelled at once (disabling the button alone is too
+  // late --- a quick second press beats it), and the buttons show it's
+  // working. Coming back to the page with the back button re-enables it.
   document.addEventListener("submit", (event) => {
     const form = event.target as HTMLFormElement;
     if (event.defaultPrevented || form.matches("[data-thread-form]") || form.method === "get") return;
+    if (form.hasAttribute("aria-busy")) {
+      event.preventDefault();
+      return;
+    }
+    form.setAttribute("aria-busy", "true");
     const button = (event as SubmitEvent).submitter as HTMLButtonElement | null;
+    // disable after the browser has read the pressed button's name and value
     setTimeout(() => {
       form.setAttribute("aria-busy", "true");
       form.querySelectorAll<HTMLButtonElement>("button[type=submit], button:not([type])").forEach((b) => (b.disabled = true));
