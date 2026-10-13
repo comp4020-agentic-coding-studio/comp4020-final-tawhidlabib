@@ -1057,7 +1057,7 @@ const TABS = ["week", "best", "plans", "people"];
     indicator.style.width = `${on.offsetWidth}px`;
     indicator.style.transform = `translateX(${on.offsetLeft}px)`;
   };
-  function select(name: string, { focus = false, remember = true } = {}) {
+  function select(name: string, { focus = false, remember = true, scroll = true } = {}) {
     if (!names.includes(name)) return;
     root.dataset.tab = name;
     for (const tab of tabs) {
@@ -1066,17 +1066,22 @@ const TABS = ["week", "best", "plans", "people"];
       tab.tabIndex = on ? 0 : -1;
       if (on) {
         if (focus) tab.focus();
-        tab.scrollIntoView({ block: "nearest", inline: "nearest" });
+        // keep the chosen tab visible in a scrolled tab strip, without
+        // moving the page
+        if (tablist && tablist.scrollWidth > tablist.clientWidth) {
+          tablist.scrollLeft = tab.offsetLeft - (tablist.clientWidth - tab.offsetWidth) / 2;
+        }
       }
     }
     slide();
     if (remember) history.replaceState(null, "", `${location.pathname}${location.search}#${name}`);
-    // keep the tabs in view when switching from far down a long panel
-    if (tablist && tablist.getBoundingClientRect().top > 90) return;
+    // keep the tabs in view when switching from far down a long panel, but
+    // never jump the page on load: a visitor (or a keyboard) starts at the top
+    if (!scroll || (tablist && tablist.getBoundingClientRect().top > 90)) return;
     document.getElementById(name)?.scrollIntoView({ block: "start" });
   }
   if (tablist) {
-    select(root.dataset.tab ?? "week", { remember: false });
+    select(root.dataset.tab ?? "week", { remember: false, scroll: false });
     // place the indicator without animating it on load
     indicator.style.transition = "none";
     slide();

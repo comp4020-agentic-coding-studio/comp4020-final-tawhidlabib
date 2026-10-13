@@ -182,4 +182,26 @@ describe.skipIf(!chromePath)("holds up, in a real browser", () => {
     await ana.ctx.close();
     await ben.ctx.close();
   }, 60_000);
+
+  // Not a browser matter, but the same question: two people at once.
+  it("two people proposing the same plan in the same second get one hangout, both in", async () => {
+    const { ana, ben, url } = await twoPeople();
+    const id = url.split("/g/")[1].split("?")[0];
+    const propose = (page: Page) =>
+      page.evaluate(
+        (gid) =>
+          fetch(`/api/groups/${gid}/hangouts`, {
+            method: "POST",
+            body: new URLSearchParams({ date: "2030-01-12", start: "18", end: "20", title: "Dinner" }),
+          }),
+        id,
+      );
+    await Promise.all([propose(ana.page), propose(ben.page)]);
+    await ana.page.goto(`${url}#plans`);
+    const cards = ana.page.locator('#plans-body article:has(.plan-title:text-is("Dinner"))');
+    expect(await cards.count(), "one Dinner, not two").toBe(1);
+    expect(await cards.first().locator(".going").textContent()).toMatch(/You[\s\S]*Ben|Ben[\s\S]*You/);
+    await ana.ctx.close();
+    await ben.ctx.close();
+  }, 60_000);
 });

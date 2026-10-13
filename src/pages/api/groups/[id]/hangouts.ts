@@ -26,8 +26,13 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   }
 
   const title = field(form.get("title"), 80) || "Hangout";
-  proposeHangout({ groupId: group.id, date, startHour: start, endHour: end, title, proposedBy: me.id });
+  const { existed } = proposeHangout({ groupId: group.id, date, startHour: start, endHour: end, title, proposedBy: me.id });
   publish(`group:${group.id}`, "plans");
+  // proposing a plan that already exists is saying you're in it
+  if (existed) {
+    flash(cookies, "in");
+    return redirect(`/g/${group.id}?week=${weekStartOf(date)}#plans`, 303);
+  }
   notify(
     listMembers(group.id)
       .map((m) => m.personId)

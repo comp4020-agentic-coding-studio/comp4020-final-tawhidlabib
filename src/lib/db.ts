@@ -151,13 +151,31 @@ export function getHangout(id: number): Hangout | undefined {
 }
 
 /** Propose a hangout; whoever proposes it is in. */
-export function proposeHangout(input: Omit<Hangout, "id" | "createdAt">): Hangout {
+export function proposeHangout(input: Omit<Hangout, "id" | "createdAt">): { hangout: Hangout; existed: boolean } {
+  // Two people often propose the same best time at once --- it's the one the
+  // page recommends to both. The same date and hours in the same group is the
+  // same plan: the second proposer joins the first's (in), rather than making
+  // a duplicate. One transaction, so the check and the write can't be split
+  // by a simultaneous proposal (see ADR 6 for why that's enough).
   return db.transaction((tx) => {
-    const hangout = tx.insert(hangouts).values(input).returning().get();
+    const same = tx
+      .select()
+      .from(hangouts)
+      .where(
+        and(
+          eq(hangouts.groupId, input.groupId),
+          eq(hangouts.date, input.date),
+          eq(hangouts.startHour, input.startHour),
+          eq(hangouts.endHour, input.endHour),
+        ),
+      )
+      .get();
+    const hangout = same ?? tx.insert(hangouts).values(input).returning().get();
     tx.insert(rsvps)
       .values({ hangoutId: hangout.id, memberId: input.proposedBy, response: "in" })
+      .onConflictDoUpdate({ target: [rsvps.hangoutId, rsvps.memberId], set: { response: "in" } })
       .run();
-    return hangout;
+    return { hangout, existed: !!same };
   });
 }
 
