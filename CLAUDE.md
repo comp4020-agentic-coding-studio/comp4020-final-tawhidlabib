@@ -69,6 +69,26 @@ ever sees because the seed data hides it. Drive the running app --- create the
 thing, reload, come back to it --- rather than concluding from the handler that
 it must work.
 
+## What good means, as rules
+
+`README.md` is the argument: a plan's whole life, from "we should hang out"
+to remembering it, beating the group chat at each step. These rules are
+that argument applied to code. A change that breaks one is wrong, however
+green the checks:
+
+- **Nobody sees the group's week before giving their own** (ADR 10). Hide
+  it at the source: until someone has answered for a week, read only their
+  own hours, so nothing derived from anyone else's (heat, counts, names,
+  best times, Everyone's week, overviews) can reach them. A new view of
+  availability must ask `hasAnswered()` first.
+- **Every feature moves a plan one step on.** If a change doesn't help a
+  group get to a time, show up, or remember it, it doesn't belong.
+- **It holds up.** A phone at 390×844, a keyboard alone, a resize midway, a
+  slow or dropped connection. Each new interaction gets a real-browser check
+  in `spec/holds-up.test.ts`.
+- **Joining costs a name.** Never add a step between an invite link and
+  marking an hour.
+
 ## Live updates, and what changes state
 
 Every page that shows shared state is live (crit 9). Parts that change carry

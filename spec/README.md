@@ -53,8 +53,12 @@ of them reads the code.
 | `group-admin.test.ts`, `smarter.test.ts` | admins, removal, leaving, archiving; copying a week, nudges, everyone-free alerts |
 | `memories.test.ts` | photo albums (real images, 5 MB, private to the plan; ADR 8) and "how was it?" |
 | `profile-plus.test.ts` | avatars, bios, block and mute (ADR 9) |
+| `blind.test.ts` | the blind grid (ADR 10): nobody sees the group's week before giving their own, on the group page, `/groups`, home, or the live stream |
+| `holds-up.test.ts` | the HD band's own examples, in real Chrome at both marking viewports: keyboard only, a phone, a resize mid-interaction, a slow connection, offline and back, two people at once |
 | `theme.test.ts` | the colour theme picker |
 | `quality-floor.test.ts`, `readme-full.test.ts` | the floor for every page in every state, from the small world `routes.ts` builds each run, and the whole README at `/readme/` |
 
 `people.ts` lets a test act as one person, with their own cookie jar.
+`browser.ts` launches whatever Chrome is installed (CI points it at the
+runner's), and the browser tests skip, saying why, where there's none.
 `stream.ts` listens to the live stream the way an open tab does.
