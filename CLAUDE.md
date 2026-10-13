@@ -95,6 +95,21 @@ route that checks access (ADR 8). A new upload kind reuses `saveImage()`
 and gets its own access rule. Never point a public route at the uploads
 folder as a whole.
 
+## Prove a check can fail
+
+A test that can't fail is worse than none: it says something's held when
+nothing is. The first double-submit test passed **with the fix removed**.
+Chrome merges presses made in the same instant, and Playwright's `click`
+waits for the page to finish loading before pressing again, so the race it
+claimed to test never happened. The rewrite presses again 300 ms later,
+inside the page, the way an impatient person does. The fix was proved by
+taking it out: the test went red, then green when the fix went back.
+
+So for every new check: make it fail on purpose once (remove the fix, or
+break the app), see it go red for the right reason, then restore. In a
+browser test, a person's second press doesn't wait for the page to load:
+use `noWaitAfter`, or act from inside the page.
+
 ## The checks
 
 `pnpm check` is `pnpm typecheck` (`astro check`) then `pnpm test`, and `test`
