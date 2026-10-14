@@ -90,6 +90,10 @@ for (const { label, path, cookie } of pages) {
           `${id}: ${help} (${nodes.map((node) => node.target.join(" ")).join("; ")})`,
       );
       expect(violations).toEqual([]);
-    });
+      // axe runs every rule over every node, in jsdom, without a browser: the
+      // group page with plans takes ~0.7 s on a laptop and over 5 s on a CI
+      // runner, past vitest's default limit. A scan that's slow isn't a
+      // failure; a violation is.
+    }, 30_000);
   });
 }
