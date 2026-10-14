@@ -1,128 +1,126 @@
 # Process overview
 
-This is the crit 9 version, rewritten rather than appended to. It describes
-Hangout as it stands at "All at once": live, social, and with one decision
-about what happens when several people want the same thing at once.
+How Hangout got from the brief to what's deployed, told from my prompt
+history ([`docs/prompt-history.md`](docs/prompt-history.md), every prompt
+quoted, with what it led to). This version follows crit 9; I rewrite it,
+rather than append to it, at each crit.
 
-## From the brief to Hangout
+## How I directed the work
 
-The brief asks for a multi-user, real-time website that's good, and leaves
-"good" to me. I started from a problem I have: my friends agree we should
-hang out, then the group chat never lands on a time. Crit 8 shipped the core
-([`b663ce5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/b663ce5)):
-a group, an invite link, a week of hours, the longest overlap recommended,
-and a plan in your calendar.
+Nineteen prompts built Hangout. The pattern that mattered: I made the
+product calls, the agent asked before guessing, and I overruled it where I
+disagreed. The prompt history marks each answer as the agent's
+recommendation or my own call. The ones that shaped the app were mine:
+- **The idea and the core rule.** "Longest overlap, with the ability to
+  make the hangout shorter" replaced its offer of a fixed hangout length.
+- **Scope.** I built everything for crit 8, against its advice to ship
+  less.
+- **The crit 9 decision**, chosen from four options it laid out without
+  recommending one.
+- **Keeping the features.** It advised cutting them for "one idea"; I chose
+  to reframe "good" around a plan's whole life, so every feature has to
+  earn its place by moving a plan on
+  ([`fd47b33`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/fd47b33)).
 
-Everything since grew from the README's argument that a good Hangout beats
-the group chat:
-- a brand, colour themes and motion
-  ([`ad1626f...db452ba`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/ad1626f...db452ba))
-- friends, events and a calendar
-  ([`4f3f0cb...d8f5f97`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/4f3f0cb...d8f5f97))
-- comments and reactions, so the talk lives with the plan
-  ([`cf5438b...6671f9f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/cf5438b...6671f9f))
-- live updates and the crit 9 decision
-  ([`e3d7473...fd9fd67`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/e3d7473...fd9fd67))
-- an inbox, polls, event extras, group admin, nudges, photo memories, and
-  avatars with block and mute
-  ([`dfebbd1...d0ff703`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/dfebbd1...d0ff703))
-- a logo that always goes to the landing page, and logging out
-  ([`6b1e6ef...f8e9dd0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/6b1e6ef...f8e9dd0))
+The large steps (the core app, the social features, the eight crit 9
+milestones) went through plan mode first. The agent named the decisions
+that were mine to make (how a person exists, what "private" means, whether
+photos are uploaded), and waited for my answers. Smaller requests went
+straight to building. Ten ADRs record the decisions, each with what it
+costs.
 
-## How the work went
+## What I threw away, and why
 
-Every big step started in plan mode with questions only I could answer: how
-a person exists, what "private" means, which several-people decision to
-defend and by what rule, whether photos are uploaded or linked. I answered
-them, and the agent planned around the answers. Nine ADRs record the ones
-that matter.
+- **Writing straight into Google Calendar.** It was in my first prompt.
+  The agent pointed out that OAuth on an unverified app only works for
+  listed test users, so my pod couldn't have used it at the crit. Links
+  and `.ics` files do the job without the wall (ADR 3).
+- **A name and a cookie per group** (ADR 2), once friends and a personal
+  calendar needed someone who exists across groups. Replaced by a profile
+  with a private sign-in link (ADR 4).
+- **The open grid.** Everyone could see everyone's hours while marking
+  their own, like When2meet. Research on 340,000 Doodle polls found people
+  in open polls approve what looks popular rather than when they're free
+  (Zou, Meir & Parkes, 2015). The blind grid replaced it
+  ([`33d4284`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/33d4284),
+  ADR 10).
+- **Tests that passed for the wrong reason**, three times. Each was
+  deleted or rewritten rather than kept green (see below).
 
-Then each milestone ran the same loop, visible in the history: a `spec:`
-commit with tests that fail, a `feat:` commit that turns them green, a
-`harness:` commit adding the new pages to the quality floor, and a deploy
-through CI. Seven milestones in a row reached production one at a time, so
-nothing waited on everything else.
+## The stack, and why it beat the alternatives
 
-Writing tests against the contract paid off early. The interface was
-redesigned twice (tabs, a new home page, a navigation bar, a new brand)
-and not one crit 8 test changed. They drive the app the way a person
-would, through forms, links and cookies, never through how the page
-happens to be built.
-
-## The harness
-
-`CLAUDE.md` came forward from crit 7 and grows where the work bit back:
-- the routes rule now covers dynamic pages and signed-in states
-  ([`ffd3028`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/ffd3028),
-  [`66e58b3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/66e58b3))
-- a JSDOM trap with emoji
-- rules for live updates: publish on every state change, and never put
-  data in the stream
-- rules for uploads
-
-The quality floor builds a small world on every run (a host, friends, groups
-with plans, public, private, full and closed events, albums with photos) and
-checks every page as each of those people sees it. That's 392 checks.
-`spec/README.md` says which file holds which promise.
-
-## The stack, and why
-
-Server-rendered Astro and one SQLite file on the Fly volume (ADR 1). It
-fits one 256 MB machine, and the forms work without JavaScript.
+Server-rendered Astro and one SQLite file on the Fly volume (ADR 1). I kept
+crit 7's stack because I'd shipped it once, it fits a 256 MB machine, and
+crit 8 was due the next day. A new framework would have spent that day on
+learning.
 
 For real-time I chose **server-sent events** over WebSockets and polling.
-Every write is already a form post, so all that travels back is "this
-changed". The browser reconnects on its own, Fly's proxy passes it through,
-and in production a change reached another screen in 52 ms. The stream
-carries only the topic; each page re-reads what changed through the same
-access rules as any request, so private plans have one place their rules
-live
+Every write was already a form post, so only "this changed" ever needs to
+travel back: one direction, which is exactly what SSE is. The deciding
+call was that the stream carries **no data**, only which topic changed.
+Each open page re-reads it through the same access rules as any request.
+The obvious alternative, pushing the new data, would have meant a second
+copy of every privacy rule
 ([`5c1013a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/5c1013a)).
-Photos live on the same volume (ADR 8). The cost: all of it assumes one
-machine.
+The cost, written into ADR 6: in-process pub/sub only works on one machine.
+
+## How I knew results were right before accepting them
+
+A green suite wasn't enough. Each claim was checked against the thing
+itself:
+- **Live updates were timed on the live site**: 52 ms from one person's
+  save to another's screen, and 167 ms a week later.
+- **The core flow was driven in real Chrome**, two people at both marking
+  viewports: link to calendar in 12 actions, about four seconds.
+- **The rendered page was read, not just the code.** That caught a date
+  format putting a stray comma in the grid headers, which no test saw
+  ([`1cb87cb`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/1cb87cb)).
+- **When a test blamed the app, curl checked the app.** Reactions read as
+  zero while curl showed them saved. The test library can't match emoji in
+  a selector, so the test was at fault
+  ([`f681fc2`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f681fc2)).
+- **Sources were checked against the papers**, not the agent's memory.
+  Shirky's site was down, so the README cites a mirror whose quotes were
+  verified.
+
+## Failures, fixed in the harness
+
+Where something went wrong, the fix landed in `CLAUDE.md` or `spec/`, not
+in a retry:
+- **The checks never visited the page people use.** The quality floor
+  walked a static list of routes. The fix makes it build people and groups
+  every run and visit every page as each of them sees it: 405 checks now
+  ([`ffd3028`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/ffd3028)).
+- **A test that couldn't fail.** The first double-submit test passed with
+  the fix removed, because Chrome merges presses made in the same instant.
+  I had it rewritten, proved red with the fix taken out and green with it
+  back, and `CLAUDE.md` now requires that for every new check: **prove a
+  check can fail**
+  ([`047d3fa`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/047d3fa)).
+- **A leak, caught by a test that first passed vacuously.** The blind grid
+  hid other people's hours on the group page, but `/groups` showed the
+  week's best time. The first version of the test marked hours in a future
+  week the overview never reads. Rewritten, it went red for the right
+  reason, then green with the fix
+  ([`11b224c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/11b224c)).
+- **A race found by trying it.** Two people proposing the recommended
+  time in the same second made two identical plans. A red-first browser
+  test now holds the merge
+  ([`11db9fc`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/11db9fc)).
+- **A secret nearly went public.** I put the deploy token in a tracked
+  file. It was moved before anything was committed, and the secret scans
+  confirmed it never reached GitHub.
 
 ## The decision for crit 9
 
-**When two people want the last spot at a full event, the first request to
-reach the server wins. Everyone after joins a waitlist in order and hears at
-once, and when anyone drops out, the first person waiting who fits moves in
-and is told.** Every tap gets a definite answer the moment it's made, which
-is what the README means by "it answers the question, honestly". It costs
-fairness to people who are slow or offline; a lottery would serve them
-better. [ADR 6](docs/adr/0006-the-last-spot.md) has the options and costs,
-and `spec/waitlist.test.ts` fires five simultaneous taps at one spot.
-
-## Where it went wrong, and what changed
-
-- **A test blamed the app for its own bug.** Reaction counts read zero while
-  curl showed them saved: JSDOM can't match emoji in an attribute selector.
-  The lookup changed and the trap went into `CLAUDE.md`
-  ([`f681fc2`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f681fc2)).
-- **A failing test found a real limit.** Explore showed only 30 events, so
-  search went in
-  ([`91a9733`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/91a9733)).
-- **Tests that couldn't fail.** Two would have passed without their
-  feature, matching an older notification or a form that no longer existed.
-  Both were tightened before their spec commits.
-- **A bug no test reached.** Picking an avatar photo did nothing, because
-  the upload-on-choose handler lived in the album component. Reading the
-  code caught it
-  ([`c594a35`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/c594a35)).
-- **A secret nearly went public.** The deploy token went into a tracked
-  file. It moved before anything was committed, and the secret scans
-  confirmed it never reached GitHub.
+When two people want the last spot at a full event, the first to reach the
+server wins, and the waitlist fills itself in order. Every tap gets a
+definite answer the moment it's made. It's unfair to people who are slow or
+offline, and a lottery would serve them better. I chose who loses, on
+purpose (ADR 6; `spec/waitlist.test.ts` fires five simultaneous taps).
 
 ## Who wrote what
 
-I made the product decisions: identity, privacy, what counts as good, which
-features, and the crit 9 rule. I directed and reviewed the work in Claude
-Code (Opus 5.5). The agent wrote the code, the tests, and the first drafts of
-the README, the ADRs, this file and my reflections, at my request and from
-the session record. I edit them into my own words.
-
-## Next
-
-Crit 10 adds server-side logging, starting where I most want to see the
-server: the live stream, the waitlist race, and uploads. After that, the
-inbox should reach people when they're not on the site, which is the open
-cost in ADR 7.
+I made the product decisions above and directed and reviewed the work in
+Claude Code (Opus 5.5). The agent wrote the code, the tests, and first
+drafts of the documents. I rewrite the documents in my own words.
