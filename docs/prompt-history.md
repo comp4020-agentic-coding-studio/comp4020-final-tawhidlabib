@@ -1,8 +1,8 @@
 # Prompt history: the Hangout final project
 
 This is every prompt I gave the agent (Claude Code, Opus 5.5) during the
-final project, from setting up the repo for crit 8 to getting crit 9 ready to
-mark. Each prompt is quoted **exactly as I typed it**, typos included. Under
+final project, from setting up the repo for crit 8 to the HD push after
+crit 9. Each prompt is quoted **exactly as I typed it**, typos included. Under
 each one:
 - the questions the agent asked and **what I answered**
 - **what resulted**: decisions, commits, deploys
@@ -348,6 +348,93 @@ harness commit, then a deploy.
 
 **Result:** `docs/prompt-history.md`, this file.
 
+### Prompt 17 · Tue 13 Oct · is it HD?
+
+> Please help me brainstorm more ideas to make the project even better, I
+> would like to achieve a HD grade for the major project and I am unsure if
+> the project clearly reaches that mark yet
+
+**Result**
+- The agent read the published rubric and band descriptors first, rather
+  than guessing.
+- Its honest read: process at D to HD (the risk being documents the agent
+  wrote), the app at D–Cr (nothing tested the HD band's own examples), and
+  **response to the brief the biggest risk**. HD wants "one idea, carried
+  all the way", and the app had grown into a general social app.
+- It recommended **cutting features** as the HD move, and proposed a
+  research-backed design change: hide the group's week until you've
+  answered, citing two scheduling studies it checked were real.
+
+### Prompt 18 · Tue 13 Oct · my calls on each part
+
+> for the response to the brief (part A), can't we just edit the readme's
+> definition of good? Because I think what it is right now is better than the
+> simple features intially planned. For part B, the research designed choice,
+> I believe that is a good decision, hiding it until they have answered is
+> perfect idea backed by research. You can complete part C for me. For part
+> 2, the deployed app, I want you to do all your suggestions to get that
+> criteria to a HD standard. For part 3, I will work with you to rewrite the
+> process and reflection using my entire prompt-history file when i'm done
+> with the project and I will rewrite it in my own words where applicable;
+> i'll do this later.
+
+**My calls**
+- **Keep the features (own)**, against the agent's cut-features advice:
+  reframe the definition of good so every feature serves one idea instead.
+  The agent agreed this works if the README, `CLAUDE.md` and `spec/` all
+  say the same idea, and built it that way: **a plan's whole life**.
+- **The blind grid: yes (own)**, an idea the agent proposed and I chose.
+- Part C and Part 2 delegated to the agent. The agent said what it could
+  and couldn't do for Part C: it can't survey my friends, so it measured
+  what it could and built the kit for my sessions.
+
+**Result** ([`1256bbd`]...[`fd47b33`]), on a branch, not deployed until
+after the crit 9 session:
+- **The blind grid**, red tests first ([`1256bbd`]), enforced on the server
+  ([`33d4284`]). **ADR 10** records it.
+- **Holds up**: a keyboard-driven grid, autosave that survives a bad or
+  dropped connection, no double submits, and **seven real-Chrome tests** at
+  both marking viewports ([`5cbb5c5`]).
+- **`docs/judging.md`** and a read-only **`scripts/outcomes.ts`** for Part C
+  ([`61c49a3`]). Measured on the live site: two people from link to
+  calendar in 12 actions, about 4 seconds.
+- **The README, `CLAUDE.md` and `spec/README.md`** rewritten around one
+  idea ([`fd47b33`]).
+
+**Corrections in this run, all at the harness level:**
+- **A test that couldn't fail.** The first double-submit test passed with
+  the fix removed: Chrome merges same-instant presses, and Playwright's
+  click waits for the page to load. Rewritten, proved red without the fix
+  and green with it, and the rule went into `CLAUDE.md`: **prove a check
+  can fail** ([`047d3fa`]).
+- **A race found by trying it.** Two people proposing the recommended
+  time in the same second made two identical plans. Fixed to merge, with a
+  red-first browser test ([`11db9fc`]).
+- **A leak caught by a new test.** `/groups` and the home page showed the
+  week's best time before you'd answered. The test's first version passed
+  *vacuously*, because its hours were in a different week from the one the
+  overview reads. It was rewritten to use the current week, then went red
+  for the right reason before the fix ([`11b224c`]).
+- **The page jumped on load**, putting a keyboard user's first Tab in the
+  middle of the page. Found by walking every page's tab order in Chrome
+  ([`11db9fc`]).
+
+### Prompt 19 · Wed 14 Oct, ~16:00 · ship it, and the documents
+
+> please push all the updates now that crit 9 has finished. I would also like
+> you to update the process.md, the readme, and the reflection to hit a HD
+> standard. the process.md write-up should be based on the prompt-history
+> document.
+
+**Result**
+- The `hd` work was merged and deployed after the 14:00 session. CI ran all
+  seven real-Chrome tests on its own Chrome, and they passed. **`crit-9`
+  stayed on [`a9d3270`]**, the commit that was marked, because the cutoff
+  had passed.
+- This file was brought up to date, and `PROCESS.md`, the README and the
+  crit 9 reflection were rewritten against the HD band descriptors.
+  **These are still agent drafts; I'll rewrite them in my own words.**
+
 ---
 
 ## For the final PROCESS.md
@@ -368,6 +455,9 @@ harness commit, then a deploy.
   groups page, comments, reactions, and the full set of eight milestones.
 - **The crit 9 decision:** the contested last spot at a full event, with
   first-in-wins and a self-filling waitlist.
+- **Keeping the features and reframing "good"**, against the agent's
+  advice to cut them (prompt 18).
+- **Choosing the blind grid** from the agent's proposals (prompt 18).
 
 ### Where I took the agent's recommendation (R)
 
@@ -403,15 +493,21 @@ These are worth reviewing before citing them:
   (prompt 12).
 - **The upload handler in the wrong component:** found by reading the code
   ([`c594a35`]).
+- **The double-submit test that couldn't fail:** proved both ways, and the
+  rule went into `CLAUDE.md` ([`047d3fa`]).
+- **Two identical plans from one race:** found by trying it ([`11db9fc`]).
+- **The blind grid leaking on `/groups`:** caught by a test that first
+  passed vacuously ([`11b224c`]).
 
-### By the numbers (as of 13 Oct)
+### By the numbers (as of 14 Oct)
 
-- 16 prompts
-- 64 commits since the template's first commit (65 with this file)
-- 9 ADRs
-- 20 test files and 392 checks
+- 19 prompts
+- 73 commits since the template's first commit
+- 10 ADRs
+- 22 test files and 405 checks, 7 of them in real Chrome
 - 2 crit tags: `crit-8` at `b663ce5`, `crit-9` at `a9d3270`
 - live changes measured at 52 ms (7 Oct) and 167 ms (13 Oct) in production
+- the core flow for two people: 12 actions, about 4 seconds (13 Oct)
 
 ### Ready-to-cite ranges
 
@@ -425,6 +521,7 @@ These are worth reviewing before citing them:
 | Live updates and the crit 9 decision | [`6671f9f...3f08e38`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/6671f9f...3f08e38) |
 | Milestones 2–8 | [`3f08e38...b616093`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/3f08e38...b616093) |
 | Logo, log out and the doc update | [`b616093...a9d3270`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/b616093...a9d3270) |
+| The HD push: blind grid, holds up, one idea | [`245dcb3...fd47b33`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/245dcb3...fd47b33) |
 
 A range `a...b` on GitHub shows the commits *after* `a` up to and including
 `b`.
@@ -485,3 +582,11 @@ A range `a...b` on GitHub shows the commits *after* `a` up to and including
 [`f8e9dd0`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f8e9dd0
 [`c3bf3c5`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/c3bf3c5
 [`a9d3270`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/a9d3270
+[`1256bbd`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/1256bbd
+[`33d4284`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/33d4284
+[`5cbb5c5`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/5cbb5c5
+[`047d3fa`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/047d3fa
+[`11db9fc`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/11db9fc
+[`11b224c`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/11b224c
+[`61c49a3`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/61c49a3
+[`fd47b33`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/fd47b33

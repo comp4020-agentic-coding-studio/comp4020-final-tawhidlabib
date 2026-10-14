@@ -49,7 +49,7 @@ describe.skipIf(!chromePath)("holds up, in a real browser", () => {
   it("the grid works from the keyboard alone, and saves", async () => {
     const { ana } = await twoPeople();
     const { page } = ana;
-    await page.goto(`${(await page.url()).split("?")[0]}?week=${WEEK}#week`);
+    await page.goto(`${page.url().split("?")[0]}?week=${WEEK}#week`);
     await page.locator('input[name="slot"]').first().focus();
     expect(
       await page.evaluate(() => [...document.querySelectorAll<HTMLInputElement>('input[name="slot"]')].filter((b) => b.tabIndex === 0).length),
