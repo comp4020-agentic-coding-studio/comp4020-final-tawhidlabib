@@ -81,3 +81,28 @@ describe("friend codes stay secret", () => {
     expect(await requestsOf(ana), "unblocked, so Ben can ask again").toContain(ben.name);
   });
 });
+
+describe("a form's `back` stays on this site", () => {
+  // Browsers read `/\` as `//`, and strip tabs and newlines inside a URL, so
+  // each of these is "go to evil" unless the server refuses it.
+  const hostile = ["//evil.example", "/\\evil.example", "/\\\\evil.example", "\t//evil.example", "\n//evil.example", "https://evil.example", "javascript:alert(1)", "/%5Cevil.example", "/ok/../..//evil.example"];
+
+  const sameOrigin = (location: string | null) => {
+    expect(location, "a redirect").not.toBeNull();
+    const url = new URL(location ?? "", "http://site.test");
+    expect(url.origin, `${JSON.stringify(location)} leaves the site`).toBe("http://site.test");
+    expect(location, "no backslash for a browser to read as a slash").not.toContain("\\");
+    expect(location, "no leading // for a browser to read as a host").not.toMatch(/^\/\//);
+  };
+
+  it("a hostile back lands on a same-origin path", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    for (const back of hostile) sameOrigin((await ana.post("/api/blocks", { person: NO_SUCH, back })).headers.get("location"));
+  });
+
+  it("a good back is kept, query and all", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const res = await ana.post("/api/blocks", { person: NO_SUCH, back: "/friends?x=1#requests" });
+    expect(res.headers.get("location")).toBe("/friends?x=1#requests");
+  });
+});
