@@ -181,7 +181,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                 <p class:list={["deadline", { closed }]}>
                   <Icon name="clock" size={15} />
                   {closed ? `RSVPs closed ${deadline}.` : `RSVP by ${deadline} (${relativeDay(event.rsvpByDate ?? "", today).toLowerCase()}).`}
-                  {closed && !isHost && mine && " Your answer stands."}
+                  {closed && !isHost && mine && " You can still say maybe or can't go."}
                 </p>
               )}
               {capacity !== null && (
@@ -232,7 +232,6 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                       name="response"
                       value="maybe"
                       aria-pressed={mine === "maybe" ? "true" : "false"}
-                      disabled={closed && !isHost}
                     >
                       Maybe
                     </button>
@@ -242,7 +241,6 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                       value="declined"
                       class="out"
                       aria-pressed={mine === "declined" ? "true" : "false"}
-                      disabled={closed && !isHost}
                     >
                       Can't go
                     </button>

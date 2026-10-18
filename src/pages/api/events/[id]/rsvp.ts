@@ -17,14 +17,16 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   const me = currentPerson(cookies);
   if (!me) return redirect(`/e/${event.shareId}`, 303);
   if (!canSee(event, me)) return refuse(cookies, "answered", eventRef(event), "private event", 403, "This event is private");
-  if (rsvpClosed(event) && me.id !== event.hostId) {
-    return refuse(cookies, "answered", eventRef(event), "rsvps closed", 409, "RSVPs for this event have closed");
-  }
 
   const form = await request.formData();
   const response = String(form.get("response") ?? "");
   if (response !== "going" && response !== "maybe" && response !== "declined") {
     return new Response("Answer going, maybe or declined", { status: 400 });
+  }
+  // after the deadline nobody can take a spot (or +1s), but anyone can still
+  // say they can't come, and the spot they free moves the waitlist on
+  if (response === "going" && rsvpClosed(event) && me.id !== event.hostId) {
+    return refuse(cookies, "answered", eventRef(event), "rsvps closed", 409, "RSVPs for this event have closed");
   }
   const { recorded, promoted } = respond(event, me.id, response, Number(form.get("plusOnes")) || 0);
   logActivity({ who: personLabel(me), action: "answered", target: eventRef(event), outcome: "ok", detail: `asked ${response}, recorded ${recorded}${promoted.length ? `, ${promoted.length} promoted from waitlist` : ""}` });
