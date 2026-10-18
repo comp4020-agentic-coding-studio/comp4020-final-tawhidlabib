@@ -4,9 +4,9 @@ Most group plans die in the group chat: forty messages of "I'm free
 Thursday-ish", and nobody ever says "so, Thursday at 7". Hangout carries a
 plan through its whole life instead, from "we should hang out" to a time, to
 showing up, to remembering it. Someone sends a link; everyone taps the hours
-they're free this week, **before they can see anyone else's**; Hangout finds
-the longest stretch the most of you share; you say you're in, and it lands in
-your calendar.
+they're free this week, **before seeing anyone else's**; Hangout finds the
+longest stretch most of you share; you say you're in, and it's in your
+calendar.
 
 Try it live at
 [comp4020-final-tawhidlabib.fly.dev](https://comp4020-final-tawhidlabib.fly.dev/)
@@ -35,8 +35,8 @@ earns its place only by moving a plan on:
 ## Why not the alternatives
 
 When2meet shows everyone's paint as you paint yours, then stops at the
-overlap. Doodle starts from times one organiser guesses. The group chat
-never stops at all. Hangout asks first, shows second, and ends with a plan.
+overlap. Doodle starts from one organiser's guesses. The group chat never
+stops. Hangout asks first, shows second, and ends with a plan.
 
 ### The blind grid
 
@@ -55,8 +55,8 @@ Robin Sloan's
 praises an app "no one else will ever use", and Clay Shirky's
 [Situated Software](https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware.html)
 software "designed for use by a specific social group". Both argue against
-building for any small group. I took that tension on: Hangout is generic,
-but each group's copy is its own link, names and week.
+building for any small group. Hangout is generic, but each group's copy is
+its own link, names and week.
 
 ## What I chose not to build
 
@@ -65,21 +65,27 @@ but each group's copy is its own link, names and week.
 - **A chat.** Comments live on a plan; Hangout ends the group chat rather
   than becoming one.
 
-The cost of no passwords: whoever holds your sign-in link is you.
+The cost of no passwords: whoever holds your sign-in link is you. Who
+may see and change what is checked on the server
+([ADR 11](docs/adr/0011-who-may-see-and-change-what.md)).
 
 ## What's enforced, and what's judged
 
 `spec/` enforces these against the running app:
-- a stranger with the link can join, and hours survive a cold restart
+- a stranger with the link can join; hours survive a cold restart
 - the top recommendation is the longest shared stretch
-- calendar times are right across a daylight-saving change
+- calendar times survive a daylight-saving change
 - nobody sees the group's week before marking their own
-- private plans answer 403 to outsiders, and blocked people can't reach you
+- outsiders get 403 on private plans; nobody changes another's things
+- every change and refusal is logged by who did it, with no secrets
 - a change reaches other open pages within a second
 - of simultaneous taps on a last spot, exactly one wins
-- the keyboard, a resize, and a slow or dropped connection, in real Chrome
+- keyboard, resize, slow or dropped connection, in real Chrome
 
 Judged: whether Hangout beats the group chat, whether blind answers are
-more honest, and how fast a newcomer gets in. The measured floor: two people
-from link to calendar in 12 actions. Sessions with real friend groups are
-in [docs/judging.md](docs/judging.md); results go here once they've run.
+more honest, and how fast a newcomer gets in (measured floor: two people,
+link to calendar, 12 actions). Sessions with real groups:
+[docs/judging.md](docs/judging.md).
+
+Every source is real, checked against the original; only the front page's
+demo group is made up.

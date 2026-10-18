@@ -130,9 +130,26 @@ while two people use the app, so the server has to say who did what.
   wrote both into every line. Name them with `groupRef()` (a one-way tag and
   the name) and `eventRef()` (the numeric id and the title), never
   `${group.id}` or `${event.shareId}`.
+- **A refusal reads as an attempt.** `deny()` words it "tried to edit", so a
+  line never looks like the thing happened. Pass the past tense, as for
+  `logActivity()`.
 - **Logging never throws into a request**, and `spec/activity.test.ts` holds
   all of this (it reads the local DB, so it skips where the app's DB isn't
   on this machine, as in CI).
+
+## Who may see and change what
+
+ADR 11 is the map. A route asks the thing's own rule (`currentMember`,
+`canSee`, `openThread`, `isAdmin`) and never trusts the form to say who is
+acting. Review found three holes no single-browser test showed:
+
+- **A friend code is a password.** Never put one in a redirect, page or log
+  for someone who didn't supply it. Look people up from a form's numeric id
+  only through `knownPerson()` (`src/lib/circle.ts`), never `personById()`.
+- **Never redirect to a raw form value.** Use `safeBack()`: browsers read
+  `/\` as `//`, so "starts with one slash" isn't enough.
+- **An archived group refuses every change** through `refuse()`, joining
+  and nudging included.
 
 ## Files people send
 
@@ -155,6 +172,13 @@ So for every new check: make it fail on purpose once (remove the fix, or
 break the app), see it go red for the right reason, then restore. In a
 browser test, a person's second press doesn't wait for the page to load:
 use `noWaitAfter`, or act from inside the page.
+
+Two more ways a check passes while proving nothing:
+- **A stream test that counts any event.** Opening a page sends `presence`
+  on the same topic, so "something arrived" is always true. Match
+  `event === "change"`.
+- **A skipped test.** `it.skip` reads as a check in the file and runs as
+  none. If a rule is decided against, delete the test and say why there.
 
 ## The checks
 
