@@ -56,7 +56,15 @@ describe("the blind grid", () => {
     const cat = new Person(baseUrl, probe("Cat"));
     await cat.post(`/api/groups/${id}/join`, { name: cat.name });
     for (const p of [ana, cat]) await p.post(`/api/groups/${id}/availability`, { week, slot: [`${sunday}T23`] });
-    expect((await ana.get("/groups")).html, "there is a best time, for someone who's answered").toMatch(/Best this week:/);
+    // From Sunday 11pm in Sydney every hour of this week has started, so no
+    // best time exists to leak, and asserting one would fail for the clock,
+    // not the app (it did, on a push at 11:21pm on a Sunday). The rest of
+    // the test, that Ben sees none before answering, holds at any hour.
+    const hour = Number(new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hourCycle: "h23" }).format(new Date()));
+    const weekOver = today === sunday && hour >= 23;
+    if (!weekOver) {
+      expect((await ana.get("/groups")).html, "there is a best time, for someone who's answered").toMatch(/Best this week:/);
+    }
 
     const ben = new Person(baseUrl, probe("Ben"));
     await ben.post(`/api/groups/${id}/join`, { name: ben.name });
