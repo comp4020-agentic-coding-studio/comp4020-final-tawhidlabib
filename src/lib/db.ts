@@ -138,9 +138,11 @@ export function setAvailability(
     tx.delete(availability)
       .where(and(eq(availability.memberId, memberId), inArray(availability.date, dates)))
       .run();
-    if (free.length > 0) {
+    // the same hour twice in one save is one hour
+    const hours = [...new Map(free.map((f) => [`${f.date}T${f.hour}`, f])).values()];
+    if (hours.length > 0) {
       tx.insert(availability)
-        .values(free.map((f) => ({ memberId, ...f })))
+        .values(hours.map((f) => ({ memberId, ...f })))
         .run();
     }
   });
@@ -151,7 +153,7 @@ export function getHangout(id: number): Hangout | undefined {
 }
 
 /** Propose a hangout; whoever proposes it is in. */
-export function proposeHangout(input: Omit<Hangout, "id" | "createdAt">): { hangout: Hangout; existed: boolean } {
+export function proposeHangout(input: Omit<Hangout, "id" | "createdAt" | "proposedBy"> & { proposedBy: number }): { hangout: Hangout; existed: boolean } {
   // Two people often propose the same best time at once --- it's the one the
   // page recommends to both. The same date and hours in the same group is the
   // same plan: the second proposer joins the first's (in), rather than making

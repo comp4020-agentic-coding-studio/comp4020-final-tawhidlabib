@@ -46,6 +46,14 @@ export function announceEveryoneFree(group: Group, week: string): void {
     hasStarted(d, h, group.timezone),
   ).filter((r) => r.people.length === members.length);
   for (const r of shared) {
+    // one announcement per stretch: a stretch overlapping one already
+    // announced that day (it grew) is the same news
+    const seen = db
+      .select()
+      .from(everyoneFree)
+      .where(and(eq(everyoneFree.groupId, group.id), eq(everyoneFree.date, r.date)))
+      .all();
+    if (seen.some((o) => o.startHour < r.end && r.start < o.endHour)) continue;
     const fresh = db
       .insert(everyoneFree)
       .values({ groupId: group.id, date: r.date, startHour: r.start, endHour: r.end })
