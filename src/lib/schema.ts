@@ -97,9 +97,9 @@ export const hangouts = sqliteTable("hangouts", {
   /** Exclusive, so 19–21 is two hours. 24 is midnight. */
   endHour: int("end_hour").notNull(),
   title: text().notNull(),
-  proposedBy: int("proposed_by")
-    .notNull()
-    .references(() => members.id, { onDelete: "cascade" }),
+  /** Null once the member who proposed it has left or been removed: the plan
+   *  is the group's, and outlives them. */
+  proposedBy: int("proposed_by").references(() => members.id, { onDelete: "set null" }),
   createdAt: createdAt(),
 });
 
