@@ -3,10 +3,9 @@ import { groupRef, logActivity, refuse, whoIs } from "../../../../lib/activity";
 import { getGroup } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { currentMember } from "../../../../lib/identity";
-import { memberById } from "../../../../lib/manage";
+import { isArchived, memberById } from "../../../../lib/manage";
 import { notify } from "../../../../lib/notify";
 import { nudgeOnce } from "../../../../lib/smarter";
-import { isArchived } from "../../../../lib/manage";
 import { addDays, currentWeekStart, dayLabel, isDate, weekStartOf } from "../../../../lib/time";
 
 /** Nudge someone in your group to mark their hours: once a week each, so
