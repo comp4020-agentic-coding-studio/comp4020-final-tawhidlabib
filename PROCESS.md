@@ -2,125 +2,118 @@
 
 How Hangout got from the brief to what's deployed, told from my prompt
 history ([`docs/prompt-history.md`](docs/prompt-history.md), every prompt
-quoted, with what it led to). This version follows crit 9; I rewrite it,
+quoted, with what it led to). This version follows crit 10; I rewrite it,
 rather than append to it, at each crit.
 
 ## How I directed the work
 
-Nineteen prompts built Hangout. The pattern that mattered: I made the
-product calls, the agent asked before guessing, and I overruled it where I
-disagreed. The prompt history marks each answer as the agent's
-recommendation or my own call. The ones that shaped the app were mine:
-- **The idea and the core rule.** "Longest overlap, with the ability to
-  make the hangout shorter" replaced its offer of a fixed hangout length.
-- **Scope.** I built everything for crit 8, against its advice to ship
-  less.
-- **The crit 9 decision**, chosen from four options it laid out without
-  recommending one.
-- **Keeping the features.** It advised cutting them for "one idea"; I chose
-  to reframe "good" around a plan's whole life, so every feature has to
-  earn its place by moving a plan on
+Twenty-one prompts built Hangout. I made the product calls, the agent asked
+before guessing, and I overruled it where I disagreed. The ones that shaped
+the app were mine:
+- **The idea and the core rule:** "longest overlap, with the ability to
+  make the hangout shorter", instead of a fixed length.
+- **Scope.** Everything for crit 8, against its advice to ship less.
+- **Keeping the features**, reframing "good" around a plan's whole life so
+  each has to move a plan on
   ([`fd47b33`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/fd47b33)).
+- **The blind grid**, chosen from its proposals, and the crit 9 decision.
 
-The large steps (the core app, the social features, the eight crit 9
-milestones) went through plan mode first. The agent named the decisions
-that were mine to make (how a person exists, what "private" means, whether
-photos are uploaded), and waited for my answers. Smaller requests went
-straight to building. Ten ADRs record the decisions, each with what it
-costs.
+Large steps went through plan mode, where the agent named the decisions that
+were mine and waited. Eleven ADRs record them, each with what it costs.
+
+## How the work was organised for crit 10
+
+For the last round I asked for a team (prompt 20): one Opus agent as lead,
+Sonnet agents to fix, Haiku to measure. The lead never wrote a fix it then
+reviewed itself. It ran six read-only audits in parallel and re-ran every
+finding before accepting it. Two were wrong and were dropped. Then it gave
+each fixer one area, in its own git worktree, with the same brief: a red
+test first, the fix, then the fix taken out once to see the test go red
+again. Every branch merged into `team-polish` and passed the full check
+there before anything reached `main`.
+
+The trade-off is cost in tokens and in review. Six audits find more than
+one, but each finding still has to be checked by hand, and two fixers
+working on nearby files collide. Here it was worth it: review caught three
+problems that every agent's own green run had passed (below).
 
 ## What I threw away, and why
 
-- **Writing straight into Google Calendar.** It was in my first prompt.
-  The agent pointed out that OAuth on an unverified app only works for
-  listed test users, so my pod couldn't have used it at the crit. Links
-  and `.ics` files do the job without the wall (ADR 3).
-- **A name and a cookie per group** (ADR 2), once friends and a personal
-  calendar needed someone who exists across groups. Replaced by a profile
-  with a private sign-in link (ADR 4).
-- **The open grid.** Everyone could see everyone's hours while marking
-  their own, like When2meet. Research on 340,000 Doodle polls found people
-  in open polls approve what looks popular rather than when they're free
+- **Writing straight into Google Calendar.** OAuth on an unverified app
+  works only for listed test users, so my pod couldn't have used it. Links
+  and `.ics` files do the job (ADR 3).
+- **A name and a cookie per group** (ADR 2), once friends needed someone
+  who exists across groups: a profile with a sign-in link (ADR 4).
+- **The open grid.** In open Doodle polls people approve what looks popular
   (Zou, Meir & Parkes, 2015). The blind grid replaced it
   ([`33d4284`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/33d4284),
   ADR 10).
-- **Tests that passed for the wrong reason**, three times. Each was
-  deleted or rewritten rather than kept green (see below).
+- **Refusing plans dated in the past.** A fixer wrote it and held it back
+  because it broke the memory tests. The lead dropped it: the grid never
+  offers a past day, a hand-made one lands under Past, and keeping the
+  tests able to make one in CI would need a test-only route in production
+  ([`a480bc3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/a480bc3)).
 
 ## The stack, and why it beat the alternatives
 
-Server-rendered Astro and one SQLite file on the Fly volume (ADR 1). I kept
-crit 7's stack because I'd shipped it once, it fits a 256 MB machine, and
-crit 8 was due the next day. A new framework would have spent that day on
-learning.
-
-For real-time I chose **server-sent events** over WebSockets and polling.
-Every write was already a form post, so only "this changed" ever needs to
-travel back: one direction, which is exactly what SSE is. The deciding
-call was that the stream carries **no data**, only which topic changed.
-Each open page re-reads it through the same access rules as any request.
-The obvious alternative, pushing the new data, would have meant a second
-copy of every privacy rule
+Server-rendered Astro and one SQLite file on the Fly volume (ADR 1): crit
+7's stack, which fits a 256 MB machine and cost no learning. For real-time,
+**server-sent events** carrying **no data**, only which topic changed. Each
+page re-reads it through the same access rules as any request, so privacy
+rules live in one place
 ([`5c1013a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/5c1013a)).
-The cost, written into ADR 6: in-process pub/sub only works on one machine.
+The cost: in-process pub/sub works on one machine only.
 
 ## How I knew results were right before accepting them
 
-A green suite wasn't enough. Each claim was checked against the thing
-itself:
-- **Live updates were timed on the live site**: 52 ms from one person's
-  save to another's screen, and 167 ms a week later.
-- **The core flow was driven in real Chrome**, two people at both marking
-  viewports: link to calendar in 12 actions, about four seconds.
-- **The rendered page was read, not just the code.** That caught a date
-  format putting a stray comma in the grid headers, which no test saw
-  ([`1cb87cb`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/1cb87cb)).
-- **When a test blamed the app, curl checked the app.** Reactions read as
-  zero while curl showed them saved. The test library can't match emoji in
-  a selector, so the test was at fault
-  ([`f681fc2`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f681fc2)).
-- **Sources were checked against the papers**, not the agent's memory.
-  Shirky's site was down, so the README cites a mirror whose quotes were
-  verified.
+- **Measured, not assumed:** live changes at 52 ms and 167 ms on the live
+  site, link to calendar in 12 actions in real Chrome, and an avatar change
+  reaching another open page in 210 ms.
+- **The rendered page was read.** A Haiku agent measured every tab at
+  390 px in Chrome after the front-end fixer said its work was done: the
+  tab bar still hid 96 px
+  ([`bc4f8c3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/bc4f8c3)).
+- **Crit 10 was rehearsed.** Two people in separate cookie jars, read only
+  from the log, the way the marker will. That showed a refused edit
+  reading as if it had happened
+  ([`1c56cf9`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/1c56cf9)).
 
 ## Failures, fixed in the harness
 
-Where something went wrong, the fix landed in `CLAUDE.md` or `spec/`, not
-in a retry:
-- **The checks never visited the page people use.** The quality floor
-  walked a static list of routes. The fix makes it build people and groups
-  every run and visit every page as each of them sees it: 405 checks now
-  ([`ffd3028`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/ffd3028)).
-- **A test that couldn't fail.** The first double-submit test passed with
-  the fix removed, because Chrome merges presses made in the same instant.
-  I had it rewritten, proved red with the fix taken out and green with it
-  back, and `CLAUDE.md` now requires that for every new check: **prove a
-  check can fail**
+Each fix landed in `CLAUDE.md` or `spec/`, not in a retry:
+- **A migration that would have wiped production.** It rebuilt the
+  hangouts table, and SQLite ignores `foreign_keys=OFF` inside drizzle's
+  transaction, so every RSVP and comment would have cascaded away. The
+  fixer said it had checked. The lead reproduced the loss (3 RSVPs → 0)
+  and fixed it, with a red-then-green test
+  ([`12e9694`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/12e9694)).
+- **The log leaked invite links**, and a newline in a form forged a log
+  line ([`e8026da`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/e8026da)).
+- **Friend codes for anyone.** A signed-out request turned person ids into
+  friend codes ([`40cf06e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/40cf06e)...[`779b307`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/779b307)).
+- **Tests that couldn't fail.** A double-submit test passed with its fix
+  removed, so `CLAUDE.md` now requires proving each check red
   ([`047d3fa`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/047d3fa)).
-- **A leak, caught by a test that first passed vacuously.** The blind grid
-  hid other people's hours on the group page, but `/groups` showed the
-  week's best time. The first version of the test marked hours in a future
-  week the overview never reads. Rewritten, it went red for the right
-  reason, then green with the fix
-  ([`11b224c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/11b224c)).
-- **A race found by trying it.** Two people proposing the recommended
-  time in the same second made two identical plans. A red-first browser
-  test now holds the merge
-  ([`11db9fc`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/11db9fc)).
-- **A secret nearly went public.** I put the deploy token in a tracked
-  file. It was moved before anything was committed, and the secret scans
-  confirmed it never reached GitHub.
+  A test helper read a missing element as "", so "doesn't contain the
+  secret" passed on an empty page. It now throws
+  ([`7f5b64d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7f5b64d)).
+- **My own mistake:** a broad `pkill` killed the fixers' servers in other
+  worktrees and made one repro look like a different bug. Servers are now
+  stopped by port only.
 
-## The decision for crit 9
+## The decision for crit 10
 
-When two people want the last spot at a full event, the first to reach the
-server wins, and the waitlist fills itself in order. Every tap gets a
-definite answer the moment it's made. It's unfair to people who are slow or
-offline, and a lottery would serve them better. I chose who loses, on
-purpose (ADR 6; `spec/waitlist.test.ts` fires five simultaneous taps).
+What each person may see and change is checked on the server, by one rule
+function per kind of thing that every route asks: page, form, live stream,
+`.ics` and photo (ADR 11). Identity comes only from the cookie, never from
+the form. Every change and every refusal is logged with who did it, to
+`flyctl logs` and to a table on the volume that outlives the crit, with no
+secrets in it. The cost is the one ADR 2 chose: whoever holds an invite
+link can join.
 
 ## Who wrote what
 
 I made the product decisions above and directed and reviewed the work in
-Claude Code (Opus 5.5). The agent wrote the code, the tests, and first
-drafts of the documents. I rewrite the documents in my own words.
+Claude Code (Opus 5.5 leading Sonnet and Haiku agents). The agents wrote
+the code, the tests, and first drafts of the documents. I rewrite the
+documents in my own words.
