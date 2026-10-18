@@ -108,6 +108,27 @@ any request. So:
 - **State that has to be fair under a race goes in one SQLite transaction**
   (ADR 6). Don't check in one statement and write in another.
 
+## Logging: who did what
+
+Crit 10 is judged by someone tailing `mise exec -- flyctl logs -a comp4020-final-tawhidlabib`
+while two people use the app, so the server has to say who did what.
+
+- **Anything that changes shared state publish()es, notify()s AND logs.** Call
+  `logActivity()` (`src/lib/activity.ts`) from the endpoint: who, action, target,
+  outcome. Each call prints one `[activity] <time> p12 "Ana" proposed hangout 41 in group
+  <id> → ok` line to stdout (Fly keeps it) and appends a row to the `activity` table
+  on the volume, so it outlives restarts and redeploys. `node scripts/activity.ts
+  [db] --last N` reads it back.
+- **Log refusals too.** A 403/404/409 for an access reason goes through
+  `refuse()` / `deny()` with outcome `denied (reason)`: that is how you show
+  one person couldn't change what was the other's.
+- **Never log a secret.** No `hp` / `hg_` cookie, sign-in link or token, no
+  friend code, and no message bodies (log "commented on hangout 41" and a
+  length). Names are fine: they are how two people are told apart.
+- **Logging never throws into a request**, and `spec/activity.test.ts` holds
+  all of this (it reads the local DB, so it skips where the app's DB isn't
+  on this machine, as in CI).
+
 ## Files people send
 
 Uploads are checked by their bytes, not their names, and served only by a
