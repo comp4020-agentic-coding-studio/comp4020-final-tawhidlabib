@@ -106,3 +106,62 @@ describe("a form's `back` stays on this site", () => {
     expect(res.headers.get("location")).toBe("/friends?x=1#requests");
   });
 });
+
+describe("an archived group is read-only for joining and nudging too", () => {
+  async function archived() {
+    const ana = new Person(baseUrl, probe("Ana"));
+    const res = await ana.post("/api/groups", { group: probe("Sec archive"), name: ana.name, timezone: "Australia/Sydney" });
+    const id = (res.headers.get("location") ?? "").split("/").pop() ?? "";
+    const ben = new Person(baseUrl, probe("Ben"));
+    await ben.post(`/api/groups/${id}/join`, { name: ben.name });
+    await ana.post(`/api/groups/${id}/availability`, { week: "2030-01-07", slot: ["2030-01-08T18"] }); // answer first, or there is no table
+    const { doc } = await ana.get(`/g/${id}?week=2030-01-07`);
+    const member = doc.querySelector<HTMLInputElement>('form[action$="/nudge"] input[name="member"]')?.value ?? "";
+    expect(member, "Ana can nudge Ben before the archive").not.toBe("");
+    await ana.post(`/api/groups/${id}/manage`, { action: "archive" });
+    return { ana, ben, id, member };
+  }
+
+  it("no one can join", async () => {
+    const { id } = await archived();
+    const late = new Person(baseUrl, probe("Late"));
+    expect((await late.post(`/api/groups/${id}/join`, { name: late.name })).status).toBe(409);
+    expect((await late.get(`/g/${id}`)).html, "and isn't in it").not.toContain(late.name);
+  });
+
+  it("no one can be nudged", async () => {
+    const { ana, ben, id, member } = await archived();
+    const week = mondayOf(new Date());
+    expect((await ana.post(`/api/groups/${id}/nudge`, { member, week })).status).toBe(409);
+    expect((await ben.get("/inbox")).doc.querySelector("#inbox")?.textContent ?? "", "Ben heard nothing").not.toMatch(/nudged/);
+  });
+});
+
+/** This week's Monday (UTC), as the form sends it. */
+function mondayOf(now: Date): string {
+  const t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7));
+  return t.toISOString().slice(0, 10);
+}
+
+describe("a nudge is for a real week near now", () => {
+  it("refuses a Monday far in the past or the future, and a day that isn't a Monday", async () => {
+    const ana = new Person(baseUrl, probe("Ana"));
+    const res = await ana.post("/api/groups", { group: probe("Sec weeks"), name: ana.name, timezone: "Australia/Sydney" });
+    const id = (res.headers.get("location") ?? "").split("/").pop() ?? "";
+    const ben = new Person(baseUrl, probe("Ben"));
+    await ben.post(`/api/groups/${id}/join`, { name: ben.name });
+    await ana.post(`/api/groups/${id}/availability`, { week: "2030-01-07", slot: ["2030-01-08T18"] }); // answer first, or there is no table
+    const { doc } = await ana.get(`/g/${id}?week=2030-01-07`);
+    const member = doc.querySelector<HTMLInputElement>('form[action$="/nudge"] input[name="member"]')?.value ?? "";
+    expect(member).not.toBe("");
+
+    for (const week of ["2099-01-05", "1999-01-04", "2030-01-08"]) {
+      const sent = await ana.post(`/api/groups/${id}/nudge`, { member, week });
+      expect(sent.headers.get("location"), `${week} is no week to nudge for`).not.toContain("week=");
+    }
+    expect((await ben.get("/inbox")).doc.querySelector("#inbox")?.textContent ?? "").not.toMatch(/nudged/);
+    const now = await ana.post(`/api/groups/${id}/nudge`, { member, week: mondayOf(new Date()) });
+    expect(now.headers.get("location"), "this week still works").toContain("week=");
+  });
+});
