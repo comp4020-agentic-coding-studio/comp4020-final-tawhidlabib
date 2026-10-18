@@ -5,7 +5,7 @@ import { field, safeBack } from "../../lib/forms";
 import { currentPerson, rememberPerson, yourGroups } from "../../lib/identity";
 import { setAvatar, isAvatarEmoji } from "../../lib/avatars";
 import { db } from "../../lib/db";
-import { claimMembers, createPerson, renamePerson } from "../../lib/people";
+import { claimMembers, createPerson, publishPersonChanged, renamePerson } from "../../lib/people";
 import { people } from "../../lib/schema";
 import { eq } from "drizzle-orm";
 import { DEFAULT_TIMEZONE, isTimezone } from "../../lib/time";
@@ -31,6 +31,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
       const emoji = form.get("avatarEmoji");
       setAvatar(person.id, { avatarEmoji: isAvatarEmoji(emoji) ? String(emoji) : null });
     }
+    publishPersonChanged(person.id, "profile");
     flash(cookies, "renamed");
     return redirect(back, 303);
   }

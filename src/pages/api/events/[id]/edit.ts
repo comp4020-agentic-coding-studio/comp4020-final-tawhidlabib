@@ -23,11 +23,15 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
 
   const href = `/e/${event.shareId}`;
   notify(promoted, { kind: "promoted", text: `A spot opened up: you're going to ${updated.title}`, href });
-  const guests = guestsOf(event.id)
-    .filter((g) => g.response === "going" || g.response === "maybe")
+  const all = guestsOf(event.id).filter((g) => g.person.id !== me.id);
+  // everyone still in the running hears it: going, maybe, waiting, or not yet answered
+  const guests = all
+    .filter((g) => g.response !== "declined")
     .map((g) => g.person.id)
     .filter((id) => !promoted.includes(id));
   notify(guests, { kind: "invite", text: `${me.name} updated ${updated.title}`, href, actorId: me.id });
+  // and every guest's own events and calendar show it, even if they said no
+  for (const g of all) publish(`person:${g.person.id}`, "events");
   publish(`event:${event.shareId}`, "edited");
   flash(cookies, "edited");
   return redirect(href, 303);

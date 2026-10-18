@@ -3,6 +3,7 @@ import { logActivity, personLabel } from "../../../lib/activity";
 import { setAvatar } from "../../../lib/avatars";
 import { flash } from "../../../lib/flash";
 import { currentPerson } from "../../../lib/identity";
+import { publishPersonChanged } from "../../../lib/people";
 import { deleteImage, saveImage } from "../../../lib/media";
 
 /** Upload a photo avatar (a real image, up to 5 MB), or remove it. */
@@ -15,6 +16,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     if (me.avatarPhoto) await deleteImage(me.avatarPhoto);
     setAvatar(me.id, { avatarPhoto: null });
     logActivity({ who: personLabel(me), action: "removed avatar", target: `p${me.id}`, outcome: "ok" });
+    publishPersonChanged(me.id, "profile");
     flash(cookies, "avatar");
     return redirect("/me", 303);
   }
@@ -30,6 +32,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (me.avatarPhoto) await deleteImage(me.avatarPhoto);
   setAvatar(me.id, { avatarPhoto: saved.file });
   logActivity({ who: personLabel(me), action: "set avatar photo", target: `p${me.id}`, outcome: "ok" });
+  publishPersonChanged(me.id, "profile");
   flash(cookies, "avatar");
   return redirect("/me", 303);
 };
