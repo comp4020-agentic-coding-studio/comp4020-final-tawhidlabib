@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, refuse, whoIs } from "../../../../lib/activity";
 import { getGroup, getHangout, setRsvp } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { publish } from "../../../../lib/live";
@@ -9,11 +10,11 @@ import { weekStartOf } from "../../../../lib/time";
 /** I'm in, or I can't make it. Answering again changes your answer. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
   const hangout = getHangout(Number(params.id));
-  if (!hangout) return new Response("No such hangout", { status: 404 });
+  if (!hangout) return refuse(cookies, "answered hangout", `hangout ${params.id}`, "not found", 404, "No such hangout");
   const me = currentMember(cookies, hangout.groupId);
-  if (!me) return new Response("Join the group first", { status: 403 });
+  if (!me) return refuse(cookies, "answered hangout", `hangout ${hangout.id} in group ${hangout.groupId}`, "not a member", 403, "Join the group first", hangout.groupId);
   const group = getGroup(hangout.groupId);
-  if (group && isArchived(group)) return new Response("This group is archived", { status: 409 });
+  if (group && isArchived(group)) return refuse(cookies, "answered hangout", `hangout ${hangout.id} in group ${hangout.groupId}`, "group archived", 409, "This group is archived", hangout.groupId);
 
   const response = String((await request.formData()).get("response") ?? "");
   if (response !== "in" && response !== "out") {
@@ -21,6 +22,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   }
 
   setRsvp(hangout.id, me.id, response);
+  logActivity({ who: whoIs(cookies, hangout.groupId), action: response === "in" ? "said in to hangout" : "said out of hangout", target: `${hangout.id} in group ${hangout.groupId}`, outcome: "ok" });
   publish(`group:${hangout.groupId}`, "plans");
   flash(cookies, response);
   return redirect(`/g/${hangout.groupId}?week=${weekStartOf(hangout.date)}#plans`, 303);

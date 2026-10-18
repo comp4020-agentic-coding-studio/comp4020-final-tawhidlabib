@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, personLabel } from "../../lib/activity";
 import { flash } from "../../lib/flash";
 import { field, safeBack } from "../../lib/forms";
 import { requestFriend } from "../../lib/friends";
@@ -22,6 +23,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!them || them.id === me.id) return redirect(back, 303);
 
   const now = requestFriend(me.id, them.id);
+  logActivity({ who: personLabel(me), action: now === "friends" ? "became friends with" : "sent friend request to", target: `p${them.id} "${them.name}"`, outcome: "ok", detail: now === "sent" || now === "friends" ? undefined : String(now) });
   publish(`person:${them.id}`, "friends");
   publish(`person:${me.id}`, "friends");
   if (now === "sent") {

@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, refuse, whoIs } from "../../../../lib/activity";
 import { getGroup } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { currentMember } from "../../../../lib/identity";
@@ -11,9 +12,9 @@ import { dayLabel, isDate, weekStartOf } from "../../../../lib/time";
  *  it's a reminder, not a nag. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
   const group = getGroup(params.id ?? "");
-  if (!group) return new Response("No such group", { status: 404 });
+  if (!group) return refuse(cookies, "nudged", `group ${params.id}`, "not found", 404, "No such group");
   const me = currentMember(cookies, group.id);
-  if (!me?.personId) return new Response("Join the group with a profile first", { status: 403 });
+  if (!me?.personId) return refuse(cookies, "nudged", `group ${group.id}`, "not a member with a profile", 403, "Join the group with a profile first", group.id);
 
   const form = await request.formData();
   const week = String(form.get("week") ?? "");
@@ -21,7 +22,9 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   if (!them?.personId || them.id === me.id || !isDate(week) || weekStartOf(week) !== week) {
     return redirect(`/g/${group.id}#people`, 303);
   }
-  if (nudgeOnce(group.id, me.personId, them.id, week)) {
+  const sent = nudgeOnce(group.id, me.personId, them.id, week);
+  logActivity({ who: whoIs(cookies, group.id), action: "nudged", target: `m${them.id} "${them.name}" in group ${group.id}`, outcome: "ok", detail: sent ? `week of ${week}` : "already nudged this week" });
+  if (sent) {
     notify([them.personId], {
       kind: "nudge",
       text: `${me.name} nudged you to mark your hours in ${group.name} for the week of ${dayLabel(week)}`,

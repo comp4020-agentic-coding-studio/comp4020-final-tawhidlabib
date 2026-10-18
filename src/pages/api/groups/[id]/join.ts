@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { deny, logActivity, personLabel, refuse } from "../../../../lib/activity";
 import { addMember, getGroup } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { publish } from "../../../../lib/live";
@@ -10,7 +11,7 @@ import { claimMembers, createPerson, memberOfPerson } from "../../../../lib/peop
 /** Join a group from its invite link, under a name nobody in it has yet. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect, url }) => {
   const group = getGroup(params.id ?? "");
-  if (!group) return new Response("No such group", { status: 404 });
+  if (!group) return refuse(cookies, "joined", `group ${params.id}`, "not found", 404, "No such group");
 
   const name = field((await request.formData()).get("name"), 40);
   if (!name) return redirect(`/g/${group.id}?error=name-missing`, 303);
@@ -18,10 +19,16 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect, url }
   // already in it under your profile: nothing to join
   let person = currentPerson(cookies);
   if (person && memberOfPerson(group.id, person.id)) return redirect(`/g/${group.id}`, 303);
-  if (person && isBanned(group.id, person.id)) return redirect(`/g/${group.id}?error=removed`, 303);
+  if (person && isBanned(group.id, person.id)) {
+    deny(cookies, "joined", `group ${group.id}`, "removed by admin");
+    return redirect(`/g/${group.id}?error=removed`, 303);
+  }
 
   const member = addMember(group.id, name, person?.id);
-  if (!member) return redirect(`/g/${group.id}?error=name-taken`, 303);
+  if (!member) {
+    deny(cookies, "joined", `group ${group.id}`, "name taken");
+    return redirect(`/g/${group.id}?error=name-taken`, 303);
+  }
 
   remember(cookies, url, group.id, member.token);
   // joining by link is the other way most people make their profile
@@ -30,6 +37,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect, url }
     rememberPerson(cookies, url, person.token);
     claimMembers(person.id, [member.id]);
   }
+  logActivity({ who: personLabel(person), action: "joined", target: `group ${group.id}`, outcome: "ok", detail: `as m${member.id} "${name}"` });
   publish(`group:${group.id}`, "people");
   flash(cookies, "joined");
   return redirect(`/g/${group.id}`, 303);
