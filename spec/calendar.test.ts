@@ -31,6 +31,7 @@ describe("calendar", () => {
     const { doc } = await ana.get("/calendar?month=2030-01");
     expect(textOf(doc, '[data-date="2030-01-08"]'), "the hangout on its day").toContain(hangout);
     expect(textOf(doc, '[data-date="2030-01-10"]'), "the event on its day").toContain(gig);
+    expect(doc.querySelector('[data-date="2030-01-09"]'), "the empty day is on the grid").not.toBeNull();
     expect(textOf(doc, '[data-date="2030-01-09"]')).not.toContain(hangout);
 
     const upNext = textOf(doc, "#up-next");

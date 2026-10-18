@@ -1,5 +1,5 @@
 import { describe, expect, inject, it } from "vitest";
-import { befriend, Person, probe, signedUp, textOf } from "./people";
+import { befriend, Person, probe, signedUp, textOf, textOfOptional } from "./people";
 
 // Events, Facebook-style: a public event is for anyone with the link and is
 // listed on Explore; a private one is for its host and the people they
@@ -58,7 +58,9 @@ describe("events", () => {
     expect((await cat.get(path)).res.status, "nor can a friend who wasn't invited").toBe(403);
     const searched = await new Person(baseUrl).get(`/events?q=${encodeURIComponent(title)}`);
     // the results, not the page echoing what was searched for
-    expect(textOf(searched.doc, "#explore .cards"), "and a search doesn't find it").not.toContain(title);
+    // nothing found means no cards container: prove the empty state rendered instead
+    expect(searched.doc.querySelector("#explore .empty"), "the results section rendered, empty").not.toBeNull();
+    expect(textOfOptional(searched.doc, "#explore .cards"), "and a search doesn't find it").not.toContain(title);
   });
 
   it("saying you're going puts you on the guest list and on your calendar", async () => {

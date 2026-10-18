@@ -204,4 +204,33 @@ describe.skipIf(!chromePath)("holds up, in a real browser", () => {
     await ana.ctx.close();
     await ben.ctx.close();
   }, 60_000);
+
+  it("with JavaScript off, a group starts, a friend joins, and an hour saves by the plain form", async () => {
+    const noJs = () => browser.newContext({ viewport: DESKTOP, javaScriptEnabled: false });
+    const anaCtx = await noJs();
+    const ana = await anaCtx.newPage();
+    await ana.goto(`${baseUrl}/`);
+    await ana.fill('input[name="group"]', `No script ${Date.now()}`);
+    await ana.fill('input[name="name"]', "Ana");
+    await ana.click('form[action="/api/groups"] button[type=submit]');
+    await ana.waitForURL(/\/g\//);
+    const url = ana.url().split("#")[0].split("?")[0];
+
+    const benCtx = await noJs();
+    const ben = await benCtx.newPage();
+    await ben.goto(url);
+    await ben.fill('input[name="name"]', "Ben");
+    await ben.click('form[action$="/join"] button[type=submit]');
+    await ben.waitForURL(/\/g\//);
+
+    await ana.goto(`${url}?week=${WEEK}#week`);
+    await ana.check('input[value="2030-01-08T18"]');
+    await ana.getByRole("button", { name: "Save my hours" }).click();
+    await ana.waitForLoadState("load");
+    await ana.goto(`${url}?week=${WEEK}#week`);
+    expect(await ana.locator('input[value="2030-01-08T18"]').isChecked(), "the hour came back after a reload").toBe(true);
+    expect(await ana.locator('input[value="2030-01-08T19"]').isChecked(), "and only that hour").toBe(false);
+    await anaCtx.close();
+    await benCtx.close();
+  }, 60_000);
 });

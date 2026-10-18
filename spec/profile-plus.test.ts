@@ -87,6 +87,7 @@ describe("mute a group", () => {
     await ben.post(`/api/groups/${id}/join`, { name: ben.name });
 
     expect((await ben.post(`/api/groups/${id}/mute`, { muted: "1" })).status).toBe(303);
+    expect((await ben.get(`/g/${id}`)).html, "the mute took: Ben is offered the way back").toContain("Unmute this group");
     const quiet = probe("Quiet plan");
     await ana.post(`/api/groups/${id}/hangouts`, { date: "2030-01-09", start: "18", end: "20", title: quiet });
     expect(textOf((await ben.get("/inbox")).doc, "#inbox")).not.toContain(quiet);
