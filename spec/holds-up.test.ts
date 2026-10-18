@@ -249,4 +249,29 @@ describe.skipIf(!chromePath)("holds up, in a real browser", () => {
     await ana.ctx.close();
     await ben.ctx.close();
   }, 60_000);
+
+  it("on the smallest phone, every group tab is in view without scrolling the tab bar, and /events fits", async () => {
+    const SMALL = { width: 320, height: 640 };
+    for (const viewport of [PHONE, SMALL]) {
+      const { ana, ben, url } = await twoPeople(viewport, true);
+      await ben.page.goto(`${url}#people`);
+      const tabs = await ben.page.evaluate(() => {
+        const bar = document.querySelector<HTMLElement>(".tabs");
+        const edge = document.documentElement.clientWidth;
+        return {
+          hidden: bar ? bar.scrollWidth - bar.clientWidth : -1,
+          outside: [...document.querySelectorAll<HTMLElement>(".tabs a")]
+            .filter((a) => a.getBoundingClientRect().right > edge || a.getBoundingClientRect().left < 0)
+            .map((a) => a.textContent?.trim()),
+        };
+      });
+      expect(tabs.hidden, `px of tab bar hidden at ${viewport.width}px`).toBe(0);
+      expect(tabs.outside, `tabs cut off at ${viewport.width}px`).toEqual([]);
+      await ben.page.goto(`${baseUrl}/events`);
+      const over = await ben.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(over, `px /events scrolls sideways at ${viewport.width}px`).toBe(0);
+      await ana.ctx.close();
+      await ben.ctx.close();
+    }
+  }, 90_000);
 });
