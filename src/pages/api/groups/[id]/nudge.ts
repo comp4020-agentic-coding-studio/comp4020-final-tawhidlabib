@@ -6,7 +6,8 @@ import { currentMember } from "../../../../lib/identity";
 import { memberById } from "../../../../lib/manage";
 import { notify } from "../../../../lib/notify";
 import { nudgeOnce } from "../../../../lib/smarter";
-import { dayLabel, isDate, weekStartOf } from "../../../../lib/time";
+import { isArchived } from "../../../../lib/manage";
+import { addDays, currentWeekStart, dayLabel, isDate, weekStartOf } from "../../../../lib/time";
 
 /** Nudge someone in your group to mark their hours: once a week each, so
  *  it's a reminder, not a nag. */
@@ -16,10 +17,15 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   const me = currentMember(cookies, group.id);
   if (!me?.personId) return refuse(cookies, "nudged", groupRef(group), "not a member with a profile", 403, "Join the group with a profile first", group.id);
 
+  if (isArchived(group)) return refuse(cookies, "nudged", groupRef(group), "group archived", 409, "This group is archived", group.id);
+
   const form = await request.formData();
   const week = String(form.get("week") ?? "");
   const them = memberById(group.id, Number(form.get("member")));
-  if (!them?.personId || them.id === me.id || !isDate(week) || weekStartOf(week) !== week) {
+  // a real Monday, within ten years of this week: a nudge is for plans in reach
+  const thisWeek = currentWeekStart(group.timezone);
+  const near = isDate(week) && week >= addDays(thisWeek, -7 * 520) && week <= addDays(thisWeek, 7 * 520);
+  if (!them?.personId || them.id === me.id || !near || weekStartOf(week) !== week) {
     return redirect(`/g/${group.id}#people`, 303);
   }
   const sent = nudgeOnce(group.id, me.personId, them.id, week);

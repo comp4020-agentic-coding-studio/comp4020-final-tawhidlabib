@@ -14,7 +14,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const back = safeBack(form.get("back"), "/friends");
   const me = currentPerson(cookies);
   const them = Number(form.get("person"));
-  if (!me || !Number.isInteger(them)) return redirect(back, 303);
+  // only someone you already have a tie with: anyone else is as good as not there
+  if (!me || !Number.isInteger(them) || relationship(me.id, them) === "none") return redirect(back, 303);
 
   const action = String(form.get("action") ?? "");
   publish(`person:${them}`, "friends");

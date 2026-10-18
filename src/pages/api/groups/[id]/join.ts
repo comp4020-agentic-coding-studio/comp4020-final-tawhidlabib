@@ -5,13 +5,15 @@ import { flash } from "../../../../lib/flash";
 import { publish } from "../../../../lib/live";
 import { field } from "../../../../lib/forms";
 import { currentPerson, remember, rememberPerson } from "../../../../lib/identity";
-import { isBanned } from "../../../../lib/manage";
+import { isArchived, isBanned } from "../../../../lib/manage";
 import { claimMembers, createPerson, memberOfPerson } from "../../../../lib/people";
 
 /** Join a group from its invite link, under a name nobody in it has yet. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect, url }) => {
   const group = getGroup(params.id ?? "");
   if (!group) return refuse(cookies, "joined", groupRef(params.id), "not found", 404, "No such group");
+
+  if (isArchived(group)) return refuse(cookies, "joined", groupRef(group), "group archived", 409, "This group is archived", group.id);
 
   const name = field((await request.formData()).get("name"), 40);
   if (!name) return redirect(`/g/${group.id}?error=name-missing`, 303);

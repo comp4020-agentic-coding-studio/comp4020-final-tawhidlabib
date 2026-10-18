@@ -19,9 +19,20 @@ export const ERRORS: Record<string, string> = {
   removed: "You were removed from this group, so you can't rejoin it.",
 };
 
-/** Where a form asked to go back to, if it's a path on this site; "/"
- *  otherwise, so a crafted form can never send someone off-site. */
+/** Where a form asked to go back to, if it's a path on this site; the
+ *  fallback otherwise, so a crafted form can never send someone off-site.
+ *  Browsers read `/\` as `//` and drop tabs and newlines inside a URL, so
+ *  backslashes and control characters are refused outright, and what's
+ *  returned is what the URL parser made of it (path, query, hash). */
 export function safeBack(value: FormDataEntryValue | null, fallback = "/"): string {
   const back = typeof value === "string" ? value : "";
-  return back.startsWith("/") && !back.startsWith("//") ? back : fallback;
+  if (!back.startsWith("/") || /[\\\u0000-\u001f\u007f]/.test(back)) return fallback;
+  try {
+    const url = new URL(back, "http://site.invalid");
+    if (url.origin !== "http://site.invalid") return fallback;
+    const path = url.pathname + url.search + url.hash;
+    return path.startsWith("//") ? fallback : path;
+  } catch {
+    return fallback;
+  }
 }

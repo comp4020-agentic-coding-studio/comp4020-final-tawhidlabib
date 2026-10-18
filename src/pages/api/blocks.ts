@@ -5,16 +5,19 @@ import { flash } from "../../lib/flash";
 import { field, safeBack } from "../../lib/forms";
 import { currentPerson } from "../../lib/identity";
 import { publish } from "../../lib/live";
-import { personByCode, personById } from "../../lib/people";
+import { knownPerson } from "../../lib/circle";
+import { personByCode } from "../../lib/people";
 
 /** Block or unblock someone, by their friend code or id. They aren't told. */
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const me = currentPerson(cookies);
   const form = await request.formData();
+  // a code is what they were given; an id only reaches people you know of
   const code = field(form.get("code"), 32);
-  const them = code ? personByCode(code) : personById(Number(form.get("person")));
-  const back = safeBack(form.get("back"), them ? `/f/${them.friendCode}` : "/friends");
-  if (!me || !them || them.id === me.id) return redirect(back, 303);
+  const back = safeBack(form.get("back"), code ? `/f/${encodeURIComponent(code)}` : "/friends");
+  if (!me) return redirect(back, 303);
+  const them = code ? personByCode(code) : knownPerson(me, Number(form.get("person")), request.headers.get("cookie"));
+  if (!them || them.id === me.id) return redirect(back, 303);
 
   if (form.get("action") === "unblock") {
     unblock(me.id, them.id);
