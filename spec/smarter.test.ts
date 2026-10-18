@@ -40,6 +40,7 @@ describe("smarter availability", () => {
       ?.querySelector<HTMLFormElement>('form[action$="/nudge"]');
     expect(nudge, "Ben hasn't marked anything, so he can be nudged").toBeTruthy();
     const member = nudge?.querySelector<HTMLInputElement>('input[name="member"]')?.value ?? "";
+    expect(member, "the nudge form says who it's for").not.toBe("");
 
     expect((await ana.post(`/api/groups/${id}/nudge`, { member, week: "2030-01-07" })).status).toBe(303);
     await ana.post(`/api/groups/${id}/nudge`, { member, week: "2030-01-07" });

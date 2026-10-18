@@ -1,5 +1,5 @@
 import { describe, expect, inject, it } from "vitest";
-import { Person, probe, signedUp, textOf } from "./people";
+import { Person, probe, signedUp, textOf, textOfOptional } from "./people";
 
 // The event extras: an RSVP deadline, a cover, Explore's date filters,
 // spots left on every card, and the host editing their event --- where
@@ -53,7 +53,10 @@ describe("event extras", () => {
     const today = (await new Person(baseUrl).get(`/events?when=today&q=${encodeURIComponent(tonight)}`)).doc;
     expect(textOf(today, "#explore .cards")).toContain(tonight);
     const notToday = (await new Person(baseUrl).get(`/events?when=today&q=${encodeURIComponent(later)}`)).doc;
-    expect(textOf(notToday, "#explore .cards")).not.toContain(later);
+    // no matches means no cards container, so prove the empty state rendered instead
+    expect(notToday.querySelector("#explore .empty"), "the results section rendered, empty").not.toBeNull();
+    expect(notToday.querySelector('#explore form.search input[name="q"]'), "and the search form is there").not.toBeNull();
+    expect(textOfOptional(notToday, "#explore .cards"), "and it shows no cards").not.toContain(later);
   });
 
   it("cards say how many spots are left", async () => {
