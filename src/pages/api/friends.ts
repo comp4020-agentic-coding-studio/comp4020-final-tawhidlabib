@@ -6,7 +6,8 @@ import { requestFriend } from "../../lib/friends";
 import { currentPerson } from "../../lib/identity";
 import { publish } from "../../lib/live";
 import { notify } from "../../lib/notify";
-import { personByCode, personById } from "../../lib/people";
+import { knownPerson } from "../../lib/circle";
+import { personByCode } from "../../lib/people";
 
 /** Ask to be someone's friend: by their friend link's code, or by their id
  *  (the one-tap "Add friend" next to people you share a group with). If they
@@ -18,8 +19,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!me) return redirect("/friends", 303);
 
   const code = field(form.get("code"), 32);
-  const id = Number(form.get("person"));
-  const them = code ? personByCode(code) : Number.isInteger(id) ? personById(id) : undefined;
+  const them = code ? personByCode(code) : knownPerson(me, Number(form.get("person")), request.headers.get("cookie"));
   if (!them || them.id === me.id) return redirect(back, 303);
 
   const now = requestFriend(me.id, them.id);

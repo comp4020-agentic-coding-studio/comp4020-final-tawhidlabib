@@ -1,8 +1,8 @@
-import { eitherBlocked } from "./blocks";
+import { eitherBlocked, hasBlocked } from "./blocks";
 import { listMembers } from "./db";
 import { friendsOf, relationship } from "./friends";
 import { groupsFor } from "./identity";
-import { peopleByIds, type Person } from "./people";
+import { peopleByIds, personById, type Person } from "./people";
 
 // The people around someone: who they share groups with, and which of those
 // aren't friends yet ("people you may know"). Only ever people from groups
@@ -48,4 +48,15 @@ export function groupInvitees(person: Person, cookieHeader: string | null, group
     .filter((id) => mine.has(id))
     .flatMap((id) => listMembers(id).map((m) => m.personId))
     .filter((id): id is number => id !== null && id !== person.id && !eitherBlocked(person.id, id));
+}
+
+/** Someone, by the numeric id a form sent, if `person` has a reason to know
+ *  them: they share a group, or there's already a tie (friend, request
+ *  either way) or a block `person` made. Anyone else is as good as not there,
+ *  so ids can't be walked. */
+export function knownPerson(person: Person, id: number, cookieHeader: string | null): Person | undefined {
+  if (!Number.isInteger(id) || id === person.id) return undefined;
+  const known =
+    sharedGroups(person, cookieHeader).has(id) || relationship(person.id, id) !== "none" || hasBlocked(person.id, id);
+  return known ? personById(id) : undefined;
 }
