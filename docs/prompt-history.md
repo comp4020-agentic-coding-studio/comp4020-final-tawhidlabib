@@ -498,6 +498,20 @@ after the crit 9 session:
 - **My own mistake:** a broad `pkill` of the server killed the agents'
   servers in other worktrees. That made one repro look like a different
   bug. From then on, servers were stopped by port only.
+- **Friend codes for anyone.** A signed-out request with a person's id was
+  redirected to their friend code. The lead found it while reading the
+  endpoint, a Sonnet fixer closed it, and ids now reach only people you
+  already know of. An open redirect (`/\evil`) went in the same pass.
+- **Done wasn't done.** The front-end fixer reported the tab bar fixed
+  without measuring it. A Haiku agent measured it in Chrome: 96 px still
+  hidden at 390 px. Fixed with a red test first.
+- **Crit 10, rehearsed.** Two people in separate cookie jars, read only
+  from the log. It told them apart and showed every refusal, but a refused
+  edit read "Sam edited event 9 → denied". Refusals now read "tried to".
+- **A decision against a fix.** A fixer held back refusing plans dated in
+  the past, because the memory tests make their past plans that way. The
+  lead dropped it rather than add a test-only route to production, and
+  deleted the skipped test, so it didn't read as a check.
 
 ---
 
