@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, personLabel, refuse } from "../../../../lib/activity";
 import { readEventForm } from "../../../../lib/eventForm";
 import { eventByShareId, guestsOf, refill, updateEvent } from "../../../../lib/events";
 import { flash } from "../../../../lib/flash";
@@ -10,14 +11,15 @@ import { notify } from "../../../../lib/notify";
  *  the waitlist (ADR 6), and guests are told what changed. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
   const event = eventByShareId(params.id ?? "");
-  if (!event) return new Response("No such event", { status: 404 });
+  if (!event) return refuse(cookies, "edited event", `event ${params.id}`, "not found", 404, "No such event");
   const me = currentPerson(cookies);
-  if (!me || me.id !== event.hostId) return new Response("Only the host can edit", { status: 403 });
+  if (!me || me.id !== event.hostId) return refuse(cookies, "edited event", `event ${event.shareId}`, "not the host", 403, "Only the host can edit");
 
   const read = readEventForm(await request.formData());
   if ("error" in read) return redirect(`/e/${event.shareId}/edit?error=${read.error}`, 303);
   const updated = updateEvent(event.id, read.fields);
   const promoted = refill(updated);
+  logActivity({ who: personLabel(me), action: "edited event", target: `event ${event.shareId}`, outcome: "ok", detail: promoted.length ? `${promoted.length} moved off the waitlist` : undefined });
 
   const href = `/e/${event.shareId}`;
   notify(promoted, { kind: "promoted", text: `A spot opened up: you're going to ${updated.title}`, href });

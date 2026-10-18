@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, personLabel, refuse } from "../../../../lib/activity";
 import { canSee, eventByShareId, respond, rsvpClosed } from "../../../../lib/events";
 import { flash } from "../../../../lib/flash";
 import { currentPerson } from "../../../../lib/identity";
@@ -12,12 +13,12 @@ const FLASH = { going: "going", maybe: "maybe", declined: "notGoing", waitlisted
  *  first person waiting into it. Anyone who can see the event can answer. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
   const event = eventByShareId(params.id ?? "");
-  if (!event) return new Response("No such event", { status: 404 });
+  if (!event) return refuse(cookies, "answered event", `event ${params.id}`, "not found", 404, "No such event");
   const me = currentPerson(cookies);
   if (!me) return redirect(`/e/${event.shareId}`, 303);
-  if (!canSee(event, me)) return new Response("This event is private", { status: 403 });
+  if (!canSee(event, me)) return refuse(cookies, "answered event", `event ${event.shareId}`, "private event", 403, "This event is private");
   if (rsvpClosed(event) && me.id !== event.hostId) {
-    return new Response("RSVPs for this event have closed", { status: 409 });
+    return refuse(cookies, "answered event", `event ${event.shareId}`, "rsvps closed", 409, "RSVPs for this event have closed");
   }
 
   const form = await request.formData();
@@ -26,6 +27,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
     return new Response("Answer going, maybe or declined", { status: 400 });
   }
   const { recorded, promoted } = respond(event, me.id, response, Number(form.get("plusOnes")) || 0);
+  logActivity({ who: personLabel(me), action: "answered event", target: `event ${event.shareId}`, outcome: "ok", detail: `asked ${response}, recorded ${recorded}${promoted.length ? `, ${promoted.length} promoted from waitlist` : ""}` });
   publish(`event:${event.shareId}`, "guests");
   // the people moved in from the waitlist are told wherever they are, and
   // in their inbox for when they're not (ADR 6)

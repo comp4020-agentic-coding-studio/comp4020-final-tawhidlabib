@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, personLabel } from "../../lib/activity";
 import { flash } from "../../lib/flash";
 import { field, safeBack } from "../../lib/forms";
 import { currentPerson, rememberPerson, yourGroups } from "../../lib/identity";
@@ -20,6 +21,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
   const person = currentPerson(cookies);
   if (person) {
     renamePerson(person.id, name);
+    logActivity({ who: personLabel(person), action: "updated profile", target: `p${person.id}`, outcome: "ok", detail: `name now "${name}"` });
     // a bio, and an emoji avatar, when the form sends them
     if (form.has("bio")) {
       const bio = String(form.get("bio") ?? "").trim().replace(/\s+/g, " ").slice(0, 160);
@@ -36,6 +38,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
   const tz = field(form.get("timezone"), 64);
   const created = createPerson({ name, timezone: isTimezone(tz) ? tz : DEFAULT_TIMEZONE });
   rememberPerson(cookies, url, created.token);
+  logActivity({ who: personLabel(created), action: "created profile", target: `p${created.id}`, outcome: "ok" });
   claimMembers(
     created.id,
     yourGroups(request.headers.get("cookie")).map((g) => g.member.id),

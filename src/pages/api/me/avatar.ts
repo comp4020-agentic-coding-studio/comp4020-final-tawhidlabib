@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, personLabel } from "../../../lib/activity";
 import { setAvatar } from "../../../lib/avatars";
 import { flash } from "../../../lib/flash";
 import { currentPerson } from "../../../lib/identity";
@@ -13,6 +14,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (form.get("action") === "remove") {
     if (me.avatarPhoto) await deleteImage(me.avatarPhoto);
     setAvatar(me.id, { avatarPhoto: null });
+    logActivity({ who: personLabel(me), action: "removed avatar", target: `p${me.id}`, outcome: "ok" });
     flash(cookies, "avatar");
     return redirect("/me", 303);
   }
@@ -27,6 +29,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   }
   if (me.avatarPhoto) await deleteImage(me.avatarPhoto);
   setAvatar(me.id, { avatarPhoto: saved.file });
+  logActivity({ who: personLabel(me), action: "set avatar photo", target: `p${me.id}`, outcome: "ok" });
   flash(cookies, "avatar");
   return redirect("/me", 303);
 };

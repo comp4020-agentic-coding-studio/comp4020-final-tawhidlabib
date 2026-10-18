@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, personLabel } from "../../../lib/activity";
 import { flash } from "../../../lib/flash";
 import { safeBack } from "../../../lib/forms";
 import { accept, relationship, removeTie } from "../../../lib/friends";
@@ -16,6 +17,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!me || !Number.isInteger(them)) return redirect(back, 303);
 
   const action = String(form.get("action") ?? "");
+  logActivity({ who: personLabel(me), action: `friend ${action || "nothing"}`, target: `p${them}`, outcome: "ok" });
   publish(`person:${them}`, "friends");
   publish(`person:${me.id}`, "friends");
   if (action === "accept" && relationship(me.id, them) === "received") {

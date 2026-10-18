@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, refuse, whoIs } from "../../../../lib/activity";
 import { getGroup, listMembers, proposeHangout } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { publish } from "../../../../lib/live";
@@ -12,10 +13,10 @@ import { HOURS, isDate, LAST_HOUR, spanLabel, weekStartOf } from "../../../../li
  *  proposes it is in. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
   const group = getGroup(params.id ?? "");
-  if (!group) return new Response("No such group", { status: 404 });
+  if (!group) return refuse(cookies, "proposed hangout", `group ${params.id}`, "not found", 404, "No such group");
   const me = currentMember(cookies, group.id);
-  if (!me) return new Response("Join the group first", { status: 403 });
-  if (isArchived(group)) return new Response("This group is archived", { status: 409 });
+  if (!me) return refuse(cookies, "proposed hangout", `group ${group.id}`, "not a member", 403, "Join the group first", group.id);
+  if (isArchived(group)) return refuse(cookies, "proposed hangout", `group ${group.id}`, "group archived", 409, "This group is archived", group.id);
 
   const form = await request.formData();
   const date = String(form.get("date") ?? "");
@@ -26,7 +27,8 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   }
 
   const title = field(form.get("title"), 80) || "Hangout";
-  const { existed } = proposeHangout({ groupId: group.id, date, startHour: start, endHour: end, title, proposedBy: me.id });
+  const { hangout, existed } = proposeHangout({ groupId: group.id, date, startHour: start, endHour: end, title, proposedBy: me.id });
+  logActivity({ who: whoIs(cookies, group.id), action: existed ? "joined existing hangout" : "proposed hangout", target: `${hangout.id} in group ${group.id}`, outcome: "ok", detail: `${date} ${start}-${end}${existed ? ", merged with the same plan" : ""}` });
   publish(`group:${group.id}`, "plans");
   // proposing a plan that already exists is saying you're in it
   if (existed) {

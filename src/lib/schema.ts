@@ -413,3 +413,25 @@ export type Group = typeof groups.$inferSelect;
 export type Member = typeof members.$inferSelect;
 export type Hangout = typeof hangouts.$inferSelect;
 export type Rsvp = typeof rsvps.$inferSelect;
+
+/** Append-only record of who did what (crit 10): one row per state change or
+ *  refusal, also printed to stdout for `flyctl logs`. Never holds a token,
+ *  friend code, sign-in link or message body. Not tied to people by a foreign
+ *  key: the record outlives whoever it names. */
+export const activity = sqliteTable(
+  "activity",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    /** ISO-8601 UTC, to the second. */
+    at: text().notNull(),
+    actorId: int("actor_id"),
+    /** `p12 "Ana"`, `m7 "Ben"` or `anon`. */
+    actorLabel: text("actor_label").notNull(),
+    action: text().notNull(),
+    target: text().notNull(),
+    /** `ok`, or `denied (reason)`. */
+    outcome: text().notNull(),
+    detail: text(),
+  },
+  (t) => [index("activity_at").on(t.at)],
+);

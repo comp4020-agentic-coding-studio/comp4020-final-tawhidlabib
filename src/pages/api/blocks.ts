@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { logActivity, personLabel } from "../../lib/activity";
 import { block, unblock } from "../../lib/blocks";
 import { flash } from "../../lib/flash";
 import { field, safeBack } from "../../lib/forms";
@@ -17,9 +18,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   if (form.get("action") === "unblock") {
     unblock(me.id, them.id);
+    logActivity({ who: personLabel(me), action: "unblocked", target: `p${them.id} "${them.name}"`, outcome: "ok" });
     flash(cookies, "unblocked");
   } else {
     block(me.id, them.id);
+    logActivity({ who: personLabel(me), action: "blocked", target: `p${them.id} "${them.name}"`, outcome: "ok" });
     flash(cookies, "blocked");
   }
   publish(`person:${me.id}`, "friends");
