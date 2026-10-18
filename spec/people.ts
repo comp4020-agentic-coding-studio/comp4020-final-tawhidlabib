@@ -101,5 +101,16 @@ export async function befriend(a: Person, b: Person): Promise<void> {
   await a.post("/api/friends/respond", { person: id, action: "accept" });
 }
 
-export const textOf = (doc: Document, selector: string) =>
-  doc.querySelector(selector)?.textContent ?? "";
+/** The text of the first element matching `selector`. Throws when nothing
+ *  matches: an absent element must not read as "" and let a `.not.toContain`
+ *  assertion pass for the wrong reason. */
+export function textOf(doc: Document, selector: string): string {
+  const el = doc.querySelector(selector);
+  if (!el) throw new Error(`no element matches "${selector}"`);
+  return el.textContent ?? "";
+}
+
+/** Like textOf, but "" when the element is legitimately absent. Say why at the call site. */
+export function textOfOptional(doc: Document, selector: string): string {
+  return doc.querySelector(selector)?.textContent ?? "";
+}
