@@ -165,3 +165,12 @@ describe("a nudge is for a real week near now", () => {
     expect(now.headers.get("location"), "this week still works").toContain("week=");
   });
 });
+
+describe("form posts have a size cap", () => {
+  it("a 200 KB form is refused with 413, and a small one still works", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const big = await ana.post("/api/theme", { theme: "x".repeat(200_000) });
+    expect(big.status).toBe(413);
+    expect((await ana.post("/api/me", { name: ana.name, timezone: "Australia/Sydney", back: "/me" })).status).toBe(303);
+  });
+});
