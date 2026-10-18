@@ -26,7 +26,6 @@ mkdirSync(dirname(path), { recursive: true });
 
 const client = new Database(path);
 client.pragma("journal_mode = WAL");
-client.pragma("foreign_keys = ON");
 
 export const db = drizzle(client);
 
@@ -34,7 +33,24 @@ export const db = drizzle(client);
 // recommended shape for SQLite on Fly, where there's no separate machine to
 // run them from. The flow: edit src/lib/schema.ts, `pnpm db:generate`,
 // commit the migration it writes to drizzle/.
+//
+// Foreign keys are OFF while migrating, and that has to be set here, not in
+// the migration. A migration that changes a column's foreign key rebuilds
+// its table (create new, copy, DROP old, rename), and drizzle-kit writes
+// `PRAGMA foreign_keys=OFF` around that --- but drizzle runs every migration
+// inside one transaction, and SQLite ignores that pragma inside a
+// transaction. With keys on, `DROP TABLE hangouts` cascade-deletes every
+// RSVP, comment, poll and photo on every plan. (Caught in review before it
+// shipped: spec/migrations.test.ts holds it.) So: off before the
+// transaction starts, back on after, and refuse to start if anything was
+// left pointing at nothing.
+client.pragma("foreign_keys = OFF");
 migrate(db, { migrationsFolder: "./drizzle" });
+const dangling = client.pragma("foreign_key_check") as unknown[];
+client.pragma("foreign_keys = ON");
+if (dangling.length > 0) {
+  throw new Error(`migrations left ${dangling.length} row(s) pointing at nothing: refusing to start`);
+}
 
 export type { Group, Hangout, Member, Rsvp };
 
