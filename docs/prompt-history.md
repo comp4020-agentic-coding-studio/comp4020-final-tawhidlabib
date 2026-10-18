@@ -508,6 +508,46 @@ after the crit 9 session:
 - **Crit 10, rehearsed.** Two people in separate cookie jars, read only
   from the log. It told them apart and showed every refusal, but a refused
   edit read "Sam edited event 9 → denied". Refusals now read "tried to".
+- **A decision against a fix.** A fixer held back refusing plans dated in
+  the past, because the memory tests make their past plans that way. The
+  lead dropped it rather than add a test-only route to production, and
+  deleted the skipped test, so it didn't read as a check.
+
+**Result of the round**, merged and checked before anything shipped:
+- **Security:** friend codes, the open redirect, archived groups refusing
+  joins and nudges, nudge weeks limited, and form posts capped at 64 KB
+  ([`40cf06e`]...[`00e09ad`]).
+- **Live updates and plan rules:**
+  - after the RSVP deadline you can still say "can't go", and the waitlist
+    moves up;
+  - a changed name or avatar reaches every page showing it;
+  - event edits and cancellations reach every guest's own pages;
+  - a vote for an option a poll doesn't have is refused
+  ([`71b20d7`]...[`8e506cd`]).
+- **Docs:** ADR 11 (who may see and change what), an ADR 6 note,
+  `CLAUDE.md` rules, the README, and a `PROCESS.md` rewritten for crit 10.
+- 28 test files and 447 checks, all passing, none skipped.
+
+### Prompt 22 · Sun 18 Oct · is the crit also finished?
+
+> is the crit also finished>
+
+**Result**
+- No. The work was merged locally but not pushed, so production still ran
+  the 14 Oct version, with no activity logging. `reflections/crit-10.md`
+  didn't exist yet. The agent laid out what crit 10 asks for against what
+  was done.
+
+### Prompt 23 · Sun 18 Oct · please finish off crit 10
+
+> please finish off crit 10
+
+**Result**
+- `reflections/crit-10.md` drafted: 270 words, every claim from this round.
+  **An agent draft; I'll rewrite it in my own words.**
+- **A volume snapshot before deploying** (`vs_XK9ppxNyOL3tB44ODLO`),
+  because this deploy ran the hangouts migration on real data. SSH into
+  production was refused, so the agent couldn't count rows directly.
 - **A test that fails one hour a week.** The first push for crit 10 went
   red in CI at 11:21pm on a Sunday. A blind-grid test built its best time
   from Sunday 11pm, the week's last hour. Once that hour starts, nothing
@@ -519,13 +559,26 @@ after the crit 9 session:
   activity lines told the story. Both people were told apart (p18 and p19),
   Ben's three attempts on Ana's group and event were logged as `tried to …
   → denied` with the reason, and none of the lines held the invite link or
-  the private event link. A volume snapshot was taken before the deploy,
-  because it ran the hangouts migration on real data. The server booted,
-  and it refuses to start if the migration leaves anything dangling.
-- **A decision against a fix.** A fixer held back refusing plans dated in
-  the past, because the memory tests make their past plans that way. The
-  lead dropped it rather than add a test-only route to production, and
-  deleted the skipped test, so it didn't read as a check.
+  the private event link. The server booted after the migration; it
+  refuses to start if the migration leaves anything dangling.
+- After the fix CI went green and deployed: [`9f14e71`].
+
+### Prompt 24 · Mon 19 Oct · the tag, and the documents
+
+> can you set the crit 10 tag so that it can be marked off correctly. Have
+> you also updated all the project documentation so the readme,
+> process.md, reflection, prompt history?
+
+**Result**
+- The README, `PROCESS.md` and the reflection were already current for
+  crit 10. This file was behind: it was missing prompts 22–24, and its
+  summary sections were still as of 14 Oct. Brought up to date.
+- **`crit-10` tagged** at the commit that brings this file up to date,
+  annotated like `crit-8` and `crit-9`. The course pages don't say the
+  cutoff sweep reads a tag. They say it reads `reflections/crit-10.md`
+  and the deployed app. So the tag is my own marker of the shipped state.
+  If I rewrite the documents before Wed 21 Oct 12:00, the tag moves with
+  them; after the cutoff it never moves.
 
 ---
 
@@ -550,6 +603,8 @@ after the crit 9 session:
 - **Keeping the features and reframing "good"**, against the agent's
   advice to cut them (prompt 18).
 - **Choosing the blind grid** from the agent's proposals (prompt 18).
+- **Running the last round as a team** (prompt 20): one Opus lead
+  reviewing, with Sonnet and Haiku agents doing the work.
 
 ### Where I took the agent's recommendation (R)
 
@@ -566,6 +621,10 @@ These are worth reviewing before citing them:
 - the quality checks growing at every step
 - **ADR 9's rules for block and mute**
 - putting Log out on `/me`, since there was no settings page
+- **accepting plans dated in the past** (prompt 21), decided in review
+  rather than asked
+- **refusals reading "tried to"** in the log, after rehearsing crit 10
+- **the volume snapshot** before the crit 10 deploy
 
 ### Corrections
 
@@ -595,15 +654,20 @@ These are worth reviewing before citing them:
 - **Invite links in the logs:** the first logging pass leaked them; caught
   in review, with a red test first (prompt 21).
 
-### By the numbers (as of 14 Oct)
+### By the numbers (as of 19 Oct)
 
-- 19 prompts
-- 73 commits since the template's first commit
-- 10 ADRs
-- 22 test files and 405 checks, 7 of them in real Chrome
-- 2 crit tags: `crit-8` at `b663ce5`, `crit-9` at `a9d3270`
-- live changes measured at 52 ms (7 Oct) and 167 ms (13 Oct) in production
+- 24 prompts
+- 125 commits since the template's first commit
+- 11 ADRs
+- 28 test files and 447 checks, 10 of them in real Chrome
+- 3 crit tags: `crit-8` at `b663ce5`, `crit-9` at `a9d3270`, `crit-10`
+  (prompt 24)
+- live changes measured at 52 ms (7 Oct) and 167 ms (13 Oct) in
+  production, and an avatar change reaching another open page in 210 ms
+  (18 Oct, locally)
 - the core flow for two people: 12 actions, about 4 seconds (13 Oct)
+- crit 10 audit: 6 audits, 3 fixers, 1 measurer; 3 problems caught in
+  review that the agents' own tests had passed
 
 ### Ready-to-cite ranges
 
@@ -618,6 +682,8 @@ These are worth reviewing before citing them:
 | Milestones 2–8 | [`3f08e38...b616093`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/3f08e38...b616093) |
 | Logo, log out and the doc update | [`b616093...a9d3270`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/b616093...a9d3270) |
 | The HD push: blind grid, holds up, one idea | [`245dcb3...fd47b33`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/245dcb3...fd47b33) |
+| Crit 10: logging, integrity, review fixes | [`4125a6e...0713984`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/4125a6e...0713984) |
+| Crit 10: documents and deploy | [`0713984...e0dd49f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/0713984...e0dd49f) |
 
 A range `a...b` on GitHub shows the commits *after* `a` up to and including
 `b`.
@@ -686,3 +752,8 @@ A range `a...b` on GitHub shows the commits *after* `a` up to and including
 [`11b224c`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/11b224c
 [`61c49a3`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/61c49a3
 [`fd47b33`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/fd47b33
+[`00e09ad`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/00e09ad
+[`40cf06e`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/40cf06e
+[`71b20d7`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/71b20d7
+[`8e506cd`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/8e506cd
+[`9f14e71`]: https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/9f14e71
