@@ -233,4 +233,20 @@ describe.skipIf(!chromePath)("holds up, in a real browser", () => {
     await anaCtx.close();
     await benCtx.close();
   }, 60_000);
+
+  it("on a phone, the People tab keeps the Everyone's-week table inside its card; the page never scrolls sideways", async () => {
+    const { ana, ben, url } = await twoPeople(PHONE, true);
+    await ana.page.goto(`${url}#week`);
+    await ana.page.locator('label:has(input[value="2030-01-08T18"])').click();
+    await ana.page.waitForFunction(() => /Saved/.test(document.querySelector("#save-status")?.textContent ?? ""));
+    await ben.page.goto(`${url}#week`);
+    await ben.page.locator('label:has(input[value="2030-01-08T20"])').tap();
+    await ben.page.waitForFunction(() => !document.getElementById("blind-note"), null, { timeout: 8000 });
+    await ben.page.goto(`${url}#people`);
+    await ben.page.waitForSelector(".everyone-card");
+    const over = await ben.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(over, "px the page scrolls sideways on the People tab").toBe(0);
+    await ana.ctx.close();
+    await ben.ctx.close();
+  }, 60_000);
 });
