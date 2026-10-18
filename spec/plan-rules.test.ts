@@ -72,7 +72,7 @@ const PNG = Uint8Array.from(
   (c) => c.charCodeAt(0),
 );
 
-/** Ana shares a group with Ben, hosts a public event Ben answered, and Ben
+/** Ana shares a group with Ben, hosts a public event Ben answered, and
  *  commented on it. Ben's open pages listen to all three. */
 async function worldAround() {
   const ana = await signedUp(baseUrl, "Ana");
@@ -83,7 +83,7 @@ async function worldAround() {
   const ev = await ana.post("/api/events", { title: probe("Name picnic"), date: "2030-01-11", start: "12:00", end: "14:00", visibility: "public" });
   const shareId = (ev.headers.get("location") ?? "").split("/").pop() ?? "";
   await ben.post(`/api/events/${shareId}/rsvp`, { response: "going" });
-  await ben.post("/api/comments", { kind: "event", ref: shareId, body: "See you there" });
+  await ana.post("/api/comments", { kind: "event", ref: shareId, body: "See you there" });
   const bens = await listen(ben, [`group:${groupId}`, `event:${shareId}`, `thread:event:${shareId}`]);
   await bens.next((e) => e.event === "hello");
   return { ana, ben, bens, groupId, shareId };
