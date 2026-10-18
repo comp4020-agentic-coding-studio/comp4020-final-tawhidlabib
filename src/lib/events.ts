@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, asc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import { db } from "./db";
 import type { Person } from "./people";
 import { type Event, eventGuests, events, people } from "./schema";
@@ -123,10 +123,17 @@ export function respond(
     if (response === "going" && event.capacity !== null && personId !== event.hostId) {
       if (taken + 1 + plus > event.capacity) recorded = "waitlisted";
     }
+    // someone already going keeps their spot: if the bigger party doesn't
+    // fit, the extra +1s are simply not granted
+    let plusKept = plus;
+    if (before?.response === "going" && response === "going" && recorded === "waitlisted") {
+      recorded = "going";
+      plusKept = before.plusOnes;
+    }
     // keep your place if you were already waiting
     const waitlistSeq =
       recorded === "waitlisted" ? (before?.response === "waitlisted" ? before.waitlistSeq : nextSeq()) : null;
-    const row = { response: recorded, plusOnes: plus, waitlistSeq };
+    const row = { response: recorded, plusOnes: plusKept, waitlistSeq };
     tx.insert(eventGuests)
       .values({ eventId: event.id, personId, ...row })
       .onConflictDoUpdate({ target: [eventGuests.eventId, eventGuests.personId], set: row })
@@ -146,7 +153,16 @@ export function updateEvent(
   id: number,
   fields: Partial<Omit<Event, "id" | "shareId" | "hostId" | "createdAt">>,
 ): Event {
-  return db.update(events).set(fields).where(eq(events.id, id)).returning().get();
+  return db.transaction((tx) => {
+    const updated = tx.update(events).set(fields).where(eq(events.id, id)).returning().get();
+    // a lower +1 limit applies to guests who already answered; nobody is
+    // demoted when the spot limit drops (that would break a promise)
+    tx.update(eventGuests)
+      .set({ plusOnes: updated.maxPlusOnes })
+      .where(and(eq(eventGuests.eventId, id), gt(eventGuests.plusOnes, updated.maxPlusOnes)))
+      .run();
+    return updated;
+  });
 }
 
 /** Whether RSVPs have closed: the deadline, in the event's timezone, has
@@ -177,14 +193,13 @@ export function takenCounts(eventIds: number[]): Map<number, number> {
 /** Move people from the waitlist into free spots, earliest first; someone
  *  whose party doesn't fit waits while a smaller party behind them goes in. */
 function fillFromWaitlist(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], event: Event): number[] {
-  if (event.capacity === null) return [];
   const promoted: number[] = [];
   const guests = tx.select().from(eventGuests).where(eq(eventGuests.eventId, event.id)).all();
-  let free =
-    event.capacity -
-    guests
-      .filter((g) => g.response === "going" && g.personId !== event.hostId)
-      .reduce((n, g) => n + 1 + g.plusOnes, 0);
+  // no limit: everyone waiting moves in
+  const taken = guests
+    .filter((g) => g.response === "going" && g.personId !== event.hostId)
+    .reduce((n, g) => n + 1 + g.plusOnes, 0);
+  let free = event.capacity === null ? Number.POSITIVE_INFINITY : event.capacity - taken;
   const waiting = guests
     .filter((g) => g.response === "waitlisted")
     .sort((a, b) => (a.waitlistSeq ?? 0) - (b.waitlistSeq ?? 0));
