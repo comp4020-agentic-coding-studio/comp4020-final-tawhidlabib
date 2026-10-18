@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { safeBack } from "../../../lib/forms";
 import { currentPerson } from "../../../lib/identity";
 import { publish } from "../../../lib/live";
 import { openNote } from "../../../lib/notify";
@@ -10,5 +11,5 @@ export const GET: APIRoute = ({ params, cookies, redirect }) => {
   const href = me ? openNote(me.id, Number(params.id)) : undefined;
   if (!me || !href) return new Response("No such notification", { status: 404 });
   publish(`person:${me.id}`, "inbox");
-  return redirect(href.startsWith("/") && !href.startsWith("//") ? href : "/inbox", 303);
+  return redirect(safeBack(href, "/inbox"), 303);
 };
