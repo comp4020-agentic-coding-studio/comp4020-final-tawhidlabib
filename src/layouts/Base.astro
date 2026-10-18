@@ -14,9 +14,19 @@ import { DEFAULT_TIMEZONE, todayIn } from "../lib/time";
 
 interface Props {
   title: string;
+  /** A page whose URL is itself a secret (a sign-in link): its card says
+   *  nothing about whose it is, never repeats the URL, and isn't indexed. */
+  privateLink?: boolean;
 }
 
-const { title } = Astro.props;
+const { title, privateLink = false } = Astro.props;
+// Hangout spreads by link, and a chat app draws a link's preview card from
+// these, fetched as a stranger: the page's own title (an invite already
+// names its group, since the link is the invite), never anything private.
+const DESCRIPTION =
+  "Hangout: tell your friend group when you're free this week, and find the time that works for the most of you.";
+const canonical = new URL(privateLink ? "/" : Astro.url.pathname + Astro.url.search, Astro.url).href;
+const cardTitle = privateLink ? "Your Hangout sign-in link" : title;
 const { theme, mode } = themeOf(Astro.cookies);
 const back = Astro.url.pathname + Astro.url.search;
 const toast = Astro.locals.flash ? FLASHES[Astro.locals.flash] : undefined;
@@ -59,10 +69,14 @@ const NAV = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta
-      name="description"
-      content="Hangout: tell your friend group when you're free this week, and find the time that works for the most of you."
-    />
+    <meta name="description" content={DESCRIPTION} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Hangout" />
+    <meta property="og:title" content={cardTitle} />
+    <meta property="og:description" content={DESCRIPTION} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    {privateLink && <meta name="robots" content="noindex, nofollow" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#ea580c" />
     <title>{title}</title>

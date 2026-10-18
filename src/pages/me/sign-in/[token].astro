@@ -11,7 +11,7 @@ if (!person) Astro.response.status = 404;
 const already = person && Astro.locals.person?.id === person.id;
 ---
 
-<Base title={person ? `Sign in as ${person.name} · Hangout` : "Link not found · Hangout"}>
+<Base title={person ? `Sign in as ${person.name} · Hangout` : "Link not found · Hangout"} privateLink>
   <div class="narrow start-card join-card stack">
     {
       !person ? (

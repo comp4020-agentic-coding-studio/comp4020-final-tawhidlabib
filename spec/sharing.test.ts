@@ -39,6 +39,22 @@ describe("a link pasted into a chat", () => {
     expect(doc.querySelector('a[data-tab="people"] .count')?.textContent?.trim()).toBe("1");
   });
 
+  it("a private sign-in link's card holds no token and no name, and isn't indexed", async () => {
+    const me = new Person(baseUrl, probe("Signer"));
+    await me.post("/api/me", { name: me.name, timezone: "Australia/Sydney", back: "/me" });
+    const link = (await me.get("/me")).doc.querySelector<HTMLInputElement>("#sign-in-link")?.value ?? "";
+    const token = link.split("/").pop() ?? "";
+    expect(token.length, "found the sign-in link").toBeGreaterThan(20);
+    const { doc, html } = await new Person(baseUrl).get(new URL(link).pathname);
+    const card = [...doc.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]')]
+      .map((m) => m.getAttribute("content") ?? "")
+      .join(" ");
+    expect(card, "the token isn't repeated in the card").not.toContain(token);
+    expect(card, "nor whose link it is").not.toContain(me.name);
+    expect(doc.querySelector('meta[name="robots"]')?.getAttribute("content") ?? "").toMatch(/noindex/);
+    expect(html, "fetching it signed nobody in").not.toMatch(/You're already signed in/);
+  });
+
   it("every page has a card, so the home page shared on its own makes one too", async () => {
     const { doc } = await new Person(baseUrl).get("/");
     expect(og(doc, "title")).not.toBe("");

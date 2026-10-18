@@ -580,6 +580,44 @@ after the crit 9 session:
   If I rewrite the documents before Wed 21 Oct 12:00, the tag moves with
   them; after the cutoff it never moves.
 
+### Prompt 25 · Mon 19 Oct · is it Fly's database?
+
+> are you using fly's database for my project? Please explain to me how
+> everything is saved for users to enable the multi user app
+
+**Result**
+- No: not Fly's managed Postgres. It's one SQLite file on a 1 GB Fly volume
+  at `/data`, next to the app on its one machine (ADR 1), with uploads
+  beside it. The agent explained the 23 tables, how cookies tell people
+  apart, how the live stream works, and what this costs: one machine, and
+  backups are snapshots.
+
+### Prompt 26 · Mon 19 Oct · does it work across devices, for my friends?
+
+> does the app work across multiple devices? Can i send it to friends to
+> use as well? This needs to be the case
+
+**Result**
+- Checked on the live site in real Chrome, with three devices that shared
+  nothing. You start a group on a laptop. A friend on a phone joins from
+  the invite link with just a name. You sign in on a tablet with your
+  private link. The friend's plan reached the tablet live, in 208–475 ms,
+  and was there after a real reload.
+- **A wrong first conclusion, corrected.** Two early runs said the plan
+  was missing on a reload. The script had only changed the part after
+  `#`, which switches tabs on the open page rather than loading it again,
+  so it read the old page before the live update arrived. With a real
+  reload it passed every time (14 of 14 runs). The app was right and the
+  script was wrong, and it was traced to its cause rather than written
+  off as a flake.
+- **Link previews, added.** A shared invite showed as a bare URL in chat
+  apps, because the site had no Open Graph tags. Now every page makes a
+  card. An invite's card names its group, since whoever sees the card has
+  the link anyway, and drawing the card joins nobody. A private sign-in
+  link's card names no one, never repeats the token, and isn't indexed.
+  Red first, and the token check went red again with the fix removed
+  (`spec/sharing.test.ts`).
+
 ---
 
 ## For the final PROCESS.md
@@ -656,10 +694,10 @@ These are worth reviewing before citing them:
 
 ### By the numbers (as of 19 Oct)
 
-- 24 prompts
+- 26 prompts
 - 125 commits since the template's first commit
 - 11 ADRs
-- 28 test files and 447 checks, 10 of them in real Chrome
+- 29 test files and 451 checks, 10 of them in real Chrome
 - 3 crit tags: `crit-8` at `b663ce5`, `crit-9` at `a9d3270`, `crit-10`
   (prompt 24)
 - live changes measured at 52 ms (7 Oct) and 167 ms (13 Oct) in
