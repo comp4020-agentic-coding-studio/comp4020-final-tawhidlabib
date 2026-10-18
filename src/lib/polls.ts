@@ -69,15 +69,16 @@ export function pollsOn(target: Target, personId: number | undefined): PollView[
 }
 
 /** Vote for an option. Single choice: it replaces your vote (and the same
- *  again takes it back). Multiple choice: it toggles just that option. */
-export function vote(pollId: number, optionId: number, personId: number, multi: boolean): void {
-  db.transaction((tx) => {
+ *  again takes it back). Multiple choice: it toggles just that option.
+ *  False when the option isn't this poll's, and nothing changed. */
+export function vote(pollId: number, optionId: number, personId: number, multi: boolean): boolean {
+  return db.transaction((tx) => {
     const option = tx
       .select()
       .from(pollOptions)
       .where(and(eq(pollOptions.id, optionId), eq(pollOptions.pollId, pollId)))
       .get();
-    if (!option) return;
+    if (!option) return false;
     const had = tx
       .select()
       .from(pollVotes)
@@ -89,6 +90,7 @@ export function vote(pollId: number, optionId: number, personId: number, multi: 
       tx.delete(pollVotes).where(and(eq(pollVotes.optionId, optionId), eq(pollVotes.personId, personId))).run();
     }
     if (!had) tx.insert(pollVotes).values({ optionId, pollId, personId }).run();
+    return true;
   });
 }
 

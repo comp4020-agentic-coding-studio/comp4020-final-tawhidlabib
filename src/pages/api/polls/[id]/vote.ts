@@ -14,7 +14,10 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   if (!thread.canTalk) return refuse(cookies, "voted on poll", `poll ${poll.id}`, "read-only", 409, "This plan can be read, not added to");
   if (poll.closedAt) return refuse(cookies, "voted on poll", `poll ${poll.id}`, "poll closed", 409, "This poll is closed");
 
-  vote(poll.id, Number((await request.formData()).get("option")), thread.person.id, poll.multi);
+  // an option that isn't this poll's changes nothing, so it must not look like a change
+  if (!vote(poll.id, Number((await request.formData()).get("option")), thread.person.id, poll.multi)) {
+    return refuse(cookies, "voted on poll", `poll ${poll.id}`, "no such option", 400, "That isn't one of this poll's options");
+  }
   logActivity({ who: personLabel(thread.person), action: "voted on poll", target: `poll ${poll.id}`, outcome: "ok" });
   publish(`thread:${thread.kind}:${thread.ref}`, "poll");
   return redirect(thread.page, 303);

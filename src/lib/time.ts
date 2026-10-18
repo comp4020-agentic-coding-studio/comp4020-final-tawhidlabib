@@ -132,12 +132,14 @@ export function clockLabel(time: string): string {
   return m === 0 ? hourLabel(h) : hourLabel(h).replace(/(am|pm)$/, `:${String(m).padStart(2, "0")}$1`);
 }
 
-/** "Today", "Tomorrow", "In 5 days": how far off a date is, for a glance. */
+/** "Today", "Tomorrow", "In 5 days": how far off a date is, for a glance.
+ *  A date that has gone is "Past", never "Today". */
 export function relativeDay(date: string, today: string): string {
   const days = Math.round(
     (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000,
   );
-  if (days <= 0) return "Today";
+  if (days < 0) return "Past";
+  if (days === 0) return "Today";
   if (days === 1) return "Tomorrow";
   if (days < 14) return `In ${days} days`;
   if (days < 60) return `In ${Math.round(days / 7)} weeks`;

@@ -7,7 +7,7 @@ import { notify } from "../../../../lib/notify";
 import { field } from "../../../../lib/forms";
 import { currentMember } from "../../../../lib/identity";
 import { isArchived } from "../../../../lib/manage";
-import { HOURS, isDate, LAST_HOUR, spanLabel, weekStartOf } from "../../../../lib/time";
+import { HOURS, isDate, LAST_HOUR, spanLabel, todayIn, weekStartOf } from "../../../../lib/time";
 
 /** Propose a hangout: usually a recommended stretch, maybe shortened. Whoever
  *  proposes it is in. */
@@ -24,6 +24,10 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   const end = Number(form.get("end"));
   if (!isDate(date) || !HOURS.includes(start) || !(end > start && end <= LAST_HOUR + 1)) {
     return redirect(`/g/${group.id}?error=bad-time`, 303);
+  }
+  // a plan is for a day that hasn't gone: today, in the group's timezone, still counts
+  if (date < todayIn(group.timezone)) {
+    return refuse(cookies, "proposed a hangout in", groupRef(group), "date in the past", 400, "That date is in the past. Pick today or later.", group.id);
   }
 
   const title = field(form.get("title"), 80) || "Hangout";
