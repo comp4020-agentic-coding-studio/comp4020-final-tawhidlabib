@@ -508,6 +508,20 @@ after the crit 9 session:
 - **Crit 10, rehearsed.** Two people in separate cookie jars, read only
   from the log. It told them apart and showed every refusal, but a refused
   edit read "Sam edited event 9 → denied". Refusals now read "tried to".
+- **A test that fails one hour a week.** The first push for crit 10 went
+  red in CI at 11:21pm on a Sunday. A blind-grid test built its best time
+  from Sunday 11pm, the week's last hour. Once that hour starts, nothing
+  is left to recommend, so the app was right and the test failed for the
+  clock. It passed locally only because it ran before 11pm. The fix was
+  checked at 11:23pm Sunday, the hour that failed.
+- **Crit 10, live.** After the deploy, two people with separate cookie
+  jars used the live site while only `flyctl logs` was read. Thirteen
+  activity lines told the story. Both people were told apart (p18 and p19),
+  Ben's three attempts on Ana's group and event were logged as `tried to …
+  → denied` with the reason, and none of the lines held the invite link or
+  the private event link. A volume snapshot was taken before the deploy,
+  because it ran the hangouts migration on real data. The server booted,
+  and it refuses to start if the migration leaves anything dangling.
 - **A decision against a fix.** A fixer held back refusing plans dated in
   the past, because the memory tests make their past plans that way. The
   lead dropped it rather than add a test-only route to production, and
