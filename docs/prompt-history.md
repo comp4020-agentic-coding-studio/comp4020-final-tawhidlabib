@@ -435,6 +435,70 @@ after the crit 9 session:
   crit 9 reflection were rewritten against the HD band descriptors.
   **These are still agent drafts; I'll rewrite them in my own words.**
 
+### Prompt 20 · Sun 18 Oct · a team to audit it
+
+> I want you to use sonnet 5.5 agents and haiku 5.5, with opus 5.5 as the
+> leader/ coordinater/consultant/team leader to do a comprehensive analysis
+> and bug fix of my major project to ensure that it hits HD criteria. Only
+> use the one opus 5.5 agent and you can decide how many of the sonnet and
+> haiku agents you need to get the best outcome. You will work as a tech
+> development team together to polish and upgrade this major project
+
+**Result**
+- There was no Haiku 5.5, so the cheap model was Haiku 4.5. The one Opus
+  agent led: it wrote every brief, reviewed every diff, and merged.
+- **Six audits ran in parallel, read-only:** state integrity, security and
+  access, live updates, front end and accessibility, test quality, and the
+  rubric. The lead re-ran each finding before accepting it. Two of the
+  rubric auditor's claims were wrong and were dropped:
+  - "the README is over 600 words": it counted URLs, and the course count
+    is 600;
+  - "a missing crit-10.md fails CI": any crit reflection passes.
+
+### Prompt 21 · Sun 18 Oct · keep going, start the fixes
+
+> keep going, start the fixes
+
+**Result**
+- Each fix ran in its own git worktree with a red test first. The lead
+  merged them into a `team-polish` branch and ran the full check there
+  before anything went near `main`.
+- **Logging for crit 10:** every endpoint now writes who did what, both to
+  `flyctl logs` and to an `activity` table on the volume. Refusals are
+  logged too.
+- **The integrity fixes:**
+  - asking for a +1 at a full event no longer costs you your spot;
+  - clearing a spot limit empties the waitlist;
+  - a plan outlives the person who proposed it;
+  - a free stretch is announced once;
+  - the same hour twice in one save no longer causes a server error.
+- **The front end:**
+  - the People tab no longer scrolls sideways on a phone (the test was red
+    at 137 px first);
+  - contrast across 5 themes in light and dark went from 36 axe violations
+    to 0;
+  - tap targets and the theme label were fixed.
+- **Tests:** `textOf` now throws when nothing matches, so an absent element
+  can't pass a "doesn't contain" check. New tests cover sign-in link
+  rotation, host-only cancel, `.ics` access and the no-JavaScript path.
+
+**Caught in review (the lead's corrections)**
+- **The migration would have wiped production.** The integrity fix rebuilt
+  the hangouts table. Drizzle runs migrations in a transaction, where SQLite
+  ignores `PRAGMA foreign_keys=OFF`, so the rebuild's DROP would have
+  cascade-deleted every RSVP and comment on the volume. The agent reported
+  it had checked this on old data. The lead reproduced the loss (3 RSVPs →
+  0), fixed `db.ts` to switch keys off before migrating, and added
+  `spec/migrations.test.ts`, which was red, then green.
+- **The log leaked the invite links.** The first logging pass wrote group
+  ids (the invite secret) and private events' share ids into every line, and
+  a newline in a form field could forge a whole log line. The fix: a one-way
+  tag and the name instead of the id, and every field is cleaned. Both tests
+  were red first, and the forging test went red again with the fix removed.
+- **My own mistake:** a broad `pkill` of the server killed the agents'
+  servers in other worktrees. That made one repro look like a different
+  bug. From then on, servers were stopped by port only.
+
 ---
 
 ## For the final PROCESS.md
@@ -498,6 +562,10 @@ These are worth reviewing before citing them:
 - **Two identical plans from one race:** found by trying it ([`11db9fc`]).
 - **The blind grid leaking on `/groups`:** caught by a test that first
   passed vacuously ([`11b224c`]).
+- **A migration that would have wiped every RSVP in production:** caught in
+  the lead's review of an agent's fix, by reproducing it (prompt 21).
+- **Invite links in the logs:** the first logging pass leaked them; caught
+  in review, with a red test first (prompt 21).
 
 ### By the numbers (as of 14 Oct)
 

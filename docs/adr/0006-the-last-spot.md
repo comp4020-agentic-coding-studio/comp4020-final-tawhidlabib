@@ -83,3 +83,17 @@ ADR 6 promised that a promotion notice would be hard to miss. It is: a live
 push wherever the person is on the site, and an inbox item that waits for
 them ([ADR 7](0007-notifications-in-app.md)). A host raising the spot limit
 moves people in by the same rule, and they're told the same way.
+
+Review in week 10 found two corners of the rule that the code got wrong,
+and `spec/integrity.test.ts` now holds both (each was red first):
+
+- **Asking for a +1 when the room is full.** Someone going alone asked to
+  bring a +1 after the last spot had gone. The old code treated that as a
+  fresh Going for two, which didn't fit, so it sent them to the back of the
+  waitlist. The person behind them then moved into their spot. Now they
+  stay going with the party that fits, and the +1 isn't added. Answering
+  again should never make your answer worse.
+- **Removing the limit empties the waitlist.** When a host cleared the spot
+  limit, filling from the waitlist read "no limit" as zero spots free, so
+  everyone kept waiting for an event with room for all of them. Now they
+  all move in, and they're told the same way as any other promotion.
