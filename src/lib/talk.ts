@@ -6,7 +6,7 @@ import { canSee, eventById, eventByShareId, guestsOf } from "./events";
 import { currentMember, currentPerson } from "./identity";
 import type { Person } from "./people";
 import { comments, people, reactions } from "./schema";
-import { todayIn, weekStartOf } from "./time";
+import { DEFAULT_TIMEZONE, todayIn, weekStartOf } from "./time";
 
 // Comments and reactions on a plan --- an event or a hangout. The talk lives
 // with the plan, and only the people it's for can join in: an event's guests
@@ -98,7 +98,7 @@ export function openThread(kind: string, ref: string, cookies: AstroCookies): Th
       moderatorId: null,
       title: hangout.title,
       groupId: hangout.groupId,
-      arrived: hangout.date <= todayIn(getGroup(hangout.groupId)?.timezone ?? "Australia/Sydney"),
+      arrived: hangout.date <= todayIn(getGroup(hangout.groupId)?.timezone ?? DEFAULT_TIMEZONE),
       audience: () =>
         listMembers(hangout.groupId)
           .map((m) => m.personId)
