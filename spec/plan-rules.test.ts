@@ -1,5 +1,6 @@
 import { describe, expect, inject, it } from "vitest";
-import { Person, probe, signedUp, textOf } from "./people";
+import { befriend, Person, probe, signedUp, textOf } from "./people";
+import { listen } from "./stream";
 
 // Rules of a plan that polish found missing: what an RSVP deadline closes,
 // who hears about a changed name, event changes, plans in the past, and
@@ -62,5 +63,73 @@ describe("after the RSVP deadline", () => {
     const doc = (await ben.get(path)).doc;
     const disabled = (value: string) => doc.querySelector<HTMLButtonElement>(`.rsvp button[value="${value}"]`)?.disabled;
     expect([disabled("going"), disabled("maybe"), disabled("declined")]).toEqual([true, false, false]);
+  });
+});
+
+// A real 1×1 PNG, for an avatar upload.
+const PNG = Uint8Array.from(
+  atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="),
+  (c) => c.charCodeAt(0),
+);
+
+/** Ana shares a group with Ben, hosts a public event Ben answered, and Ben
+ *  commented on it. Ben's open pages listen to all three. */
+async function worldAround() {
+  const ana = await signedUp(baseUrl, "Ana");
+  const ben = await signedUp(baseUrl, "Ben");
+  const made = await ana.post("/api/groups", { group: probe("Name crew"), name: ana.name, timezone: "Australia/Sydney" });
+  const groupId = (made.headers.get("location") ?? "").split("/").pop() ?? "";
+  await ben.post(`/api/groups/${groupId}/join`, { name: ben.name });
+  const ev = await ana.post("/api/events", { title: probe("Name picnic"), date: "2030-01-11", start: "12:00", end: "14:00", visibility: "public" });
+  const shareId = (ev.headers.get("location") ?? "").split("/").pop() ?? "";
+  await ben.post(`/api/events/${shareId}/rsvp`, { response: "going" });
+  await ben.post("/api/comments", { kind: "event", ref: shareId, body: "See you there" });
+  const bens = await listen(ben, [`group:${groupId}`, `event:${shareId}`, `thread:event:${shareId}`]);
+  await bens.next((e) => e.event === "hello");
+  return { ana, ben, bens, groupId, shareId };
+}
+
+describe("a changed name or avatar reaches every open page that shows it", () => {
+  it("a new name reaches the group, the event and the plan thread", async () => {
+    const { ana, bens, groupId, shareId } = await worldAround();
+    const renamed = probe("Anabel");
+    await ana.post("/api/me", { name: renamed, back: "/me" });
+    await bens.next((e) => e.event === "change" && e.data.topic ===`group:${groupId}`);
+    await bens.next((e) => e.event === "change" && e.data.topic ===`event:${shareId}`);
+    await bens.next((e) => e.event === "change" && e.data.topic ===`thread:event:${shareId}`);
+    expect(JSON.stringify(bens.seen), "the stream says which topic, never the name").not.toContain(renamed);
+    bens.close();
+  });
+
+  it("a friend's open pages (person:me) hear of the new name", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const ben = await signedUp(baseUrl, "Ben");
+    await befriend(ana, ben);
+    const bens = await listen(ben, ["person:me"]);
+    await bens.next((e) => e.event === "hello");
+    await ana.post("/api/me", { name: probe("Anabel"), back: "/me" });
+    await bens.next((e) => e.event === "change");
+    bens.close();
+  });
+
+  it("a new emoji avatar reaches the group and the event", async () => {
+    const { ana, bens, groupId, shareId } = await worldAround();
+    await ana.post("/api/me", { name: ana.name, avatarEmoji: "🦊", back: "/me" });
+    await bens.next((e) => e.event === "change" && e.data.topic ===`group:${groupId}`);
+    await bens.next((e) => e.event === "change" && e.data.topic ===`event:${shareId}`);
+    bens.close();
+  });
+
+  it("a new photo avatar, and removing it, reach the group, the event and the thread", async () => {
+    const { ana, bens, groupId, shareId } = await worldAround();
+    await ana.upload("/api/me/avatar", {}, [{ name: "me.png", type: "image/png", bytes: PNG }]);
+    await bens.next((e) => e.event === "change" && e.data.topic ===`group:${groupId}`);
+    await bens.next((e) => e.event === "change" && e.data.topic ===`event:${shareId}`);
+    await bens.next((e) => e.event === "change" && e.data.topic ===`thread:event:${shareId}`);
+    bens.clear();
+    await ana.post("/api/me/avatar", { action: "remove" });
+    await bens.next((e) => e.event === "change" && e.data.topic ===`group:${groupId}`);
+    await bens.next((e) => e.event === "change" && e.data.topic ===`event:${shareId}`);
+    bens.close();
   });
 });
