@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { logActivity, personLabel } from "../../lib/activity";
+import { groupRef, logActivity, personLabel } from "../../lib/activity";
 import { createGroup } from "../../lib/db";
 import { flash } from "../../lib/flash";
 import { field } from "../../lib/forms";
@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
   }
   const { group, member } = createGroup({ name, you, timezone, personId: person.id });
   remember(cookies, url, group.id, member.token);
-  logActivity({ who: personLabel(person), action: "created", target: `group ${group.id}`, outcome: "ok", detail: `"${group.name}"` });
+  logActivity({ who: personLabel(person), action: "started", target: groupRef(group), outcome: "ok" });
   flash(cookies, "created");
   return redirect(`/g/${group.id}`, 303);
 };

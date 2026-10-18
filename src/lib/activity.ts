@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { AstroCookies } from "astro";
 import { db } from "./db";
 import { currentMember, currentPerson } from "./identity";
@@ -7,7 +8,8 @@ import { activity } from "./schema";
 //
 // Every state change, and every refusal, goes two places:
 //   - one line on stdout, which Fly captures into `flyctl logs`:
-//       [activity] 2026-10-21T03:14:05Z p12 "Ana" proposed hangout 41 in group abc → ok
+//       [activity] 2026-10-21T03:14:05Z p12 "Ana" proposed hangout 41 in group #3f9a1c "Uni mates" → ok
+//       [activity] 2026-10-21T03:15:40Z p13 "Ben" answered event 9 "Dumpling night" → denied (private event)
 //   - one row in the append-only `activity` table, on the volume, so it's
 //     still there after a restart or a redeploy (scripts/activity.ts reads it)
 //
@@ -15,13 +17,17 @@ import { activity } from "./schema";
 // "Ana"` (profile 12), `m7 "Ben"` (a group member who has no profile yet) or
 // `anon`. NEVER log a token, cookie, friend code or sign-in link, and never a
 // message body: say "commented on hangout 41", with a length at most.
+//
+// A group's id and an event's share id are secrets too: the first is the
+// invite link, the second opens a private event. So name them with
+// `groupRef()` and `eventRef()`, never `${group.id}` or `${event.shareId}`.
 
 export type Activity = {
   /** From `whoIs()`, `personLabel()` or `memberLabel()`. */
   who: string;
-  /** A verb phrase: "saved hours", "proposed hangout". */
+  /** A verb phrase that reads into the target: "saved hours in", "proposed". */
   action: string;
-  /** What it was done to: "hangout 41 in group abc". */
+  /** What it was done to: "hangout 41 in group #3f9a1c \"Uni mates\"". */
   target: string;
   /** "ok", or "denied (reason)". */
   outcome: string;
@@ -38,6 +44,21 @@ const clean = (text: string, max = 60) =>
 
 export const personLabel = (p: { id: number; name: string }) => `p${p.id} "${clean(p.name, 40)}"`;
 export const memberLabel = (m: { id: number; name: string }) => `m${m.id} "${clean(m.name, 40)}"`;
+
+/** Six hex characters of a SHA-256: the same group always reads the same,
+ *  and the tag can't be turned back into the invite link. */
+const tag = (secret: string) => createHash("sha256").update(secret).digest("hex").slice(0, 6);
+
+/** A group, by tag and name. Given only the id someone asked for (a group
+ *  that wasn't found), the tag alone: what they typed might be a near-miss
+ *  of a real invite. */
+export const groupRef = (group: { id: string; name: string } | string | undefined) =>
+  typeof group === "object" ? `group #${tag(group.id)} "${clean(group.name, 40)}"` : `group #${tag(group ?? "")}`;
+
+/** An event, by its numeric id (not the share id, which opens a private one)
+ *  and title. */
+export const eventRef = (event: { id: number; title: string } | undefined) =>
+  event ? `event ${event.id} "${clean(event.title, 40)}"` : "event (no such)";
 
 /** Whoever this request is from: their profile if they have one, else their
  *  membership of `groupId`, else nobody. Reads cookies, never prints them. */
@@ -63,20 +84,18 @@ export const threadTarget = (
 export function logActivity(a: Activity): void {
   try {
     const at = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+    // every field, not just detail: one newline from a form and the next
+    // "line" in flyctl logs is whatever someone typed
+    const who = clean(a.who, 60);
+    const action = clean(a.action, 60);
+    const target = clean(a.target, 160);
+    const outcome = clean(a.outcome, 80);
     const detail = a.detail ? clean(a.detail, 120) : null;
-    const line = `[activity] ${at} ${a.who} ${a.action} ${a.target} → ${a.outcome}${detail ? ` (${detail})` : ""}`;
+    const line = `[activity] ${at} ${who} ${action} ${target} → ${outcome}${detail ? ` (${detail})` : ""}`;
     console.log(line);
-    const id = /^p(\d+) /.exec(a.who)?.[1];
+    const id = /^p(\d+) /.exec(who)?.[1];
     db.insert(activity)
-      .values({
-        at,
-        actorId: id ? Number(id) : null,
-        actorLabel: a.who,
-        action: a.action,
-        target: a.target,
-        outcome: a.outcome,
-        detail,
-      })
+      .values({ at, actorId: id ? Number(id) : null, actorLabel: who, action, target, outcome, detail })
       .run();
   } catch (error) {
     try {

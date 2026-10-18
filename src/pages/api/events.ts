@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { logActivity, personLabel } from "../../lib/activity";
+import { eventRef, logActivity, personLabel } from "../../lib/activity";
 import { allowedInvitees, groupInvitees } from "../../lib/circle";
 import { createEvent } from "../../lib/events";
 import { flash } from "../../lib/flash";
@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     href: `/e/${event.shareId}`,
     actorId: me.id,
   });
-  logActivity({ who: personLabel(me), action: "created event", target: `event ${event.shareId}`, outcome: "ok", detail: `${invites.length} invited` });
+  logActivity({ who: personLabel(me), action: "created", target: eventRef(event), outcome: "ok", detail: `${invites.length} invited` });
   flash(cookies, "hosted");
   return redirect(`/e/${event.shareId}`, 303);
 };

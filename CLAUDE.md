@@ -115,8 +115,8 @@ while two people use the app, so the server has to say who did what.
 
 - **Anything that changes shared state publish()es, notify()s AND logs.** Call
   `logActivity()` (`src/lib/activity.ts`) from the endpoint: who, action, target,
-  outcome. Each call prints one `[activity] <time> p12 "Ana" proposed hangout 41 in group
-  <id> → ok` line to stdout (Fly keeps it) and appends a row to the `activity` table
+  outcome. Each call prints one `[activity] <time> p12 "Ana" proposed hangout 41 in
+  group #3f9a1c "Uni mates" → ok` line to stdout (Fly keeps it) and appends a row to the `activity` table
   on the volume, so it outlives restarts and redeploys. `node scripts/activity.ts
   [db] --last N` reads it back.
 - **Log refusals too.** A 403/404/409 for an access reason goes through
@@ -125,6 +125,11 @@ while two people use the app, so the server has to say who did what.
 - **Never log a secret.** No `hp` / `hg_` cookie, sign-in link or token, no
   friend code, and no message bodies (log "commented on hangout 41" and a
   length). Names are fine: they are how two people are told apart.
+- **Ids that open things are secrets too.** A group's id is its invite link
+  and an event's share id opens a private event, and the first logging pass
+  wrote both into every line. Name them with `groupRef()` (a one-way tag and
+  the name) and `eventRef()` (the numeric id and the title), never
+  `${group.id}` or `${event.shareId}`.
 - **Logging never throws into a request**, and `spec/activity.test.ts` holds
   all of this (it reads the local DB, so it skips where the app's DB isn't
   on this machine, as in CI).

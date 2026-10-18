@@ -1,12 +1,14 @@
 import { existsSync } from "node:fs";
 import Database from "better-sqlite3";
 import { describe, expect, inject, it } from "vitest";
-import { Person, probe } from "./people";
+import { befriend, Person, probe, signedUp } from "./people";
 
 // Crit 10 --- the logging outlives the crit. Every state change, and every
 // refusal, leaves a row in the `activity` table (and a line on stdout, which
 // Fly's `flyctl logs` captures). Tell two people apart, say what each did,
-// and never write a secret.
+// and never write a secret. A group's id is its invite link and an event's
+// share id opens a private event, so those are secrets too: a row names a
+// group or event by a short one-way tag and its name.
 //
 // The test reads the app's own SQLite file, so it only runs where that file
 // is this app's: the app is local and DATABASE_PATH (or the default) exists.
@@ -50,20 +52,21 @@ const lastId = (): number => {
 const WEEK = "2030-01-07"; // a Monday
 async function groupOfTwo() {
   const ana = new Person(baseUrl, probe("Ana"));
-  const res = await ana.post("/api/groups", { group: probe("Log crew"), name: ana.name, timezone: "Australia/Sydney" });
+  const name = probe("Log crew");
+  const res = await ana.post("/api/groups", { group: name, name: ana.name, timezone: "Australia/Sydney" });
   const id = (res.headers.get("location") ?? "").split("/").pop() ?? "";
   const ben = new Person(baseUrl, probe("Ben"));
   await ben.post(`/api/groups/${id}/join`, { name: ben.name });
-  return { ana, ben, id };
+  return { ana, ben, id, name };
 }
 
 describe("crit 10: logs who did what", () => {
   sqlite("two people saving hours in one group leave two rows with different, named actors", async () => {
-    const { ana, ben, id } = await groupOfTwo();
+    const { ana, ben, id, name } = await groupOfTwo();
     const since = lastId();
     await ana.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${WEEK}T18`, `${WEEK}T19`] });
     await ben.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${WEEK}T20`] });
-    const saved = rows(since).filter((r) => /hours/.test(r.action) && r.target.includes(id));
+    const saved = rows(since).filter((r) => /hours/.test(r.action) && r.target.includes(name));
     expect(saved).toHaveLength(2);
     const [a, b] = saved;
     expect(a.actor_label).toContain(ana.name);
@@ -74,12 +77,12 @@ describe("crit 10: logs who did what", () => {
   });
 
   sqlite("a stranger saving hours in a group they are not in is logged as denied", async () => {
-    const { id } = await groupOfTwo();
+    const { id, name } = await groupOfTwo();
     const since = lastId();
     const stranger = new Person(baseUrl, probe("Stranger"));
     const res = await stranger.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${WEEK}T18`] });
     expect(res.status).toBe(403);
-    const denied = rows(since).filter((r) => r.target.includes(id));
+    const denied = rows(since).filter((r) => r.target.includes(name));
     expect(denied).toHaveLength(1);
     expect(denied[0].outcome).toMatch(/^denied/);
     expect(denied[0].actor_label).toBe("anon");
@@ -99,6 +102,57 @@ describe("crit 10: logs who did what", () => {
     expect(secrets.length).toBeGreaterThan(2);
     for (const s of secrets) expect(all, "a secret reached the activity log").not.toContain(s);
     expect(all).not.toMatch(/hp=|hg_/);
+  });
+
+  sqlite("no row holds a group's invite id or a private event's share id, and both are still named", async () => {
+    const since = lastId();
+    const { ana, ben, id, name } = await groupOfTwo();
+    await ana.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${WEEK}T18`] });
+    await ben.post(`/api/groups/${id}/hangouts`, { date: WEEK, start: "18", end: "19" });
+    await new Person(baseUrl, probe("Stranger")).post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${WEEK}T18`] });
+
+    const host = await signedUp(baseUrl, "Host");
+    const guest = await signedUp(baseUrl, "Guest");
+    await befriend(host, guest);
+    const title = probe("Secret dinner");
+    const made = await host.post("/api/events", { title, visibility: "private", date: "2030-01-10", start: "19:00", end: "22:00" });
+    const shareId = (made.headers.get("location") ?? "").split("/").pop() ?? "";
+    expect(shareId.length, "the event was made").toBeGreaterThanOrEqual(8);
+    const nosy = await signedUp(baseUrl, "Nosy");
+    expect((await nosy.post(`/api/events/${shareId}/rsvp`, { response: "going" })).status).toBe(403);
+    await host.post(`/api/events/${shareId}/cancel`);
+
+    const all = rows(since);
+    const text = JSON.stringify(all);
+    expect(text, "a group's invite id reached the activity log").not.toContain(id);
+    expect(text, "a private event's share id reached the activity log").not.toContain(shareId);
+    // still narratable: the same group reads the same way on every line
+    const groupRows = all.filter((r) => r.target.includes(name));
+    expect(groupRows.length).toBeGreaterThanOrEqual(4);
+    expect(new Set(groupRows.map((r) => /group (\w+)/.exec(r.target)?.[1])).size, "one stable tag per group").toBe(1);
+    const eventRows = all.filter((r) => r.target.includes(title));
+    expect(eventRows.map((r) => `${r.action} → ${r.outcome}`)).toEqual([
+      "created → ok",
+      "answered → denied (private event)",
+      "cancelled → ok",
+    ]);
+  });
+
+  sqlite("what someone types can't forge a log line, and a row says what happened, not what was asked", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const ben = await signedUp(baseUrl, "Ben");
+    await befriend(ana, ben);
+    const since = lastId();
+    const benId = /p(\d+) /.exec(rows(0).findLast((r) => r.actor_label.includes(ben.name))?.actor_label ?? "")?.[1] ?? "";
+    expect(benId).not.toBe("");
+    const forged = `remove\n[activity] 2026-01-01T00:00:00Z p1 "Admin" deleted everything → ok`;
+    await ana.post("/api/friends/respond", { person: benId, action: forged });
+    for (const r of rows(since)) {
+      for (const field of [r.actor_label, r.action, r.target, r.outcome, r.detail ?? ""]) {
+        expect(field, "a newline in a row would start a forged line in flyctl logs").not.toMatch(/[\r\n]/);
+        expect(field).not.toContain("deleted everything");
+      }
+    }
   });
 
   // Works everywhere: a refusal is still a refusal over HTTP, and the

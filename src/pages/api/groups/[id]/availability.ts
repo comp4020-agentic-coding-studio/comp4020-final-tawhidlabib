@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { logActivity, refuse, whoIs } from "../../../../lib/activity";
+import { groupRef, logActivity, refuse, whoIs } from "../../../../lib/activity";
 import { getGroup, setAvailability } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { publish } from "../../../../lib/live";
@@ -13,10 +13,10 @@ import { HOURS, isDate, weekDates, weekStartOf } from "../../../../lib/time";
  *  whole answer for that week: an hour left unticked is an hour not free. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
   const group = getGroup(params.id ?? "");
-  if (!group) return refuse(cookies, "saved hours in", `group ${params.id}`, "not found", 404, "No such group");
+  if (!group) return refuse(cookies, "saved hours in", groupRef(params.id), "not found", 404, "No such group");
   const me = currentMember(cookies, group.id);
-  if (!me) return refuse(cookies, "saved hours in", `group ${group.id}`, "not a member", 403, "Join the group first", group.id);
-  if (isArchived(group)) return refuse(cookies, "saved hours in", `group ${group.id}`, "group archived", 409, "This group is archived", group.id);
+  if (!me) return refuse(cookies, "saved hours in", groupRef(group), "not a member", 403, "Join the group first", group.id);
+  if (isArchived(group)) return refuse(cookies, "saved hours in", groupRef(group), "group archived", 409, "This group is archived", group.id);
 
   const form = await request.formData();
   const week = String(form.get("week") ?? "");
@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   }
 
   setAvailability(me.id, dates, free);
-  logActivity({ who: whoIs(cookies, group.id), action: "saved hours in", target: `group ${group.id}`, outcome: "ok", detail: `${free.length} hours, week of ${week}${form.has("quiet") ? ", autosave" : ""}${form.has("none") ? ", none work" : ""}` });
+  logActivity({ who: whoIs(cookies, group.id), action: "saved hours in", target: groupRef(group), outcome: "ok", detail: `${free.length} hours, week of ${week}${form.has("quiet") ? ", autosave" : ""}${form.has("none") ? ", none work" : ""}` });
   // any save answers for the week --- hours, or "none of these work" (ADR 10)
   if (free.length > 0 || form.has("none")) markAnswered(me.id, week);
   publish(`group:${group.id}`, "availability");

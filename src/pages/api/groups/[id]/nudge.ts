@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { logActivity, refuse, whoIs } from "../../../../lib/activity";
+import { groupRef, logActivity, refuse, whoIs } from "../../../../lib/activity";
 import { getGroup } from "../../../../lib/db";
 import { flash } from "../../../../lib/flash";
 import { currentMember } from "../../../../lib/identity";
@@ -12,9 +12,9 @@ import { dayLabel, isDate, weekStartOf } from "../../../../lib/time";
  *  it's a reminder, not a nag. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
   const group = getGroup(params.id ?? "");
-  if (!group) return refuse(cookies, "nudged", `group ${params.id}`, "not found", 404, "No such group");
+  if (!group) return refuse(cookies, "nudged", groupRef(params.id), "not found", 404, "No such group");
   const me = currentMember(cookies, group.id);
-  if (!me?.personId) return refuse(cookies, "nudged", `group ${group.id}`, "not a member with a profile", 403, "Join the group with a profile first", group.id);
+  if (!me?.personId) return refuse(cookies, "nudged", groupRef(group), "not a member with a profile", 403, "Join the group with a profile first", group.id);
 
   const form = await request.formData();
   const week = String(form.get("week") ?? "");
@@ -23,7 +23,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
     return redirect(`/g/${group.id}#people`, 303);
   }
   const sent = nudgeOnce(group.id, me.personId, them.id, week);
-  logActivity({ who: whoIs(cookies, group.id), action: "nudged", target: `m${them.id} "${them.name}" in group ${group.id}`, outcome: "ok", detail: sent ? `week of ${week}` : "already nudged this week" });
+  logActivity({ who: whoIs(cookies, group.id), action: "nudged", target: `m${them.id} "${them.name}" in ${groupRef(group)}`, outcome: "ok", detail: sent ? `week of ${week}` : "already nudged this week" });
   if (sent) {
     notify([them.personId], {
       kind: "nudge",
