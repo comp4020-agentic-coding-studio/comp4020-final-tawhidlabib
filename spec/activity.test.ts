@@ -86,6 +86,8 @@ describe("crit 10: logs who did what", () => {
     expect(denied).toHaveLength(1);
     expect(denied[0].outcome).toMatch(/^denied/);
     expect(denied[0].actor_label).toBe("anon");
+    // a refusal never reads as though it happened
+    expect(denied[0].action).toBe("tried to save hours in");
   });
 
   sqlite("no row holds a cookie token or a friend code", async () => {
@@ -133,7 +135,7 @@ describe("crit 10: logs who did what", () => {
     const eventRows = all.filter((r) => r.target.includes(title));
     expect(eventRows.map((r) => `${r.action} → ${r.outcome}`)).toEqual([
       "created → ok",
-      "answered → denied (private event)",
+      "tried to answer → denied (private event)",
       "cancelled → ok",
     ]);
   });

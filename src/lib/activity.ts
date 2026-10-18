@@ -106,10 +106,39 @@ export function logActivity(a: Activity): void {
   }
 }
 
+/** "tried to edit": a refusal must never read as though it happened. Past
+ *  tense, as callers write it, becomes the bare verb ("edited" → "edit"). */
+const attempted = (action: string) => {
+  if (action.startsWith("tried to ")) return action;
+  const [verb, ...rest] = action.split(" ");
+  const bare = TRIED[verb] ?? verb;
+  return ["tried to", bare, ...rest].join(" ");
+};
+const TRIED: Record<string, string> = {
+  added: "add",
+  answered: "answer",
+  cancelled: "cancel",
+  closed: "close",
+  commented: "comment",
+  copied: "copy",
+  created: "create",
+  deleted: "delete",
+  edited: "edit",
+  invited: "invite",
+  joined: "join",
+  muted: "mute",
+  nudged: "nudge",
+  proposed: "propose",
+  rated: "rate",
+  reacted: "react",
+  saved: "save",
+  voted: "vote",
+};
+
 /** A refusal for an access reason (403, 404, 409): the log is how you show
  *  that one person couldn't change what was another's. */
 export function deny(cookies: AstroCookies, action: string, target: string, reason: string, groupId?: string): void {
-  logActivity({ who: whoIs(cookies, groupId), action, target, outcome: `denied (${reason})` });
+  logActivity({ who: whoIs(cookies, groupId), action: attempted(action), target, outcome: `denied (${reason})` });
 }
 
 /** The line format, for reading rows back (scripts/activity.ts). */
