@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import Database from "better-sqlite3";
 import { describe, expect, inject, it } from "vitest";
 import { befriend, Person, probe, signedUp, textOf } from "./people";
 import { listen } from "./stream";
@@ -211,3 +213,93 @@ describe("event changes reach every guest's own pages", () => {
     for (const s of Object.values(streams)) s.close();
   });
 });
+
+/** Today's date where `tz` is, the way the app reckons it. */
+const todayIn = (tz: string, plusDays = 0) =>
+  new Date(Date.now() + plusDays * 86_400_000).toLocaleDateString("en-CA", { timeZone: tz });
+
+describe("proposing a plan in the past", () => {
+  async function group() {
+    const ana = new Person(baseUrl, probe("Ana"));
+    const res = await ana.post("/api/groups", { group: probe("Past crew"), name: ana.name, timezone: "Australia/Sydney" });
+    return { ana, path: res.headers.get("location") ?? "", id: (res.headers.get("location") ?? "").split("/").pop() ?? "" };
+  }
+
+  it("refuses a date before today, in the group's timezone, with a reason", async () => {
+    const { ana, id } = await group();
+    const res = await ana.post(`/api/groups/${id}/hangouts`, { date: todayIn("Australia/Sydney", -1), start: "18", end: "20", title: "Yesterday" });
+    expect(res.status).toBe(400);
+    expect(await res.text()).toMatch(/past/i);
+    const old = await ana.post(`/api/groups/${id}/hangouts`, { date: "2020-01-01", start: "18", end: "20", title: "Ages ago" });
+    expect(old.status).toBe(400);
+  });
+
+  it("still takes today and later", async () => {
+    const { ana, id } = await group();
+    for (const plusDays of [0, 3]) {
+      const res = await ana.post(`/api/groups/${id}/hangouts`, { date: todayIn("Australia/Sydney", plusDays), start: "18", end: "20", title: `Day ${plusDays}` });
+      expect(res.status, `+${plusDays} days`).toBe(303);
+    }
+  });
+
+  it("a past event is not described as today", async () => {
+    const host = await signedUp(baseUrl, "Host");
+    const res = await host.post("/api/events", { title: probe("Long ago"), date: "2020-01-01", start: "19:00", end: "21:00", visibility: "public" });
+    const doc = (await host.get(res.headers.get("location") ?? "")).doc;
+    const pills = [...doc.querySelectorAll(".ev-pills .pill")].map((p) => p.textContent?.trim());
+    expect(pills.join(" | ")).not.toMatch(/today/i);
+    expect(pills.join(" | ")).toMatch(/past/i);
+  });
+});
+
+describe("a vote for an option the poll doesn't have", () => {
+  const dbPath = process.env.DATABASE_PATH ?? "./.data/app.db";
+  const local = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(process.env.APP_URL ?? "http://localhost:8080") && existsSync(dbPath);
+
+  it("is refused with a 400, publishes nothing, and is logged as denied", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const made = await ana.post("/api/events", { title: probe("Poll night"), date: "2030-01-11", start: "19:00", end: "21:00", visibility: "public" });
+    const path = made.headers.get("location") ?? "";
+    const shareId = path.split("/").pop() ?? "";
+    await ana.post("/api/polls", { kind: "event", ref: shareId, question: "Where?", option: ["Pizza", "Tacos"] });
+    const { doc } = await ana.get(path);
+    const action = doc.querySelector<HTMLFormElement>('form[action$="/vote"]')?.getAttribute("action") ?? "";
+    const pizza = doc.querySelector<HTMLButtonElement>('form[action$="/vote"] button[name="option"]')?.value ?? "";
+    expect(action, "the poll is on the page").not.toBe("");
+
+    const listener = await listen(ana, [`thread:event:${shareId}`]);
+    await listener.next((e) => e.event === "hello");
+    const since = local ? lastActivityId(dbPath) : 0;
+
+    const bad = await ana.post(action, { option: String(Number(pizza) + 100000) });
+    expect(bad.status).toBe(400);
+    await new Promise((r) => setTimeout(r, 400));
+    expect(listener.seen.filter((e) => e.event === "change"), "nothing published").toEqual([]);
+    if (local) {
+      const rows = activityRows(dbPath, since).filter((r) => /voted/.test(r.action));
+      expect(rows.map((r) => r.outcome)).toEqual([expect.stringMatching(/^denied/)]);
+    }
+
+    // and a real option still votes and publishes
+    expect((await ana.post(action, { option: pizza })).status).toBe(303);
+    await listener.next((e) => e.event === "change");
+    listener.close();
+  });
+});
+
+function activityRows(dbPath: string, since: number) {
+  const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+  try {
+    return db.prepare("SELECT action, outcome FROM activity WHERE id > ? ORDER BY id").all(since) as { action: string; outcome: string }[];
+  } finally {
+    db.close();
+  }
+}
+function lastActivityId(dbPath: string): number {
+  const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+  try {
+    return (db.prepare("SELECT max(id) m FROM activity").get() as { m: number | null }).m ?? 0;
+  } finally {
+    db.close();
+  }
+}
