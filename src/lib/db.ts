@@ -52,6 +52,30 @@ if (dangling.length > 0) {
   throw new Error(`migrations left ${dangling.length} row(s) pointing at nothing: refusing to start`);
 }
 
+// On the way down --- a deploy, Fly stopping an idle machine (SIGTERM), Ctrl+C
+// (SIGINT) --- fold the write-ahead log back into the database file and
+// close it, so the volume holds one whole file rather than a file and a log.
+// A handler replaces Node's default of exiting, so this exits itself. Here,
+// beside the client: the database opens with the first request, and before
+// that there's nothing to close. Once per process, since the dev server can
+// load this module again.
+const SHUTDOWN = Symbol.for("hangout.db.shutdown");
+const proc = process as NodeJS.Process & { [SHUTDOWN]?: true };
+if (!proc[SHUTDOWN]) {
+  proc[SHUTDOWN] = true;
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.once(signal, () => {
+      try {
+        client.pragma("wal_checkpoint(TRUNCATE)");
+        client.close();
+      } catch {
+        // best effort: SQLite replays the WAL on the next open anyway
+      }
+      process.exit(0);
+    });
+  }
+}
+
 /** Whether the database answers: the health check's question. */
 export function healthy(): boolean {
   try {
