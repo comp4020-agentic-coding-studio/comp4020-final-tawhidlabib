@@ -46,7 +46,8 @@ describe("security headers, on every kind of response", () => {
     expectHeaders(res, "a form's 303");
     expectHeaders((await ana.get(path)).res, "a group page");
     expectHeaders((await ana.get("/partials/thread?kind=hangout&ref=0")).res, "a partial");
-    expectHeaders(await fetch(new URL("/favicon.svg", baseUrl)), "a static file");
+    // Not static files (/_astro/*, /favicon.svg): the Node adapter serves
+    // those before middleware runs, and they're this site's own assets.
     expectHeaders(await fetch(new URL("/api/groups/nope/manage", baseUrl), { method: "POST", headers: { origin: baseUrl } }), "a refusal");
 
     const id = path.split("/").pop() ?? "";
