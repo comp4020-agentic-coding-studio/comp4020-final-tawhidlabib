@@ -44,6 +44,16 @@ COPY --from=build /app/drizzle /app/drizzle
 
 # the SQLite file lives on the volume, so state survives reloads, restarts,
 # and redeploys
+#
+# This stage runs as root, on purpose for now. Fly mounts the volume at
+# /data owned by root, and the app has to write app.db, its WAL and
+# uploads/ there. Running as the image's `node` user would need /data
+# chown'd at every start (a small root entrypoint, then dropping to node),
+# and a mistake there stops every write with no error until someone saves.
+# That change wasn't made because it couldn't be checked against a real
+# volume here (no Docker running when it was considered, 19 Oct 2026).
+# Before making it: build, run with `-v` on a root-owned dir at /data, and
+# check that a group saves and a photo uploads.
 ENV DATABASE_PATH=/data/app.db
 ENV HOST=0.0.0.0
 ENV PORT=8080
