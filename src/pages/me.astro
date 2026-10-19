@@ -216,6 +216,27 @@ const blocked = person ? peopleByIds([...blockedBy(person.id)]) : [];
           </div>
         </section>
 
+        <section class="card stack logout" aria-labelledby="delete-h" style="--i: 4">
+          <h2 id="delete-h">Delete your profile</h2>
+          <p class="muted">
+            This removes you from Hangout for good. You leave every group (if you run one, the
+            longest-standing member takes over), and the events you host are cancelled. Your
+            comments, reactions, ratings, photos, votes and the polls you asked go too, along
+            with your friends list and inbox. Plans you proposed stay with their group. There's
+            no undo.
+          </p>
+          <form
+            method="post"
+            action="/api/me/delete"
+            data-confirm="Delete your profile for good? Your groups, friends, comments and photos can't be brought back."
+          >
+            <input type="hidden" name="confirm" value="delete" />
+            <button type="submit" class="button ghost danger">
+              Delete my profile
+            </button>
+          </form>
+        </section>
+
         <section class="card stack" aria-labelledby="groups-h" style="--i: 3">
           <h2 id="groups-h">Your groups</h2>
           <p class="muted">

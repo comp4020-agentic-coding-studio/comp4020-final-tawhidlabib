@@ -43,3 +43,21 @@ So albums of phone photos fill the volume faster than they need to, and
 load slower on a phone. The volume isn't backed up; losing it loses the
 photos with the database. Moving photos to object storage would need a
 second service outside the course setup.
+
+## Later
+
+**19 Oct 2026: photos are stripped, and go when their owner does.**
+
+- **No metadata.** Every upload is re-encoded with `sharp` before it's
+  kept. The photo is turned upright by its EXIF orientation, then written
+  in the same format with no EXIF, GPS, XMP or colour profile. A phone
+  photo used to carry where it was taken to everyone who could see it,
+  and avatars are public. That outweighed the cost this ADR gave for an
+  image library. sharp ships prebuilt for linux-x64 and arm64, so the
+  image needs no toolchain for it. It runs one image at a time, and
+  refuses anything over 50 megapixels before decoding it.
+- **Deleting your profile deletes your files.** `/api/me/delete` removes
+  every album photo you added and your avatar from `uploads/`, not just
+  their rows. `/media` and `/avatars` would 404 a file with no row anyway,
+  but an orphaned file still fills the 1 GB volume.
+  `spec/platform.test.ts` looks in the folder to check.

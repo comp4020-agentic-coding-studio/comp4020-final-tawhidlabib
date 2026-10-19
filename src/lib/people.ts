@@ -1,7 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { db } from "./db";
+import { type Event, refill } from "./events";
 import { publish } from "./live";
+import { leaveGroup } from "./manage";
 import {
   comments,
   eventGuests,
@@ -140,4 +142,76 @@ export function topicsShowing(personId: number): string[] {
 /** Tell every open page that shows this person that they changed. */
 export function publishPersonChanged(personId: number, what: string): void {
   for (const topic of topicsShowing(personId)) publish(topic, what);
+}
+
+/** What deleting someone touched, for the endpoint to tidy up after:
+ *  files to remove, pages to refresh, people to tell. */
+export type Deleted = {
+  /** Upload names (album photos and the avatar); the rows are gone. */
+  files: string[];
+  /** Every topic whose page showed them, read before anything went. */
+  topics: string[];
+  /** Each group they were in: left (another member runs it now) or gone
+   *  (they were the last). */
+  groups: { group: Group; outcome: "left" | "gone" }[];
+  /** Events they hosted, which went with them, and who'd been asked. */
+  cancelled: { event: Event; guests: { personId: number; response: string }[] }[];
+  /** People moved in from a waitlist to the spots they left, by event. */
+  promoted: { event: Event; personIds: number[] }[];
+};
+
+/** Delete a person, in one transaction. Each group they're in, they leave
+ *  the way anyone leaves (an admin hands over to the longest-standing
+ *  member; the last one out takes the group). Events they host go, as if
+ *  cancelled. Then the profile row, and with it, by the schema's cascades,
+ *  their friendships, blocks, inbox, comments, reactions, ratings, poll
+ *  votes and polls, photo rows, bans and nudges. What the group made
+ *  together stays: a hangout they proposed keeps going (proposed_by goes
+ *  null). A spot they held at someone else's event goes to whoever was
+ *  waiting (ADR 6). Files are the caller's to delete, after. */
+export function deletePerson(personId: number): Deleted {
+  return db.transaction((tx) => {
+    const person = tx.select().from(people).where(eq(people.id, personId)).get();
+    if (!person) return { files: [], topics: [], groups: [], cancelled: [], promoted: [] };
+    const topics = topicsShowing(personId);
+    const files = tx
+      .select({ file: photos.file })
+      .from(photos)
+      .where(eq(photos.uploaderId, personId))
+      .all()
+      .map((p) => p.file);
+    if (person.avatarPhoto) files.push(person.avatarPhoto);
+
+    // Before the profile row, and not only for the admin hand-over: schema.ts
+    // says members.person_id is "set null", but migration 0001 added it with
+    // ALTER TABLE, which can't carry an ON DELETE, so the database has NO
+    // ACTION. Deleting a person who still has member rows fails the key.
+    const left = groupsOfPerson(personId).map(({ group, member }) => ({ group, outcome: leaveGroup(group, member) }));
+
+    const hosted = tx.select().from(events).where(eq(events.hostId, personId)).all();
+    const cancelled = hosted.map((event) => ({
+      event,
+      guests: tx
+        .select({ personId: eventGuests.personId, response: eventGuests.response })
+        .from(eventGuests)
+        .where(and(eq(eventGuests.eventId, event.id), ne(eventGuests.personId, personId)))
+        .all(),
+    }));
+    // a guest elsewhere: those events have a spot to refill once they're gone
+    const elsewhere = tx
+      .select({ event: events })
+      .from(eventGuests)
+      .innerJoin(events, eq(events.id, eventGuests.eventId))
+      .where(and(eq(eventGuests.personId, personId), ne(events.hostId, personId)))
+      .all()
+      .map((r) => r.event);
+
+    if (hosted.length > 0) tx.delete(events).where(inArray(events.id, hosted.map((e) => e.id))).run();
+    tx.delete(people).where(eq(people.id, personId)).run();
+
+    const promoted = elsewhere
+      .map((event) => ({ event, personIds: refill(event) }))
+      .filter((p) => p.personIds.length > 0);
+    return { files, topics, groups: left, cancelled, promoted };
+  });
 }
