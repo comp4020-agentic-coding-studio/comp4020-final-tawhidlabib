@@ -20,7 +20,10 @@ RUN npm install -g pnpm@$PNPM_VERSION
 FROM base AS build
 
 # toolchain for native modules (better-sqlite3), in case no prebuilt binary
-# matches the image platform
+# matches the image platform. sharp (photos, src/lib/media.ts) needs none:
+# installing here, on Linux, picks its prebuilt @img/sharp-linux-<arch>
+# package with libvips inside, which wants glibc >= 2.28 (slim is bookworm,
+# 2.36). That's why node_modules is never copied in from a Mac.
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
 
