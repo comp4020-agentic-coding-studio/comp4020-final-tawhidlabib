@@ -68,6 +68,73 @@ describe("a health check Fly can ask", () => {
   });
 });
 
+describe("a photo carries nothing out of the phone it came from", () => {
+  // Phones write where a photo was taken (EXIF GPS) into the file. Avatars
+  // are public and album photos go to a whole group, so a picture of
+  // someone's lounge room could say where they live. A real 2x2 JPEG, with
+  // an APP1 "Exif\0\0" segment spliced in after its start marker: a little-
+  // endian TIFF header and a string standing in for the GPS block.
+  const JPEG = Uint8Array.from(
+    atob(
+      "/9j/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wAARCAACAAIDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAT/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAABf/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJgBh5//2Q==",
+    ),
+    (c) => c.charCodeAt(0),
+  );
+  const MARKER = "GPS-35.2809S-149.1300E-hangout-marker";
+  function withExif(jpeg: Uint8Array): Uint8Array<ArrayBuffer> {
+    const tiff = [0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00]; // "II*\0", IFD at 8
+    const body = [...new TextEncoder().encode("Exif\0\0"), ...tiff, ...new TextEncoder().encode(MARKER)];
+    const length = body.length + 2;
+    const app1 = [0xff, 0xe1, length >> 8, length & 0xff, ...body];
+    return Uint8Array.from([...jpeg.slice(0, 2), ...app1, ...jpeg.slice(2)]);
+  }
+  const has = (bytes: Uint8Array, text: string) => Buffer.from(bytes).includes(Buffer.from(text));
+
+  it("the test photo really carries the marker, and is still a JPEG", () => {
+    const photo = withExif(JPEG);
+    expect(has(photo, MARKER)).toBe(true);
+    expect([...photo.slice(0, 4)]).toEqual([0xff, 0xd8, 0xff, 0xe1]);
+  });
+
+  it("an avatar is served without its EXIF", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const res = await ana.upload("/api/me/avatar", {}, [{ name: "me.jpg", type: "image/jpeg", bytes: withExif(JPEG) }]);
+    expect(res.status).toBe(303);
+    const src = (await ana.get("/me")).doc.querySelector(".me-link img")?.getAttribute("src") ?? "";
+    expect(src).toMatch(/^\/avatars\/.+\.jpg$/);
+    const served = await fetch(new URL(src, baseUrl));
+    expect(served.status).toBe(200);
+    expect(served.headers.get("content-type")).toBe("image/jpeg");
+    const bytes = new Uint8Array(await served.arrayBuffer());
+    expect([...bytes.slice(0, 3)], "still a JPEG").toEqual([0xff, 0xd8, 0xff]);
+    expect(has(bytes, MARKER), "the GPS marker reached a stranger").toBe(false);
+    expect(has(bytes, "Exif\0\0"), "no EXIF block at all").toBe(false);
+  });
+
+  it("an album photo is served without its EXIF", async () => {
+    const ana = new Person(baseUrl, probe("Ana"));
+    const made = await ana.post("/api/groups", { group: probe("Exif crew"), name: ana.name, timezone: "Australia/Sydney" });
+    const path = made.headers.get("location") ?? "";
+    const id = path.split("/").pop();
+    const title = probe("Beach day");
+    await ana.post(`/api/groups/${id}/hangouts`, { date: "2026-01-10", start: "10", end: "14", title });
+    const card = () =>
+      ana.get(path).then(({ doc }) => [...doc.querySelectorAll("#plans-body article")].find((a) => a.textContent?.includes(title)));
+    const ref = (await card())?.querySelector("[data-thread]")?.getAttribute("data-thread")?.split(":")[1] ?? "";
+    expect(ref, "the past hangout is on the group page").not.toBe("");
+
+    const res = await ana.upload("/api/photos", { kind: "hangout", ref }, [{ name: "beach.jpg", type: "image/jpeg", bytes: withExif(JPEG) }]);
+    expect(res.status).toBe(303);
+    const src = (await card())?.querySelector(".album img")?.getAttribute("src") ?? "";
+    expect(src).toMatch(/^\/media\/.+\.jpg$/);
+    const served = await fetch(new URL(src, baseUrl), { headers: { cookie: ana.cookie } });
+    expect(served.status).toBe(200);
+    const bytes = new Uint8Array(await served.arrayBuffer());
+    expect([...bytes.slice(0, 3)], "still a JPEG").toEqual([0xff, 0xd8, 0xff]);
+    expect(has(bytes, MARKER), "the GPS marker reached the group").toBe(false);
+  });
+});
+
 describe.skipIf(!chromePath)("the CSP, in a real browser", () => {
   let browser: Browser;
   beforeAll(async () => {
