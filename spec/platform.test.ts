@@ -2,7 +2,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdtempSync, statSync } from "node:fs";
 import { type AddressInfo, createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import Database from "better-sqlite3";
 import type { Browser } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -235,6 +235,17 @@ describe("deleting your profile", () => {
 
     const nobody = await new Person(baseUrl).post("/api/me/delete", { confirm: "delete" });
     expect(nobody.status).toBe(303);
+  });
+
+  it.skipIf(!local)("the files go too, not just the rows that pointed at them", async () => {
+    // Over HTTP a deleted photo 404s either way: /media and /avatars check
+    // its row first. So this looks in the uploads folder itself (ADR 8).
+    const { ana, photo, avatar } = await world();
+    const uploads = join(dirname(dbPath), "uploads");
+    const files = [photo, avatar].map((src) => join(uploads, src.split("/").pop() ?? ""));
+    for (const f of files) expect(existsSync(f), `${f} is on disk first`).toBe(true);
+    await ana.post("/api/me/delete", { confirm: "delete" });
+    for (const f of files) expect(existsSync(f), `${f} was deleted with her`).toBe(false);
   });
 
   it.skipIf(!local)("the log says who by number, never by name", async () => {
