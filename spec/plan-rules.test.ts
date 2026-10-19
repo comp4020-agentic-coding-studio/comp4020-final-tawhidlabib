@@ -273,8 +273,11 @@ describe("a vote for an option the poll doesn't have", () => {
     await new Promise((r) => setTimeout(r, 400));
     expect(listener.seen.filter((e) => e.event === "change"), "nothing published").toEqual([]);
     if (local) {
-      // refusals read "tried to vote on poll" (deny() words every refusal as an attempt)
-      const rows = activityRows(dbPath, since).filter((r) => /vot/.test(r.action));
+      // refusals read "tried to vote on poll" (deny() words every refusal as an attempt);
+      // only this poll's rows: tests run in parallel against one database, and
+      // another test's vote can land in the same window
+      const pollId = action.split("/")[3];
+      const rows = activityRows(dbPath, since).filter((r) => /vot/.test(r.action) && r.target === `poll ${pollId}`);
       expect(rows.map((r) => r.outcome)).toEqual([expect.stringMatching(/^denied/)]);
     }
 
@@ -288,7 +291,11 @@ describe("a vote for an option the poll doesn't have", () => {
 function activityRows(dbPath: string, since: number) {
   const db = new Database(dbPath, { readonly: true, fileMustExist: true });
   try {
-    return db.prepare("SELECT action, outcome FROM activity WHERE id > ? ORDER BY id").all(since) as { action: string; outcome: string }[];
+    return db.prepare("SELECT action, target, outcome FROM activity WHERE id > ? ORDER BY id").all(since) as {
+      action: string;
+      target: string;
+      outcome: string;
+    }[];
   } finally {
     db.close();
   }
