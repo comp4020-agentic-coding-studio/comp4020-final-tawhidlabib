@@ -74,6 +74,61 @@ describe("a health check Fly can ask", () => {
   });
 });
 
+describe("two ways to log out", () => {
+  // Logging out used to delete this browser's cookies and change nothing on
+  // the server, so a cookie copied off a shared laptop worked forever (HD
+  // audit item 21). Now there are two buttons, each saying what it does:
+  // this device only, or every other device (the token rotates, so every
+  // copy of the old cookie and the old link stops working). The device you
+  // press it on stays signed in with the new link: with no password, signing
+  // out every device at once would lock you out of your own profile.
+  const linkOf = async (p: Person) => /\/me\/sign-in\/([A-Za-z0-9_-]+)/.exec((await p.get("/me")).html)?.[1] ?? "";
+
+  it("/me offers both, and says what each does", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const { doc } = await ana.get("/me");
+    const forms = [...doc.querySelectorAll<HTMLFormElement>('form[action="/api/me/logout"]')];
+    const scopes = forms.map((f) => f.querySelector<HTMLInputElement>('input[name="scope"]')?.value ?? "device");
+    expect(scopes.sort()).toEqual(["device", "everywhere"]);
+    for (const f of forms) expect(f.getAttribute("data-confirm"), "each asks first").toBeTruthy();
+    const everywhere = forms.find((f) => f.querySelector('input[name="scope"][value="everywhere"]'));
+    expect(everywhere?.textContent, "the button says it's every other device").toMatch(/everywhere else|other devices/i);
+  });
+
+  it("log out everywhere else: a copied cookie and the old link stop working; this device carries on", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const oldToken = await linkOf(ana);
+    const oldCookie = ana.jar.get("hp") ?? "";
+    expect(oldToken).not.toBe("");
+
+    const res = await ana.post("/api/me/logout", { scope: "everywhere" });
+    expect(res.status).toBe(303);
+
+    const replay = new Person(baseUrl);
+    replay.jar.set("hp", oldCookie);
+    expect((await replay.get("/me")).html, "the old hp cookie no longer signs anyone in").not.toContain(ana.name);
+    expect((await replay.get(`/me/sign-in/${oldToken}`)).res.status, "nor does the old link").toBe(404);
+
+    const newToken = await linkOf(ana);
+    expect(newToken, "this device is still Ana, with a new link").not.toBe("");
+    expect(newToken).not.toBe(oldToken);
+    const phone = new Person(baseUrl);
+    await phone.post("/api/me/sign-in", { token: newToken });
+    expect((await phone.get("/me")).html, "the new link signs in").toContain(ana.name);
+  });
+
+  it("log out on this device changes nothing on the server: the link still brings you back", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const token = await linkOf(ana);
+    const copy = new Person(baseUrl);
+    copy.jar.set("hp", ana.jar.get("hp") ?? "");
+    expect((await ana.post("/api/me/logout", { scope: "device" })).status).toBe(303);
+    expect(ana.jar.has("hp")).toBe(false);
+    expect((await copy.get("/me")).html, "another device stays signed in").toContain(ana.name);
+    expect((await new Person(baseUrl).get(`/me/sign-in/${token}`)).res.status, "the link still works").toBe(200);
+  });
+});
+
 describe("shutting down", () => {
   // A deploy, or Fly stopping an idle machine, sends SIGTERM; Ctrl+C sends
   // SIGINT. The server should fold its write-ahead log back into the
