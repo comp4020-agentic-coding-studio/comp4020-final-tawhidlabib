@@ -1,3 +1,9 @@
+import { execFileSync, spawn } from "node:child_process";
+import { existsSync, mkdtempSync, statSync } from "node:fs";
+import { type AddressInfo, createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import Database from "better-sqlite3";
 import type { Browser } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { chromePath, DESKTOP, launch } from "./browser";
@@ -66,6 +72,73 @@ describe("a health check Fly can ask", () => {
     expect(await res.text()).toBe("ok");
     expect(res.headers.get("cache-control"), "never a cached answer").toMatch(/no-store/);
   });
+});
+
+describe("shutting down", () => {
+  // A deploy, or Fly stopping an idle machine, sends SIGTERM; Ctrl+C sends
+  // SIGINT. The server should fold its write-ahead log back into the
+  // database and close it, so the volume holds one whole file, and exit 0.
+  // This boots its own server on a fresh database, writes through it, and
+  // signals it.
+  async function boot(databasePath: string) {
+    if (!existsSync("dist/server/entry.mjs")) execFileSync("pnpm", ["build"], { stdio: "ignore" });
+    const port = await new Promise<number>((resolve) => {
+      const s = createServer();
+      s.listen(0, () => {
+        const { port } = s.address() as AddressInfo;
+        s.close(() => resolve(port));
+      });
+    });
+    const server = spawn("node", ["./dist/server/entry.mjs"], {
+      env: { ...process.env, HOST: "127.0.0.1", PORT: String(port), DATABASE_PATH: databasePath },
+      stdio: "ignore",
+    });
+    const url = `http://127.0.0.1:${port}`;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        if ((await fetch(url)).ok) break;
+      } catch {
+        // not up yet
+      }
+      if (attempt >= 75) {
+        server.kill("SIGKILL");
+        throw new Error(`server did not come up at ${url}`);
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) =>
+      server.once("exit", (code, signal) => resolve({ code, signal })),
+    );
+    return { url, server, exited };
+  }
+
+  for (const signal of ["SIGTERM", "SIGINT"] as const) {
+    it(`on ${signal} it checkpoints the WAL, closes the database and exits 0`, async () => {
+      const dbPath = join(mkdtempSync(join(tmpdir(), "hangout-shutdown-")), "app.db");
+      const { url, server, exited } = await boot(dbPath);
+      try {
+        // a write, so the WAL has frames in it
+        const res = await new Person(url, probe("Ana")).post("/api/groups", { group: probe("Shutdown crew"), name: "Ana", timezone: "Australia/Sydney" });
+        expect(res.status).toBe(303);
+        expect(statSync(`${dbPath}-wal`).size, "the write is in the WAL, not yet in the file").toBeGreaterThan(0);
+
+        server.kill(signal);
+        const { code } = await exited;
+        expect(code, "a clean exit, not death by signal").toBe(0);
+        const wal = existsSync(`${dbPath}-wal`) ? statSync(`${dbPath}-wal`).size : 0;
+        expect(wal, "the WAL was checkpointed (TRUNCATE leaves it empty)").toBe(0);
+      } finally {
+        if (server.exitCode === null && server.signalCode === null) server.kill("SIGKILL");
+      }
+      // and the group is in the database file itself
+      const db = new Database(dbPath, { readonly: true });
+      try {
+        expect((db.prepare("SELECT count(*) n FROM groups").get() as { n: number }).n).toBe(1);
+      } finally {
+        db.close();
+      }
+    }, 60_000);
+  }
 });
 
 describe("a photo carries nothing out of the phone it came from", () => {
