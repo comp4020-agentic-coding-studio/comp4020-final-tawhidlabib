@@ -52,6 +52,15 @@ if (dangling.length > 0) {
   throw new Error(`migrations left ${dangling.length} row(s) pointing at nothing: refusing to start`);
 }
 
+/** Whether the database answers: the health check's question. */
+export function healthy(): boolean {
+  try {
+    return client.prepare("SELECT 1 AS ok").get() !== undefined;
+  } catch {
+    return false;
+  }
+}
+
 export type { Group, Hangout, Member, Rsvp };
 
 /** Unguessable, URL-safe ids: the group id is the invite secret and the

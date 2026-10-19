@@ -35,6 +35,15 @@ auto_stop_machines = "stop"
 auto_start_machines = true
 min_machines_running = 0
 
+# Fly asks the app whether it's well: /api/health answers 200 once SQLite
+# answers a query, 503 if it doesn't (src/pages/api/health.ts).
+[[http_service.checks]]
+grace_period = "10s"
+interval = "30s"
+timeout = "5s"
+method = "GET"
+path = "/api/health"
+
 [[vm]]
 size = "shared-cpu-1x"
 memory = "256mb"
