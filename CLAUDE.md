@@ -150,6 +150,16 @@ acting. Review found three holes no single-browser test showed:
   `/\` as `//`, so "starts with one slash" isn't enough.
 - **An archived group refuses every change** through `refuse()`, joining
   and nudging included.
+- **Every response's security headers live in `src/middleware.ts`.** A
+  new inline `<script>` or `style=""` is allowed by the CSP's
+  `'unsafe-inline'`. Anything from another origin (a script, a font, an
+  image, a fetch) is refused until the CSP names it, and
+  `spec/platform.test.ts` watches real Chrome's console for that.
+- **`schema.ts` isn't always the database.** `members.person_id` says
+  set null, but it was added with `ALTER TABLE`, so the database has NO
+  ACTION. Before trusting a cascade, check `PRAGMA foreign_key_list`.
+  Deleting a person goes through `deletePerson()`, which leaves their
+  groups first.
 
 ## Files people send
 
@@ -157,6 +167,13 @@ Uploads are checked by their bytes, not their names, and served only by a
 route that checks access (ADR 8). A new upload kind reuses `saveImage()`
 and gets its own access rule. Never point a public route at the uploads
 folder as a whole.
+
+- **What's kept is a re-encoding, never the bytes sent.** `saveImage()`
+  runs every image through sharp, which drops EXIF and GPS. Writing an
+  upload any other way puts where someone lives on a public avatar.
+- **A row that points at a file takes the file with it.** `/media` and
+  `/avatars` 404 a file whose row is gone, so an HTTP test can't see an
+  orphan. Delete the file in the same endpoint, and check the folder.
 
 ## Prove a check can fail
 
