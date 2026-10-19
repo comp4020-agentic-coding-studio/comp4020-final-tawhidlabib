@@ -1,0 +1,7 @@
+# 09 performance / reliability — lead-verified
+Auditor: perf D–Cr→HD, real-time HD. Gold: mostly yes; gaps operational.
+Metrics (live, real Chrome): LCP 176–652ms (one /calendar mobile outlier 1996ms with 1.1s TTFB, not re-run); CLS ≤0.09 (/readme/ mobile 0.09 — near 0.1 limit, fonts swap); transfer ~116–122KB; JS 3.6–6.2KB; fonts 90KB with font-display:swap; brotli; immutable caching on /_astro.
+Real-time: 2 people 20 saves p50 370 / p95 483 / max 517 ms; ROOM OF 8 (1 saver, 7 viewers) p50 285 / p95 405 / max 427 ms, 0 missed. Well inside "~1 second".
+Already HD: SSE heartbeat 20s, retry 3000, no-transform, x-accel-buffering no, cleanup on abort; resync on reconnect; reconnect banner w/ grace; WAL; FK-checked migrations; 3 snapshots (5-day retention), encrypted volume; 5MB upload cap.
+Lead verified: 0 SIGTERM/SIGINT handlers; no [[http_service.checks]] in fly.toml. fly.toml header says leave the "shape" (1×256MB machine, 1 volume) as is; auto_stop comment explains cost. → min_machines_running=1 is a TUTOR QUESTION, not a recommendation.
+Findings: HIGH(susp) cold start ~2–2.6s on marker's next-day first load (observed in logs: "Machine started in 935ms", proxy "instance refused connection" once, reachable 1.95s); MED no graceful shutdown; MED no health check; MED no restore runbook (docs/restore.md); LOW–MED activity table + uploads unbounded; LOW /readme/ CLS 0.09 (preload fonts).
