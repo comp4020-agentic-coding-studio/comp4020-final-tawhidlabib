@@ -13,6 +13,13 @@ export default defineConfig({
   security: {
     // Fly's proxy terminates TLS, so naming the deploy domain is what lets
     // Astro trust x-forwarded-proto and accept same-origin form POSTs.
-    allowedDomains: [{ hostname: "**.fly.dev", protocol: "https" }],
+    // Since Astro 7.4 a Host not named here is replaced with localhost, so a
+    // server reached as 127.0.0.1 (spec/crit-8 and spec/migrations boot one
+    // there) would refuse its own forms: name both local hosts too.
+    allowedDomains: [
+      { hostname: "**.fly.dev", protocol: "https" },
+      { hostname: "localhost", protocol: "http" },
+      { hostname: "127.0.0.1", protocol: "http" },
+    ],
   },
 });
