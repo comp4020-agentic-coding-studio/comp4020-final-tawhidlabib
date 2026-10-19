@@ -129,6 +129,133 @@ describe("two ways to log out", () => {
   });
 });
 
+describe("deleting your profile", () => {
+  // Someone who leaves takes themselves with them (HD audit item 21): their
+  // profile, their memberships (an admin hands over first, the way leaving
+  // does), what they said and added (comments, reactions, ratings, votes,
+  // photos, files and all), their friendships, blocks and inbox, and the
+  // events they host. What the group made together stays: a plan they
+  // proposed is still the group's plan. The log says who by number, not name.
+  const PNG = Uint8Array.from(
+    atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="),
+    (c) => c.charCodeAt(0),
+  );
+  const linkOf = async (p: Person) => /\/me\/sign-in\/([A-Za-z0-9_-]+)/.exec((await p.get("/me")).html)?.[1] ?? "";
+  const dbPath = process.env.DATABASE_PATH ?? "./.data/app.db";
+  const local = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(baseUrl) && existsSync(dbPath);
+
+  async function world() {
+    const ana = new Person(baseUrl, probe("Ana"));
+    const made = await ana.post("/api/groups", { group: probe("Delete crew"), name: ana.name, timezone: "Australia/Sydney" });
+    const path = made.headers.get("location") ?? "";
+    const id = path.split("/").pop() ?? "";
+    const ben = new Person(baseUrl, probe("Ben"));
+    await ben.post(`/api/groups/${id}/join`, { name: ben.name });
+    await ben.post("/api/me", { name: ben.name, timezone: "Australia/Sydney", back: "/me" });
+
+    // a past hangout Ana proposed, with her comment, reaction, rating and photo on it
+    const title = probe("Beach day");
+    await ana.post(`/api/groups/${id}/hangouts`, { date: "2026-01-10", start: "10", end: "14", title });
+    const card = async (p: Person) =>
+      [...(await p.get(path)).doc.querySelectorAll("#plans-body article")].find((a) => a.textContent?.includes(title));
+    const ref = (await card(ana))?.querySelector("[data-thread]")?.getAttribute("data-thread")?.split(":")[1] ?? "";
+    const words = probe("see you at the beach");
+    await ana.post("/api/comments", { kind: "hangout", ref, body: words });
+    await ana.post("/api/ratings", { kind: "hangout", ref, score: "5" });
+    await ana.upload("/api/photos", { kind: "hangout", ref }, [{ name: "beach.png", type: "image/png", bytes: PNG }]);
+    const photo = (await card(ben))?.querySelector(".album img")?.getAttribute("src") ?? "";
+    await ana.upload("/api/me/avatar", {}, [{ name: "me.png", type: "image/png", bytes: PNG }]);
+    const avatar = (await ana.get("/me")).doc.querySelector(".me-link img")?.getAttribute("src") ?? "";
+
+    // a full event Ben hosts: Ana has the one spot, Cat is waiting for it
+    const event = await ben.post("/api/events", {
+      title: probe("Tiny dinner"),
+      date: "2030-01-13",
+      start: "19:00",
+      end: "21:00",
+      visibility: "public",
+      capacity: "1",
+    });
+    const eventPath = event.headers.get("location") ?? "";
+    const shareId = eventPath.split("/").pop() ?? "";
+    const cat = await signedUp(baseUrl, "Cat");
+    await ana.post(`/api/events/${shareId}/rsvp`, { response: "going" });
+    await cat.post(`/api/events/${shareId}/rsvp`, { response: "going" });
+
+    return { ana, ben, cat, path, id, title, card, words, photo, avatar, eventPath };
+  }
+
+  it("/me asks before it deletes, and says what goes", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const form = (await ana.get("/me")).doc.querySelector<HTMLFormElement>('form[action="/api/me/delete"]');
+    expect(form, "a delete form on /me").not.toBeNull();
+    expect(form?.getAttribute("data-confirm") ?? "", "it asks first").toMatch(/delete/i);
+  });
+
+  it("takes the person and what they said with them; the group, the plan and the event go on", async () => {
+    const { ana, ben, cat, path, id, title, card, words, photo, avatar, eventPath } = await world();
+    const token = await linkOf(ana);
+    expect(token).not.toBe("");
+    expect((await card(ben))?.textContent, "Ben sees Ana's comment first").toContain(words);
+    expect(photo).toMatch(/^\/media\//);
+    expect(avatar).toMatch(/^\/avatars\//);
+    expect((await fetch(new URL(photo, baseUrl), { headers: { cookie: ben.cookie } })).status).toBe(200);
+    expect((await cat.get(eventPath)).doc.querySelector("#waitlist")?.textContent, "Cat is waiting").toContain(cat.name);
+
+    const res = await ana.post("/api/me/delete", { confirm: "delete" });
+    expect(res.status).toBe(303);
+    expect(ana.jar.has("hp"), "this browser forgets her").toBe(false);
+
+    expect((await new Person(baseUrl).get(`/me/sign-in/${token}`)).res.status, "her sign-in link is gone").toBe(404);
+    const after = await card(ben);
+    expect(after, "the plan she proposed is still the group's").toBeTruthy();
+    expect(after?.textContent, "her comment is gone from the thread").not.toContain(words);
+    expect(after?.querySelector(".album img"), "her photo is gone from the album").toBeNull();
+    expect((await fetch(new URL(photo, baseUrl), { headers: { cookie: ben.cookie } })).status, "and the file").not.toBe(200);
+    expect((await fetch(new URL(avatar, baseUrl))).status, "her avatar file too").toBe(404);
+
+    const people = (await ben.get(path)).doc.querySelector("#people-body")?.textContent ?? "";
+    expect(people, "she's not in the group").not.toContain(ana.name);
+    const rename = await ben.post(`/api/groups/${id}/manage`, { action: "rename", name: probe("Ben's crew") });
+    expect(rename.status, "admin passed to Ben, so the group still runs").toBe(303);
+    expect((await ben.post(`/api/groups/${id}/availability`, { week: "2030-01-07", slot: ["2030-01-08T18"] })).status).toBe(303);
+    expect((await ben.get(path)).html).toContain(title);
+
+    const guests = (await ben.get(eventPath)).doc;
+    expect(guests.querySelector("#going")?.textContent, "her spot went to Cat").toContain(cat.name);
+    expect(guests.body.textContent, "she's off the guest list").not.toContain(ana.name);
+  });
+
+  it("a group with nobody left goes with its last member; signed out, there's nothing to delete", async () => {
+    const solo = new Person(baseUrl, probe("Solo"));
+    const made = await solo.post("/api/groups", { group: probe("Solo crew"), name: solo.name, timezone: "Australia/Sydney" });
+    const path = made.headers.get("location") ?? "";
+    expect((await solo.post("/api/me/delete", { confirm: "delete" })).status).toBe(303);
+    expect((await new Person(baseUrl).get(path)).res.status, "the empty group is gone").toBe(404);
+
+    const nobody = await new Person(baseUrl).post("/api/me/delete", { confirm: "delete" });
+    expect(nobody.status).toBe(303);
+  });
+
+  it.skipIf(!local)("the log says who by number, never by name", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    await ana.post("/api/me/delete", { confirm: "delete" });
+    const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+    try {
+      const row = db
+        .prepare("SELECT actor_label, action, target, outcome FROM activity WHERE action = 'deleted their profile' ORDER BY id DESC LIMIT 1")
+        .get() as { actor_label: string; action: string; target: string; outcome: string } | undefined;
+      expect(row, "a line for the deletion").toBeTruthy();
+      expect(row?.actor_label).toMatch(/^p\d+$/);
+      expect(row?.target).toMatch(/^p\d+$/);
+      expect(JSON.stringify(row), "no name").not.toContain(ana.name);
+      expect(row?.outcome).toBe("ok");
+    } finally {
+      db.close();
+    }
+  });
+});
+
 describe("shutting down", () => {
   // A deploy, or Fly stopping an idle machine, sends SIGTERM; Ctrl+C sends
   // SIGINT. The server should fold its write-ahead log back into the
