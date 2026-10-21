@@ -16,6 +16,7 @@ export const FLASHES = {
   renamed: { text: "Name updated.", party: false },
   signedIn: { text: "You're signed in on this device.", party: false },
   loggedOut: { text: "You're logged out. Your sign-in link brings you back.", party: false },
+  deleted: { text: "Your profile is deleted. Everything you made went with it.", party: false },
   newLink: { text: "New sign-in link made. Old links no longer work.", party: false },
   requested: { text: "Friend request sent!", party: false },
   befriended: { text: "You're friends now!", party: true },

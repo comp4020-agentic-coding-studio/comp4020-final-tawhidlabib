@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { eventRef, groupRef, logActivity } from "../../../lib/activity";
+import { flash } from "../../../lib/flash";
 import { currentPerson } from "../../../lib/identity";
 import { publish } from "../../../lib/live";
 import { deleteImage } from "../../../lib/media";
@@ -52,6 +53,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     const name = pair.trim().split("=")[0];
     if (name?.startsWith("hg_")) cookies.delete(name, { path: "/" });
   }
-  // no flash: "loggedOut" promises the link brings you back, and it won't
+  // not "loggedOut", which promises the link brings you back: it won't
+  flash(cookies, "deleted");
   return redirect("/welcome", 303);
 };

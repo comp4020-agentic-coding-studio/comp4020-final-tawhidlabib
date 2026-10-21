@@ -60,7 +60,15 @@ export const members = sqliteTable(
     nameKey: text("name_key").notNull(),
     token: text().notNull().unique(),
     /** The profile behind this membership; null for memberships made before
-     *  profiles existed, until their owner makes one and claims them. */
+     *  profiles existed, until their owner makes one and claims them.
+     *
+     *  "set null" is what drizzle's snapshot records, but NOT what the
+     *  database enforces: migration 0001 added this column with ALTER TABLE,
+     *  which can't carry an ON DELETE, so SQLite has NO ACTION and deleting a
+     *  person with member rows fails the key. deletePerson() removes their
+     *  memberships first (people.ts). Only a members-table rebuild would make
+     *  the two agree, and a rebuild is the migration that nearly wiped
+     *  production (spec/migrations.test.ts): not worth it for a comment. */
     personId: int("person_id").references(() => people.id, { onDelete: "set null" }),
     /** No notifications from this group. */
     muted: int({ mode: "boolean" }).notNull().default(false),

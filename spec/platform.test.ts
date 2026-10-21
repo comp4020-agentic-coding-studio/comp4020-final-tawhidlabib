@@ -192,6 +192,14 @@ describe("deleting your profile", () => {
     expect(form?.getAttribute("data-confirm") ?? "", "it asks first").toMatch(/delete/i);
   });
 
+  it("says it's done: the page after deleting tells you your profile is gone", async () => {
+    const ana = await signedUp(baseUrl, "Ana");
+    const res = await ana.post("/api/me/delete", { confirm: "delete" });
+    expect(res.status).toBe(303);
+    const { doc } = await ana.get(res.headers.get("location") ?? "/welcome");
+    expect(doc.querySelector(".toast")?.textContent ?? "", "a toast confirms it").toMatch(/profile is deleted/i);
+  });
+
   it("takes the person and what they said with them; the group, the plan and the event go on", async () => {
     const { ana, ben, cat, path, id, title, card, words, photo, avatar, eventPath } = await world();
     const token = await linkOf(ana);
