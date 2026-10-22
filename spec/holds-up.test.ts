@@ -275,3 +275,49 @@ describe.skipIf(!chromePath)("holds up, in a real browser", () => {
     }
   }, 90_000);
 });
+
+// Your own second device. The grid leaves YOUR cells alone while patching so
+// unsaved taps survive; a tab with nothing unsaved must still adopt what you
+// saved on another device.
+describe.skipIf(!chromePath)("holds up: the same person on two devices", () => {
+  const saved = (page: Page) =>
+    page.waitForFunction(() => /Saved/.test(document.querySelector("#save-status")?.textContent ?? ""));
+  const ticked = (page: Page, value: string, on: boolean) =>
+    page.waitForFunction(
+      ([v, want]) => (document.querySelector(`input[value="${v}"]`) as HTMLInputElement | null)?.checked === want,
+      [value, on] as const,
+      { timeout: 2500 },
+    );
+
+  it("hours saved in one tab appear in your other tab without a reload", async () => {
+    const { ana, url } = await twoPeople();
+    const tab1 = ana.page;
+    const tab2 = await ana.ctx.newPage();
+    await Promise.all([tab1.goto(`${url}#week`), tab2.goto(`${url}#week`)]);
+    await tab1.locator('label:has(input[value="2030-01-09T17"])').click();
+    await saved(tab1);
+    await ticked(tab2, "2030-01-09T17", true);
+    // and unticking elsewhere comes through too
+    await tab1.locator('label:has(input[value="2030-01-09T17"])').click();
+    await ticked(tab2, "2030-01-09T17", false);
+    await ana.ctx.close();
+  }, 60_000);
+
+  it("a tab with an unsaved tap keeps it when another tab saves something else", async () => {
+    const { ana, url } = await twoPeople();
+    const tab1 = ana.page;
+    const tab2 = await ana.ctx.newPage();
+    await Promise.all([tab1.goto(`${url}#week`), tab2.goto(`${url}#week`)]);
+    // tab 2's saves never get through, so its tap stays unsaved
+    await tab2.route("**/availability", (route) => route.abort());
+    await tab2.locator('label:has(input[value="2030-01-10T10"])').click();
+    await tab1.locator('label:has(input[value="2030-01-09T17"])').click();
+    await saved(tab1);
+    await tab2.waitForTimeout(1500); // longer than the live refresh takes
+    expect(
+      await tab2.locator('input[value="2030-01-10T10"]').isChecked(),
+      "the unsaved tap survives the refresh",
+    ).toBe(true);
+    await ana.ctx.close();
+  }, 60_000);
+});
