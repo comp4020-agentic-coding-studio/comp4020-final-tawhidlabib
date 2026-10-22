@@ -6,7 +6,7 @@ import { currentMember } from "../../../../lib/identity";
 import { publish } from "../../../../lib/live";
 import { isArchived } from "../../../../lib/manage";
 import { announceEveryoneFree, copyLastWeek } from "../../../../lib/smarter";
-import { isDate, weekStartOf } from "../../../../lib/time";
+import { isWeekInReach } from "../../../../lib/time";
 
 /** Lay last week's hours onto this week, in one tap. */
 export const POST: APIRoute = async ({ params, request, cookies, redirect }) => {
@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   if (isArchived(group)) return refuse(cookies, "copied last week into", groupRef(group), "group archived", 409, "This group is archived", group.id);
 
   const week = String((await request.formData()).get("week") ?? "");
-  if (!isDate(week) || weekStartOf(week) !== week) return new Response("Not a week", { status: 400 });
+  if (!isWeekInReach(week, group.timezone)) return new Response("Not a week", { status: 400 });
   const copied = copyLastWeek(me.id, week);
   logActivity({ who: whoIs(cookies, group.id), action: "copied last week into", target: groupRef(group), outcome: "ok", detail: `${copied} hours, week of ${week}` });
   if (copied > 0) {

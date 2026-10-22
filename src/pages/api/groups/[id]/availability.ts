@@ -7,7 +7,7 @@ import { currentMember } from "../../../../lib/identity";
 import { isArchived } from "../../../../lib/manage";
 import { announceEveryoneFree } from "../../../../lib/smarter";
 import { markAnswered } from "../../../../lib/blind";
-import { HOURS, isDate, weekDates, weekStartOf } from "../../../../lib/time";
+import { HOURS, isWeekInReach, weekDates } from "../../../../lib/time";
 
 /** Save which hours you're free across one week. The submitted boxes are the
  *  whole answer for that week: an hour left unticked is an hour not free. */
@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
 
   const form = await request.formData();
   const week = String(form.get("week") ?? "");
-  if (!isDate(week) || weekStartOf(week) !== week) {
+  if (!isWeekInReach(week, group.timezone)) {
     return new Response("Not a week", { status: 400 });
   }
   const dates = weekDates(week);

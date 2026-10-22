@@ -199,13 +199,18 @@ Two more ways a check passes while proving nothing:
 
 ## The checks
 
-`pnpm check` is `pnpm typecheck` (`astro check`) then `pnpm test`, and `test`
-runs `vitest` against whatever is already answering at `APP_URL` (default
-`http://localhost:8080`) --- it starts nothing itself. CI builds the
+`pnpm check` is `pnpm typecheck` (`astro check`), `pnpm lint`, then `pnpm test`,
+and `test`'s spec half runs against whatever is already answering at `APP_URL`
+(default `http://localhost:8080`) --- it starts nothing itself. CI builds the
 `Dockerfile`, runs that image with a throwaway `/data`, and checks it; a red run
 blocks the deploy. So before pushing, run the check against the built server
 (`pnpm build && pnpm start`), not the dev server: production runs the build, and
 a pass against `pnpm dev` is not a pass against what ships.
+
+- **Pure logic gets a unit test in `unit/`; behaviour gets a spec.** `unit/`
+  calls `src/lib` directly (no server, `TZ=UTC` like Fly; `pnpm test:unit`).
+  `pnpm lint` (Biome, `biome.jsonc`) fails on warnings too: fix the code
+  rather than switch a rule off, and give any rule you do switch off a reason.
 
 The accessibility floor (`spec/quality-floor.test.ts`) runs in jsdom, without a
 browser: contrast and overlap rules are off, so a green axe pass is a floor and

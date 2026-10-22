@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { describe, expect, inject, it } from "vitest";
 import { befriend, Person, probe, signedUp, textOf } from "./people";
 import { listen } from "./stream";
+import { relativeDay } from "../src/lib/time.ts";
 
 // Rules of a plan that polish found missing: what an RSVP deadline closes,
 // who hears about a changed name, event changes, plans in the past, and
@@ -239,13 +240,14 @@ describe("proposing a plan: dates", () => {
     }
   });
 
-  it("a past event is not described as today", async () => {
-    const host = await signedUp(baseUrl, "Host");
-    const res = await host.post("/api/events", { title: probe("Long ago"), date: "2020-01-01", start: "19:00", end: "21:00", visibility: "public" });
-    const doc = (await host.get(res.headers.get("location") ?? "")).doc;
-    const pills = [...doc.querySelectorAll(".ev-pills .pill")].map((p) => p.textContent?.trim());
-    expect(pills.join(" | ")).not.toMatch(/today/i);
-    expect(pills.join(" | ")).toMatch(/past/i);
+  // An event can no longer be made in the past (spec/edges.test.ts), so this
+  // reads the event page's pill from the function that writes it: an event
+  // only becomes past by its day going by, which a test can't wait for.
+  it("a past event is not described as today", () => {
+    for (const date of ["2020-01-01", "2030-01-09"]) {
+      expect(relativeDay(date, "2030-01-10"), date).toBe("Past");
+    }
+    expect(relativeDay("2030-01-10", "2030-01-10")).toBe("Today");
   });
 });
 

@@ -9,9 +9,11 @@
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
     "typecheck": "astro check",
-    "check": "pnpm typecheck && pnpm test",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
     "check:evidence": "node scripts/check-evidence.ts",
+    "lint": "biome lint --error-on-warnings .",
     "test": "vitest run",
+    "test:unit": "vitest run --project unit",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
@@ -26,6 +28,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@biomejs/biome": "2.5.15",
     "@types/better-sqlite3": "^7.6.13",
     "@types/jsdom": "^30.0.0",
     "@types/node": "^24.0.0",
