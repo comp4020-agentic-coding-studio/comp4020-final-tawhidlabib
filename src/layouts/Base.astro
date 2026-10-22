@@ -199,6 +199,27 @@ const NAV = [
   </body>
 </html>
 
+<style>
+  /* one phrase, one line: where the desktop nav first fits beside it
+     (about 770-840px wide) it used to break in two */
+  .get-started {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  /* and there, the nav's links draw in a little so the line still fits
+     without the page scrolling sideways */
+  @media (min-width: 48rem) and (max-width: 56rem) {
+    .bar {
+      gap: 0.5rem;
+    }
+    .main-nav :global(.nav-link) {
+      gap: 0.3rem;
+      padding-inline: 0.45rem;
+    }
+  }
+</style>
+
 <script>
   import "../scripts/live";
 
