@@ -56,12 +56,17 @@ async function refreshThread(el: HTMLElement) {
   if (fresh) el.replaceWith(document.importNode(fresh, true));
 }
 
-/** Copy friends' hours into the grid without touching your checkboxes. */
+/** Copy friends' hours into the grid. Your own checkboxes are left alone
+ *  while this tab has unsaved taps (data-dirty); otherwise they follow the
+ *  server, so hours saved on your other device show up here too. */
 function patchGrid(el: HTMLElement, fresh: Element) {
+  const clean = !el.hasAttribute("data-dirty");
   for (const cell of fresh.querySelectorAll<HTMLElement>(".slot")) {
-    const value = cell.querySelector("input")?.value;
-    const mine = value && el.querySelector<HTMLInputElement>(`input[value="${value}"]`)?.closest<HTMLElement>(".slot");
+    const input = cell.querySelector("input");
+    const box = input?.value ? el.querySelector<HTMLInputElement>(`input[value="${input.value}"]`) : null;
+    const mine = box?.closest<HTMLElement>(".slot");
     if (!mine) continue;
+    if (clean && box && input && box.checked !== input.checked) box.checked = input.checked;
     if (mine.dataset.heat !== cell.dataset.heat) {
       mine.dataset.heat = cell.dataset.heat;
       mine.classList.remove("arrived");

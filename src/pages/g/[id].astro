@@ -1142,6 +1142,10 @@ const TABS = ["week", "best", "plans", "people"];
   const say = (text: string) => {
     if (status) status.textContent = text;
   };
+  // live.ts adopts your own hours from the server only while nothing here is
+  // unsaved (a tap waiting, a save in flight), so it reads this flag.
+  const gridCard = grid?.closest<HTMLElement>("[data-live-grid]");
+  const markDirty = () => gridCard?.toggleAttribute("data-dirty", pending || inFlight || saveTimer > 0);
   async function save() {
     if (!gridForm || inFlight) return;
     if (!navigator.onLine) {
@@ -1150,6 +1154,7 @@ const TABS = ["week", "best", "plans", "people"];
     }
     pending = false;
     inFlight = true;
+    markDirty();
     const data = new FormData(gridForm);
     data.set("quiet", "1");
     const controller = new AbortController();
@@ -1172,6 +1177,7 @@ const TABS = ["week", "best", "plans", "people"];
     } finally {
       clearTimeout(timeout);
       inFlight = false;
+      markDirty();
       if (pending && navigator.onLine && !saveTimer) save();
     }
   }
@@ -1183,6 +1189,7 @@ const TABS = ["week", "best", "plans", "people"];
       saveTimer = 0;
       save();
     }, 450);
+    markDirty();
   };
   addEventListener("online", () => {
     if (pending) {
