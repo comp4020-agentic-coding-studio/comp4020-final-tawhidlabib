@@ -1,14 +1,18 @@
 ---
-// The front page's demo: a pretend group's evening week filling in as three
-// friends mark their hours, then the overlap lighting up and landing in a
-// calendar. Pure CSS on a 9s loop; with reduced motion it rests on the
-// finished picture. Decorative, so it's hidden from assistive tech and
-// described in one sentence instead.
+import Icon from "./Icon.astro";
+
+// The front page's demo: one member's view of a pretend group's evening
+// week, the way the app shows it (ADR 10). It opens blind: the others'
+// hours are hidden until you mark yours. You tick five hours; the group's
+// week fades in; Thursday 6-9pm lights up as everyone's, and lands in a
+// calendar. Pure CSS on a 10s loop; with reduced motion it rests on the
+// finished picture (answered, the week shown). Decorative, so it's hidden
+// from assistive tech and described in one sentence instead.
 
 const days = ["M", "T", "W", "T", "F", "S", "S"];
 const hours = ["4pm", "5pm", "6pm", "7pm", "8pm", "9pm"];
-// how many of the three are free, by row (hour) then column (day); Thursday
-// 6–9pm is everyone
+// how many of the four (you and three friends) are free, by row (hour) then
+// column (day); Thursday 6-9pm is everyone
 const heat = [
   [1, 0, 2, 1, 0, 2, 1],
   [2, 1, 1, 2, 1, 3, 2],
@@ -17,22 +21,31 @@ const heat = [
   [1, 1, 2, 4, 2, 1, 0],
   [0, 0, 1, 2, 1, 0, 1],
 ];
-const friends = [
-  { name: "Ana", hue: 18, hours: 6 },
-  { name: "Ben", hue: 210, hours: 4 },
-  { name: "Cat", hue: 150, hours: 5 },
+// the hours you tick, in the order you tick them: [row, column]
+const mine = [
+  [2, 3],
+  [3, 3],
+  [4, 3],
+  [2, 2],
+  [1, 5],
 ];
+const tick = (r: number, c: number) => mine.findIndex(([mr, mc]) => mr === r && mc === c);
 ---
 
 <div class="demo">
   <p class="vh">
-    An example group's week: as three friends mark their free evenings, Thursday 6 to 9pm
-    lights up as the time everyone shares, and gets added to their calendars.
+    An example group's week, seen by one of its four members: everyone else's hours stay hidden
+    until they've marked their own, then Thursday 6 to 9pm lights up as the time all of them
+    share, and goes in their calendars.
   </p>
   <div class="demo-card" aria-hidden="true">
     <div class="demo-head">
       <span class="demo-title">Friday crew</span>
-      <span class="demo-week">This week</span>
+      <span class="demo-week">Your view · this week</span>
+    </div>
+    <div class="demo-notes">
+      <p class="demo-note blind"><Icon name="lock" size={14} /> Everyone's hours stay hidden until you mark yours.</p>
+      <p class="demo-note answered"><Icon name="check" size={14} /> You've answered: here's everyone's week.</p>
     </div>
     <div class="demo-grid">
       {days.map((d, c) => <b style={`grid-row: 1; grid-column: ${c + 2}`}>{d}</b>)}
@@ -43,7 +56,8 @@ const friends = [
             {heat[r].map((level, c) => (
               <i
                 data-heat={level}
-                style={`grid-row: ${r + 2}; grid-column: ${c + 2}; --d: ${300 + ((r * 7 + c) * 53) % 2000}ms`}
+                data-mine={tick(r, c) >= 0 ? "" : undefined}
+                style={`grid-row: ${r + 2}; grid-column: ${c + 2}; --d: ${c * 60 + r * 30}ms; --t: ${400 + Math.max(0, tick(r, c)) * 380}ms`}
               />
             ))}
           </>
@@ -56,18 +70,18 @@ const friends = [
     </div>
   </div>
 
-  {
-    friends.map((f, i) => (
-      <div class={`demo-chip chip-${i + 1}`} aria-hidden="true">
-        <span class="avatar" style={`--hue: ${f.hue}`}>
-          {f.name[0]}
-        </span>
-        <span>
-          <b>{f.name}</b> marked {f.hours} hours
-        </span>
-      </div>
-    ))
-  }
+  <div class="demo-chip chip-1" aria-hidden="true">
+    <span class="avatar" style="--hue: 18">Y</span>
+    <span><b>You</b> marked 5 hours</span>
+  </div>
+  <div class="demo-chip chip-2" aria-hidden="true">
+    <span class="avatars-mini">
+      <span class="avatar" style="--hue: 210">A</span>
+      <span class="avatar" style="--hue: 150">B</span>
+      <span class="avatar" style="--hue: 280">C</span>
+    </span>
+    <span><b>Ana, Ben, Cat</b> appear</span>
+  </div>
   <div class="demo-chip demo-cal" aria-hidden="true">
     <span class="cal-icon">31</span>
     <span>
@@ -75,3 +89,276 @@ const friends = [
     </span>
   </div>
 </div>
+
+<style>
+  /* the "your answer first" note, then the answered one, in one place; at
+     rest (and with reduced motion) the picture is the answered one */
+  .demo-notes {
+    display: grid;
+    margin-bottom: 0.7rem;
+  }
+
+  .demo-note {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.6rem;
+    background: var(--accent-soft);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .demo-note :global(.icon) {
+    flex: none;
+    color: var(--accent);
+  }
+
+  .demo-note.blind {
+    visibility: hidden;
+  }
+
+  /* an hour you've ticked: the app's own ring and dot (.slot:has(:checked)) */
+  .demo-grid i {
+    position: relative;
+  }
+
+  .demo-grid i[data-mine] {
+    box-shadow:
+      inset 0 0 0 2px var(--accent),
+      inset 0 0 0 3.5px var(--surface);
+  }
+
+  .demo-grid i[data-mine]::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 0.32rem;
+    height: 0.32rem;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* over the hour labels, clear of the best time it leads to */
+  .chip-2 {
+    top: auto;
+    right: auto;
+    bottom: 20%;
+    left: -0.75rem;
+  }
+
+  .avatars-mini {
+    display: inline-flex;
+  }
+
+  .avatars-mini .avatar + .avatar {
+    margin-left: -0.55rem;
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+
+  /* One 10s loop. Blind until ~38%: only your own ticks show, the others'
+     hours sit grey behind the note. Then the note turns, the heat fades in
+     (a quick stagger, as the real grid reveals), the best time is ringed at
+     ~50% and goes to the calendar at ~62%; all back to blind at the end. */
+  @media (prefers-reduced-motion: no-preference) {
+    .demo-note.blind {
+      animation: blind-note 10s infinite both;
+    }
+    .demo-note.answered {
+      animation: answered-note 10s infinite both;
+    }
+    .demo-grid i:not([data-heat="0"]) {
+      animation: blind-heat 10s var(--ease) var(--d) infinite both;
+    }
+    .demo-grid i[data-mine] {
+      animation:
+        blind-heat 10s var(--ease) var(--d) infinite both,
+        blind-tick 10s var(--spring) var(--t) infinite both;
+    }
+    .demo-grid i[data-mine]::after {
+      animation: blind-dot 10s var(--spring) var(--t) infinite both;
+    }
+    .demo-best,
+    .demo-found {
+      animation: blind-best 10s var(--spring) infinite both;
+    }
+    .chip-1 {
+      animation: blind-chip-1 10s var(--spring) infinite both;
+    }
+    .chip-2 {
+      animation: blind-chip-2 10s var(--spring) infinite both;
+    }
+    .demo-cal {
+      animation: blind-cal 10s var(--spring) infinite both;
+    }
+  }
+
+  @keyframes blind-note {
+    0%,
+    36% {
+      visibility: visible;
+      opacity: 1;
+    }
+    40%,
+    95% {
+      visibility: hidden;
+      opacity: 0;
+    }
+    99%,
+    100% {
+      visibility: visible;
+      opacity: 1;
+    }
+  }
+
+  @keyframes answered-note {
+    0%,
+    38% {
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    42%,
+    93% {
+      visibility: visible;
+      opacity: 1;
+      transform: none;
+    }
+    97%,
+    100% {
+      visibility: hidden;
+      opacity: 0;
+    }
+  }
+
+  @keyframes blind-heat {
+    0%,
+    38% {
+      background: var(--surface-2);
+    }
+    44%,
+    90% {
+      background: var(--fill);
+    }
+    96%,
+    100% {
+      background: var(--surface-2);
+    }
+  }
+
+  /* --t staggers the ticks over ~0.4-2s; each holds until the loop ends */
+  @keyframes blind-tick {
+    0%,
+    3% {
+      box-shadow: none;
+      transform: scale(1);
+    }
+    5% {
+      transform: scale(1.12);
+    }
+    7%,
+    72% {
+      box-shadow:
+        inset 0 0 0 2px var(--accent),
+        inset 0 0 0 3.5px var(--surface);
+      transform: none;
+    }
+    76%,
+    100% {
+      box-shadow: none;
+    }
+  }
+
+  @keyframes blind-dot {
+    0%,
+    3% {
+      transform: scale(0);
+    }
+    7%,
+    72% {
+      transform: scale(1);
+    }
+    76%,
+    100% {
+      transform: scale(0);
+    }
+  }
+
+  @keyframes blind-best {
+    0%,
+    46% {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    53%,
+    88% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    94%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes blind-chip-1 {
+    0%,
+    22% {
+      opacity: 0;
+      transform: translateY(10px) scale(0.85);
+    }
+    26%,
+    86% {
+      opacity: 1;
+      transform: none;
+    }
+    92%,
+    100% {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes blind-chip-2 {
+    0%,
+    39% {
+      opacity: 0;
+      transform: translateY(10px) scale(0.85);
+    }
+    43%,
+    86% {
+      opacity: 1;
+      transform: none;
+    }
+    92%,
+    100% {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes blind-cal {
+    0%,
+    58% {
+      opacity: 0;
+      transform: translateY(14px) scale(0.85);
+    }
+    63%,
+    88% {
+      opacity: 1;
+      transform: none;
+    }
+    94%,
+    100% {
+      opacity: 0;
+    }
+  }
+</style>

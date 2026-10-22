@@ -16,7 +16,14 @@ import { clockLabel, dayLabel, relativeDay, todayIn } from "../../../lib/time";
 const event = eventByShareId(Astro.params.id ?? "");
 const person = Astro.locals.person;
 const visible = event ? canSee(event, person) : false;
-if (!event) Astro.response.status = 404;
+// Cancelling deletes an event, so its old link is a 404 like any link that
+// never worked. But a page that had it open re-reads it live (x-live, from
+// src/scripts/live.ts) the moment it's cancelled: that gets a 200 with the
+// "was cancelled" notice to swap in, not a 404 that would go red in every
+// open guest's console. It says the same for any missing id, so it tells a
+// stranger nothing a 404 wouldn't.
+const live = Astro.request.headers.get("x-live") === "1";
+if (!event) Astro.response.status = live ? 200 : 404;
 else if (!visible) Astro.response.status = 403;
 
 const host = event && visible ? personById(event.hostId) : undefined;
@@ -75,6 +82,15 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
   {
     !event ? (
       <div class="narrow start-card join-card stack">
+        {live && (
+          <p class="event-gone" id="event-gone" role="alert" data-live={`event:${Astro.params.id}`}>
+            <Icon name="x" size={18} />
+            <span>
+              <b>This event was cancelled.</b> The host called it off, so there's nothing to RSVP
+              to any more. <a href="/events">See what else is on</a>
+            </span>
+          </p>
+        )}
         <div class="icon-bubble">
           <Icon name="ticket" size={22} />
         </div>
@@ -132,6 +148,8 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
             )}
           </div>
         </header>
+        {/* waits, hidden, for a live re-read to swap in the notice above */}
+        <p class="event-gone" id="event-gone" data-live={`event:${event.shareId}`} hidden />
         <p class="here-now" data-presence={`event:${event.shareId}`} hidden />
 
         <div class="ev-layout">
@@ -398,3 +416,36 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
     )
   }
 </Base>
+
+<style>
+  /* the event was cancelled while this page was open: say so where the
+     RSVP was, and put away everything that acts on it. The cover stays, so
+     it's clear which event went. */
+  .event-gone {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin: 1rem 0;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid color-mix(in oklab, #dc2626 40%, var(--line));
+    background: color-mix(in oklab, #dc2626 8%, var(--surface));
+    text-align: left;
+  }
+
+  .event-gone :global(.icon) {
+    flex: none;
+    margin-top: 0.15rem;
+    color: #dc2626;
+  }
+
+  .event-page:has(.event-gone:not([hidden])) :is(.ev-layout, .here-now) {
+    display: none;
+  }
+
+  @media (forced-colors: active) {
+    .event-gone {
+      border-color: CanvasText;
+    }
+  }
+</style>

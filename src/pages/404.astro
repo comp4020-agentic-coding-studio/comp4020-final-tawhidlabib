@@ -1,0 +1,44 @@
+---
+import Icon from "../components/Icon.astro";
+import Base from "../layouts/Base.astro";
+
+// Any address the app doesn't have: Astro renders this with a 404, inside
+// the app's own layout, so a mistyped or cut-short link still has the nav
+// and a way back. It says nothing about what was asked for, so an id that
+// opens something private reads the same as one that never existed.
+Astro.response.status = 404;
+---
+
+<Base title="Page not found · Hangout">
+  <div class="narrow start-card join-card stack lost-page">
+    <div class="icon-bubble">
+      <Icon name="link" size={22} />
+    </div>
+    <h1>There's nothing at this address</h1>
+    <p class="muted">
+      The link may have been cut short, or the page has moved. If a friend sent it, ask them to
+      copy it again.
+    </p>
+    <div class="lost-actions">
+      <a class="button" href="/">
+        Back to Hangout
+        <span class="icon-arrow"><Icon name="arrow" /></span>
+      </a>
+      <a href="/readme/">What is Hangout?</a>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .lost-page h1 {
+    font-size: clamp(1.7rem, 5vw, 2.3rem);
+  }
+
+  .lost-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem 1.25rem;
+  }
+</style>

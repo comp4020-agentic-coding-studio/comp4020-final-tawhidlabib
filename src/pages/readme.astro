@@ -2,13 +2,129 @@
 // README.md, rendered: what this app is and what good looks like here,
 // published with the app. spec/invariants.test.ts checks its headings are
 // here; spec/readme-full.test.ts checks the whole of it is.
+//
+// It's also where a marker starts, with only this URL. So before the README
+// comes a way to see the idea in a minute (two people, the blind grid, a
+// plan in the calendar), and a "Try it live" at the top and the bottom that
+// goes to this deployment's own start form, wherever it's running.
 import * as readme from "../../README.md";
+import Icon from "../components/Icon.astro";
 import Base from "../layouts/Base.astro";
 
 const title = readme.getHeadings().find((h) => h.depth === 1)?.text ?? "README";
 const html = await readme.compiledContent();
+// /welcome always has the start form, signed in or not (/ becomes your
+// dashboard once you have a profile)
+const live = "/welcome#start";
 ---
 
 <Base title={title}>
-  <article class="readme" set:html={html} />
+  <div class="readme-page">
+    <section class="card try-it" id="try-it" aria-labelledby="try-it-h">
+      <span class="kicker">See it work</span>
+      <h2 id="try-it-h">Try it in 60 seconds</h2>
+      <ol>
+        <li>
+          <b>Start a group</b> with your name, and copy the invite link it gives you.
+        </li>
+        <li>
+          <b>Open the link in a second browser profile</b> (or a private window) and join as a
+          friend.
+        </li>
+        <li>
+          <b>Mark the friend's hours.</b> Until they do, the group's week is hidden from them: the
+          blind grid. Mark yours in the first window and watch theirs arrive.
+        </li>
+        <li>
+          <b>Propose the best time and say you're in.</b> It goes straight into Google Calendar,
+          or any calendar as a <code>.ics</code> file.
+        </li>
+      </ol>
+      <a class="button large" href={live}>
+        Try it live
+        <span class="icon-arrow"><Icon name="arrow" /></span>
+      </a>
+    </section>
+
+    <article class="readme" set:html={html} />
+
+    <p class="try-again">
+      <a class="button large" href={live}>
+        Try it live
+        <span class="icon-arrow"><Icon name="arrow" /></span>
+      </a>
+    </p>
+  </div>
 </Base>
+
+<style>
+  /* one centred column, the README a card of readable lines: ~720px holds
+     about 70 characters of body text at the size below */
+  .readme-page {
+    display: grid;
+    justify-items: center;
+    gap: 1.5rem;
+  }
+
+  .readme-page > * {
+    width: 100%;
+    max-width: 45rem;
+    margin: 0;
+  }
+
+  .try-it {
+    padding: clamp(1.25rem, 4vw, 2rem);
+    border: 2px solid transparent;
+    background:
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      var(--gradient) border-box;
+    box-shadow: var(--shadow);
+  }
+
+  .try-it h2 {
+    margin-bottom: 0.9rem;
+  }
+
+  .try-it ol {
+    display: grid;
+    gap: 0.7rem;
+    margin: 0 0 1.4rem;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .try-it li {
+    position: relative;
+    padding-left: 2.6rem;
+    counter-increment: step;
+  }
+
+  .try-it li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: -0.1rem;
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 0.9rem;
+  }
+
+  /* Inter runs ~0.45em a character: 18px type in ~590px of text is about
+     70 to a line at 1920, the measure a long read wants (UI audit: lines
+     ran to 82); a phone eases back towards 16px */
+  .readme-page .readme {
+    padding: clamp(1.25rem, 5vw, 4rem);
+    font-size: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+  }
+
+  .try-again {
+    text-align: center;
+  }
+</style>
