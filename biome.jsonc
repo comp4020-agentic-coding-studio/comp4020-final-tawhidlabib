@@ -50,6 +50,14 @@
   },
   "overrides": [
     {
+      // names.ts's INVISIBLE puts the zero-width joiner in a negated class
+      // to keep it OUT of what's stripped, so "woman technologist" stays
+      // one emoji; the rule reads any joiner in a class as a mistake. Off
+      // for this file only, so a real one anywhere else is still caught.
+      "includes": ["src/lib/names.ts"],
+      "linter": { "rules": { "suspicious": { "noMisleadingCharacterClass": "off" } } }
+    },
+    {
       // Biome reads only an .astro file's frontmatter, not its template, so
       // every import and variable the template uses looks unused (233 false
       // positives at the start). Biome's documented setting for Astro.
