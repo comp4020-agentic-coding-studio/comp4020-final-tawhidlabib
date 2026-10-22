@@ -150,3 +150,28 @@ describe("the recommendation explains its trade-off, and the propose forms fold 
     }
   });
 });
+
+describe("how was it?", () => {
+  it("the day after a hangout you were in, the next step asks how it was and links to its memories", async () => {
+    const { ana, ben, path, id } = await groupOfThree();
+    const title = probe("Beach day");
+    // yesterday in the group's timezone, so "the day after" is true whenever this runs
+    const yesterday = new Date(Date.now() - 86_400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+    await ana.post(`/api/groups/${id}/hangouts`, { date: yesterday, start: "10", end: "14", title });
+    // the proposer is in; Ben hasn't been in anything yet
+    const card = (p: Person) => p.get(path).then((r) => r.doc.querySelector("#next-step"));
+    const next = await card(ana);
+    expect(next?.textContent, "asks how it was").toContain(`How was ${title}?`);
+    expect(next?.textContent).toMatch(/photos or a rating/i);
+    expect(next?.querySelector('a[href="#plans"]'), "links to the plans tab, where its memories are").not.toBeNull();
+    expect((await card(ben))?.textContent, "someone who wasn't in it isn't asked").not.toContain("How was");
+    // rating it is the answer: the prompt goes away
+    const ref = (await ana.get(path)).doc.querySelector("[data-thread]")?.getAttribute("data-thread")?.split(":")[1] ?? "";
+    await ana.post("/api/ratings", { kind: "hangout", ref, score: "5" });
+    expect((await card(ana))?.textContent).not.toContain("How was");
+    // and a hangout from long ago is not nagged about
+    const old = probe("Old day");
+    await ben.post(`/api/groups/${id}/hangouts`, { date: "2026-01-10", start: "10", end: "14", title: old });
+    expect((await card(ben))?.textContent).not.toContain(old);
+  });
+});
