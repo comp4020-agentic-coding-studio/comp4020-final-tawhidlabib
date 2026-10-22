@@ -1,5 +1,7 @@
 import { describe, expect, inject, it } from "vitest";
 import { Person, probe, signedUp, textOf } from "./people";
+import { readEventForm } from "../src/lib/eventForm.ts";
+import { clockSpan, endDate } from "../src/lib/time.ts";
 
 // The edges the audit found the app falling off (docs/hd-audit-2026-10-19.md
 // #8, #15, #22, #23): weeks and months nobody will ever plan in, spot limits
@@ -184,6 +186,28 @@ describe("an event's date", () => {
     expect(kept.headers.get("location"), "keeping the date is fine").toBe(`/e/${shareId}`);
     const moved = await host.post(`/api/events/${shareId}/edit`, { ...EVENT, title: "Moved back", date: "2020-01-01" });
     expect(moved.headers.get("location"), "moving it into the past is not").toBe(`/e/${shareId}/edit?error=event-date`);
+  });
+
+  it("an edit may keep a date that has gone, and only that date (with the clock fixed)", () => {
+    // over HTTP "today" is always in range, so the rule is read here with a
+    // date that has gone: the event was on 3 Jan, and it's now 10 Jan
+    const form = (date: string) => {
+      const f = new FormData();
+      for (const [k, v] of Object.entries({ ...EVENT, title: "Fixed typo", date })) f.set(k, v);
+      return f;
+    };
+    expect(readEventForm(form("2030-01-03"), { today: "2030-01-10", keep: "2030-01-03" })).toHaveProperty("fields");
+    expect(readEventForm(form("2030-01-02"), { today: "2030-01-10", keep: "2030-01-03" })).toEqual({ error: "event-date" });
+    expect(readEventForm(form("2030-01-03"), { today: "2030-01-10" }), "a new event can't").toEqual({ error: "event-date" });
+    expect(readEventForm(form("2035-01-10"), { today: "2030-01-10" })).toHaveProperty("fields");
+    expect(readEventForm(form("2035-01-11"), { today: "2030-01-10" }), "five years and a day").toEqual({ error: "event-date" });
+  });
+
+  it("an end at or before the start is the next day", () => {
+    expect(endDate("2030-12-31", "22:00", "01:00")).toBe("2031-01-01");
+    expect(endDate("2030-01-10", "19:00", "21:00")).toBe("2030-01-10");
+    expect(clockSpan("19:00", "21:30")).toBe("7pm–9:30pm");
+    expect(clockSpan("22:00", "00:00")).toBe("10pm–12am (next day)");
   });
 
   it("the form says how far ahead it goes", async () => {

@@ -151,6 +151,15 @@ export function clockLabel(time: string): string {
   return m === 0 ? hourLabel(h) : hourLabel(h).replace(/(am|pm)$/, `:${String(m).padStart(2, "0")}$1`);
 }
 
+/** The date an event ends on. An end at or before its start runs into the
+ *  next day: 22:00–01:00 is a late one, not a mistake. */
+export const endDate = (date: string, start: string, end: string) => (end <= start ? addDays(date, 1) : date);
+
+/** "7pm–9:30pm", or "10pm–1am (next day)" for one that runs past midnight. */
+export function clockSpan(start: string, end: string): string {
+  return `${clockLabel(start)}–${clockLabel(end)}${end <= start ? " (next day)" : ""}`;
+}
+
 /** "Today", "Tomorrow", "In 5 days": how far off a date is, for a glance.
  *  A date that has gone is "Past", never "Today". */
 export function relativeDay(date: string, today: string): string {

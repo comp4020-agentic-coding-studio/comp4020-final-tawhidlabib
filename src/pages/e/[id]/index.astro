@@ -11,7 +11,7 @@ import { canSee, eventByShareId, type Guest, guestsOf, rsvpClosed } from "../../
 import { groupsFor } from "../../../lib/identity";
 import { peopleByIds, personById } from "../../../lib/people";
 import { openThread } from "../../../lib/talk";
-import { clockLabel, dayLabel, relativeDay, todayIn } from "../../../lib/time";
+import { clockLabel, clockSpan, dayLabel, relativeDay, todayIn } from "../../../lib/time";
 
 const event = eventByShareId(Astro.params.id ?? "");
 const person = Astro.locals.person;
@@ -144,7 +144,7 @@ const talk = event && visible ? openThread("event", event.shareId, Astro.cookies
                 <span>
                   <b>{dayLabel(event.date)}</b>
                   <span class="muted">
-                    {clockLabel(event.startTime)}–{clockLabel(event.endTime)} ({event.timezone})
+                    {clockSpan(event.startTime, event.endTime)} ({event.timezone})
                   </span>
                 </span>
               </li>

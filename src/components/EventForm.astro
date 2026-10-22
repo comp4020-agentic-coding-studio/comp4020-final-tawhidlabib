@@ -4,6 +4,7 @@ import { COVERS } from "../lib/covers";
 import type { Event } from "../lib/events";
 import type { Group } from "../lib/db";
 import type { Person } from "../lib/people";
+import { lastEventDate } from "../lib/eventForm";
 import { addDays } from "../lib/time";
 import Icon from "./Icon.astro";
 
@@ -57,7 +58,7 @@ const cover = event?.cover ?? "sunset";
     <div class="row-3">
       <label class="field">
         Date
-        <input type="date" name="date" required min={event ? undefined : today} value={event?.date ?? addDays(today, 7)} data-date />
+        <input type="date" name="date" required min={event ? undefined : today} max={event ? undefined : lastEventDate(today)} value={event?.date ?? addDays(today, 7)} data-date />
       </label>
       <label class="field">
         Starts

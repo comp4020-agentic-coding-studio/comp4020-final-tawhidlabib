@@ -14,7 +14,10 @@ export const ERRORS: Record<string, string> = {
   "bad-time": "That hangout's time didn't make sense. Pick a start before the end.",
   "bad-link": "That sign-in link doesn't work any more. Ask for a fresh one from /me.",
   "event-missing": "Give your event a name and a date.",
-  "event-time": "Pick an end time after the start.",
+  "event-time": "Pick an end time that isn't the start. An end before the start runs into the next day.",
+  "event-date": "Pick a date from today to five years ahead.",
+  "event-capacity": "Spots should be a whole number from 1 to 1000, or empty for no limit.",
+  "event-plus-ones": "+1s per guest should be none or up to 3.",
   "rsvp-closed": "RSVPs for this event have closed.",
   removed: "You were removed from this group, so you can't rejoin it.",
 };
