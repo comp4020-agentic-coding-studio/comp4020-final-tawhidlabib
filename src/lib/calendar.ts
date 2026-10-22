@@ -19,7 +19,8 @@ export type CalendarEvent = {
 export function hangoutEvent(hangout: Hangout, group: Group, origin: string): CalendarEvent {
   return {
     uid: `hangout-${hangout.id}-${group.id}@hangout`,
-    title: hangout.title,
+    // the group too: in a week of entries, "Hangout" five times says nothing
+    title: `${hangout.title} · ${group.name}`,
     start: wallTimeToUtc(hangout.date, hangout.startHour, group.timezone),
     end: wallTimeToUtc(hangout.date, hangout.endHour, group.timezone),
     description: `With ${group.name}, planned on Hangout.`,
