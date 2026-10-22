@@ -618,6 +618,118 @@ after the crit 9 session:
   Red first, and the token check went red again with the fix removed
   (`spec/sharing.test.ts`).
 
+### Prompt 27 · Mon 19 Oct · is it HD? a full audit
+
+> what else can I do in order to achieve a HD in this assignment. How can I
+> make this project even better? I want you to assign sonent 5.5 agents to
+> do a deep dive into this project, 1 agent per thing to judge. I want you
+> (opus 5.5 agent) to be the master of this team where each sonnet agent
+> reports back to you. For very very small aspects, you can use haiku
+> agents. [...] Remember that I want a thorough report that tells me if my
+> project is at a gold standard HD, or a detailed list of improvements/
+> changes that must be made in order to get to that standard.
+
+**Result**
+- **Eleven auditors:** ten Sonnet agents, one area each (process,
+  response, artefact, functional, security, UX, UI, accessibility,
+  performance, next-level), plus a Haiku agent for word counts and links.
+  They judged against the marking criteria fetched from the course site
+  and each area's industry standard (OWASP, WCAG 2.2, Core Web Vitals,
+  Nielsen).
+- **The lead reproduced every key finding** before it went in the report,
+  and corrected three claims on checking. For example, Memories "showing
+  too early" turned out to be correct behaviour.
+- **Verdict:** about 74/100, a solid D. Process D–Cr (50%), artefact near
+  HD, response D–Cr. The biggest gaps:
+  - `PROCESS.md` under-showed evidence already in git;
+  - the README's judged claims had no results;
+  - its evidence links 404'd on `/readme/`;
+  - "says who it leaves out" wasn't true.
+- `docs/hd-audit-2026-10-19.md`, with verified notes in
+  `docs/audit-evidence/`.
+
+### Prompt 28 · Mon 19 Oct · fix everything in the report
+
+> please go through the report that has been created and fix/improve/change
+> everything that was found in the report to make my project hit that gold
+> standard. Use a different opus 5.5 agent for each update and have each
+> agent report back to you [...] After finishing all of the updates, please
+> update all of my projects documentation, so the readme, process.md, and
+> prompt history so it's up to date with the work that's been done so far.
+
+**My calls** (asked before building):
+- **Scope: justify and tidy (own).** Keep every feature, give each a
+  README reason, move the theme picker into `/me`, keep Explore off the
+  main nav.
+- **Production test data: remove it (own).** The lead did it itself, after
+  a fresh volume snapshot, deleting only the two "Audit …" events.
+- **Cold start: don't change Fly's machine settings (own).** Add a health
+  check instead, and ask the tutor about `min_machines_running`.
+
+**Result** (developer A, before the pause): security headers and a CSP;
+EXIF and GPS stripped from photos; 17 dependency advisories to 0; a health
+check; graceful shutdown; "log out everywhere"; delete my profile; a
+restore runbook.
+
+### Prompt 29 · Mon 19 Oct · pause for the budget
+
+> I want you to find a good spot to cool down because i am about to run
+> out of this week's budget. [...] Please leave the project in a way that
+> you can resume the gold standard plan after the budget resets on
+> thursday in the best way so we can get optimal results at the end of it.
+
+**Result**
+- Stopped the running agents, saved one half-finished branch as a labelled
+  work-in-progress commit, and stopped every server.
+- Wrote `docs/gold/RESUME.md`: the state, my decisions, every remaining
+  agent's brief word for word, and the order to finish in.
+- Nothing half-done reached `main` or production.
+
+### Prompt 30 · Thu 22 Oct · resume the gold plan
+
+> resume the gold plan
+
+**Result**
+- **Developers B, C, D and F**, one Opus agent each, merged after review:
+  - B: correctness at the edges (far weeks, event spot limits, overnight
+    events, look-alike names);
+  - C: accessibility, plus a real-Chrome check;
+  - D: a branded 404, `/readme/` as a landing page, and the blind grid on
+    the front page;
+  - F: lint, 44 unit tests and a licence.
+- **A hotfix shipped alone.** Developer B found `/calendar?month=0000-01`
+  froze the server's only thread, so one link took the site down for
+  everyone. The lead reproduced it on the live code, cherry-picked the fix
+  onto `main`, proved its test red without the fix, and deployed it
+  before the rest of the round.
+- **C found the audit's own scan was too kind.** Real-Chrome axe skips text
+  over decorative effects, single characters and hidden text, so the
+  grid's heat counts were 4.41:1 while the scan said clean. The new check
+  sets those options.
+
+### Prompt 31 · Thu 22 Oct · finish wave 2, merge, and the documents
+
+> please finish up work on gold round wave 2 now and then start the merge
+> and documentation update to finish off this plan
+
+**Result**
+- Developer E (the group page) was stopped before it had committed
+  anything. The lead did E's must-do items itself:
+  - a best time now says who it leaves out, which makes the README's
+    promise true;
+  - "1 hour", not "1 hours";
+  - a keyboard-scrollable table;
+  - a confirm before archiving;
+  - calendar entries named by plan and group.
+  Each was red first.
+- **Still open, recorded honestly:** the 1920 two-column layout, your own
+  second device updating live, a "save your sign-in link" prompt, the
+  recommendation's trade-off line, and a "How was it?" card.
+- The README (dead links fixed, Doodle checked against Doodle's own help
+  pages, point 7, 600 words), `PROCESS.md` (rewritten per the audit's
+  plan, 21 citations), `CLAUDE.md` (rules for README points 3 and 4) and
+  this file were brought up to date.
+
 ---
 
 ## For the final PROCESS.md
@@ -643,6 +755,9 @@ after the crit 9 session:
 - **Choosing the blind grid** from the agent's proposals (prompt 18).
 - **Running the last round as a team** (prompt 20): one Opus lead
   reviewing, with Sonnet and Haiku agents doing the work.
+- **The gold round's scope and production calls** (prompt 28): justify and
+  tidy the social layer, delete the test data, and leave Fly's machine
+  settings alone.
 
 ### Where I took the agent's recommendation (R)
 
@@ -692,20 +807,27 @@ These are worth reviewing before citing them:
 - **Invite links in the logs:** the first logging pass leaked them; caught
   in review, with a red test first (prompt 21).
 
-### By the numbers (as of 19 Oct)
+### By the numbers (as of 22 Oct)
 
-- 26 prompts
-- 125 commits since the template's first commit
+- 31 prompts
+- 188 commits since the template's first commit
 - 11 ADRs
-- 29 test files and 451 checks, 10 of them in real Chrome
-- 3 crit tags: `crit-8` at `b663ce5`, `crit-9` at `a9d3270`, `crit-10`
-  (prompt 24)
+- 39 test files and 571 checks, run by `pnpm check` with typecheck and
+  lint. 35 run against the app over HTTP, with real-Chrome tests in
+  `spec/holds-up.test.ts` and `spec/a11y.test.ts`, and 4 are unit tests
+  of the pure logic.
+- 0 dependency advisories (17 before the gold round), and 6 security
+  headers on every page
+- 3 crit tags: `crit-8` at `b663ce5`, `crit-9` at `a9d3270`, `crit-10` at
+  `a36b726`
 - live changes measured at 52 ms (7 Oct) and 167 ms (13 Oct) in
-  production, and an avatar change reaching another open page in 210 ms
-  (18 Oct, locally)
+  production, and 405 ms at p95 with 8 people watching one group (19 Oct,
+  audit)
 - the core flow for two people: 12 actions, about 4 seconds (13 Oct)
 - crit 10 audit: 6 audits, 3 fixers, 1 measurer; 3 problems caught in
   review that the agents' own tests had passed
+- gold round: 11 auditors, then 6 developers (A–F), and 1 hotfix shipped
+  alone
 
 ### Ready-to-cite ranges
 
