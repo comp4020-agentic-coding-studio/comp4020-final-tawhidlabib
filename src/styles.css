@@ -552,15 +552,6 @@ header.site .logo-mark .ring-c {
     margin-right: auto;
   }
 
-  .theme-word {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
   body {
     padding-bottom: 5.5rem;
   }
@@ -568,152 +559,6 @@ header.site .logo-mark .ring-c {
   .save-bar {
     bottom: calc(5.6rem + env(safe-area-inset-bottom));
   }
-}
-
-.theme-picker {
-  position: relative;
-}
-
-.theme-picker summary {
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.42rem 0.8rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  user-select: none;
-  box-shadow: var(--shadow-sm);
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-
-.theme-picker summary:hover {
-  border-color: var(--accent);
-}
-
-.theme-picker summary::-webkit-details-marker {
-  display: none;
-}
-
-.current-dot {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 50%;
-  background: var(--gradient);
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent-ring);
-}
-
-.theme-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 0.6rem);
-  width: min(19rem, calc(100vw - 2rem));
-  padding: 1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow-lg);
-  display: grid;
-  gap: 0.85rem;
-  transform-origin: top right;
-  animation: menu-in 0.25s var(--spring);
-}
-
-@keyframes menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.96);
-  }
-}
-
-.theme-menu fieldset {
-  border: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.theme-menu legend {
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin-bottom: 0.45rem;
-}
-
-.swatches {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.4rem;
-}
-
-.modes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.4rem;
-}
-
-.theme-menu button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  padding: 0.5rem 0.6rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  transition:
-    transform 0.15s var(--spring),
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-
-.theme-menu button:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in oklab, var(--accent) 50%, var(--line));
-}
-
-.swatches button {
-  justify-content: flex-start;
-}
-
-.theme-menu button[aria-pressed="true"] {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-ring);
-}
-
-.theme-menu .dot {
-  width: 1.05rem;
-  height: 1.05rem;
-  border-radius: 50%;
-  flex: none;
-}
-
-.theme-menu [data-swatch="sunset"] .dot {
-  background: linear-gradient(135deg, #f97316, #e11d48);
-}
-.theme-menu [data-swatch="ocean"] .dot {
-  background: linear-gradient(135deg, #2563eb, #0891b2);
-}
-.theme-menu [data-swatch="forest"] .dot {
-  background: linear-gradient(135deg, #16a34a, #0d9488);
-}
-.theme-menu [data-swatch="grape"] .dot {
-  background: linear-gradient(135deg, #9333ea, #4f46e5);
-}
-.theme-menu [data-swatch="rose"] .dot {
-  background: linear-gradient(135deg, #db2777, #9333ea);
 }
 
 .site-foot {
@@ -2360,9 +2205,6 @@ html.ready .slot:has(input:checked) {
   }
   .slot {
     height: 2.15rem;
-  }
-  .theme-picker summary {
-    padding: 0.42rem 0.6rem;
   }
   /* four tabs with icons, names and counts need ~450px; a phone has ~356.
      So they share the bar equally, icon over name, the way the bottom nav
