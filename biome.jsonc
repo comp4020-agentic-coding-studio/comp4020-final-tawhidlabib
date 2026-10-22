@@ -1,0 +1,78 @@
+// `pnpm lint`: Biome's recommended rules over the code we write (src/,
+// spec/, scripts/), checked and never rewritten.
+//
+// The formatter is OFF for now, and on purpose: several branches are open on
+// src/ at once, and a formatting pass touches every line of every file, so
+// it would conflict with all of them. Turn it on in a commit of its own once
+// they've merged (set "formatter.enabled" to true, run `biome format --write
+// .`, commit only that).
+//
+// Every rule switched off below fired on code that was already here when the
+// linter came in (22 Oct 2026). Each says why. Prefer fixing the code to
+// adding another.
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": { "includes": ["src/**", "spec/**", "scripts/**"] },
+  "formatter": { "enabled": false },
+  // assist sorts imports and keys: a rewrite, like the formatter
+  "assist": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        // `el!` after a lookup the test has just asserted on, or inside
+        // page.evaluate where a missing element should throw: the
+        // assertion is the check, and `?.` would hide a failure as undefined
+        "noNonNullAssertion": "off"
+      },
+      "suspicious": {
+        // forms.ts safeBack() refuses control characters in a redirect on
+        // purpose: browsers drop tabs and newlines inside a URL (CLAUDE.md)
+        "noControlCharactersInRegex": "off",
+        // calendar.ts names its RFC 5545 escaper `escape`, shadowing the
+        // long-deprecated global, inside a module where nothing uses that
+        "noShadowRestrictedNames": "off",
+        // `while ((end = buffer.indexOf("\n\n")) >= 0)` is the idiom for
+        // reading a stream block by block (spec/stream.ts)
+        "noAssignInExpressions": "off",
+        // forEach with an arrow body that returns setProperty's undefined
+        // (src/scripts/live.ts): nothing reads the return value
+        "useIterableCallbackReturn": "off"
+      },
+      "complexity": {
+        // `(clearTimeout(t), resolve(e))` in two test helpers: a one-line
+        // "do this, then that" in an arrow
+        "noCommaOperator": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // Biome reads only an .astro file's frontmatter, not its template, so
+      // every import and variable the template uses looks unused (233 false
+      // positives at the start). Biome's documented setting for Astro.
+      "includes": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": { "noUnusedVariables": "off", "noUnusedImports": "off" }
+        }
+      }
+    },
+    {
+      // styles.css is one sheet whose order is the cascade: the 44
+      // "descending specificity" hits are rules that come later in it to
+      // win on purpose (a state after its base). The seven !importants
+      // beat inline or component styles ([hidden], reduced motion, the busy
+      // spinner). Re-enable when the sheet is split.
+      "includes": ["**/*.css"],
+      "linter": {
+        "rules": {
+          "style": { "noDescendingSpecificity": "off" },
+          "complexity": { "noImportantStyles": "off" }
+        }
+      }
+    }
+  ]
+}

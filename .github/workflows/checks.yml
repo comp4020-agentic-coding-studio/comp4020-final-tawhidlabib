@@ -30,6 +30,10 @@ jobs:
         with:
           cache: true
       - run: pnpm install --frozen-lockfile
+      - name: Lint
+        # before the image builds, so a lint error fails in seconds; `pnpm
+        # check` below runs it again, which takes well under a second
+        run: pnpm lint
       - name: Build and start the app
         # the same image Fly deploys, with a throwaway /data in place of the
         # volume; the spec runs against it
