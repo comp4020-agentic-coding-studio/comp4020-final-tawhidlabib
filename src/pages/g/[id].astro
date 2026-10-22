@@ -140,7 +140,7 @@ const unanswered = hangouts.find((h) => !h.myAnswer);
 const goingTo = hangouts.find((h) => h.myAnswer === "in");
 // "How was it?": a hangout you were in during the last week, whose day has
 // come, that you haven't yet rated or added a photo to.
-const recent = addDays(today, -7);
+const recent = group ? addDays(today, -7) : "";
 const howWas =
   me?.personId
     ? past.find(({ plan, going }) => {

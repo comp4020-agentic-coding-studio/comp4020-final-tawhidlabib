@@ -295,21 +295,26 @@ describe("shutting down", () => {
       stdio: "ignore",
     });
     const url = `http://127.0.0.1:${port}`;
-    for (let attempt = 0; ; attempt++) {
+    const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) =>
+      server.once("exit", (code, signal) => resolve({ code, signal })),
+    );
+    // Wait by the clock, not by a count of tries: under a full parallel run
+    // node can take well over 15 s to boot and open the database, and one
+    // fetch to a server that has bound the port but not answered can hang,
+    // so each try is cut short too.
+    const deadline = Date.now() + 45_000;
+    for (;;) {
       try {
-        if ((await fetch(url)).ok) break;
+        if ((await fetch(url, { signal: AbortSignal.timeout(2_000) })).ok) break;
       } catch {
         // not up yet
       }
-      if (attempt >= 75) {
+      if (server.exitCode !== null || Date.now() > deadline) {
         server.kill("SIGKILL");
         throw new Error(`server did not come up at ${url}`);
       }
       await new Promise((r) => setTimeout(r, 200));
     }
-    const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) =>
-      server.once("exit", (code, signal) => resolve({ code, signal })),
-    );
     return { url, server, exited };
   }
 
@@ -338,7 +343,7 @@ describe("shutting down", () => {
       } finally {
         db.close();
       }
-    }, 60_000);
+    }, 90_000);
   }
 });
 
