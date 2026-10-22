@@ -16,6 +16,7 @@ import {
   type Rsvp,
   rsvps,
 } from "./schema";
+import { nameKey } from "./names";
 
 // One SQLite file is the app's whole persistent state. In production the
 // Dockerfile points DATABASE_PATH at the machine's volume (/data), which is
@@ -90,8 +91,6 @@ export type { Group, Hangout, Member, Rsvp };
 /** Unguessable, URL-safe ids: the group id is the invite secret and the
  *  member token is the cookie, so neither can be a counter. */
 const secret = (bytes: number) => randomBytes(bytes).toString("base64url");
-
-const nameKey = (name: string) => name.trim().toLowerCase();
 
 export function getGroup(id: string): Group | undefined {
   return db.select().from(groups).where(eq(groups.id, id)).get();

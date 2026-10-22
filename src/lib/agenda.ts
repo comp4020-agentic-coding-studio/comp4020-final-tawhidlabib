@@ -2,7 +2,7 @@ import { rsvpsFor, upcomingHangouts } from "./db";
 import { eventsFor } from "./events";
 import { groupsFor } from "./identity";
 import type { Person } from "./people";
-import { clockLabel, hourLabel, weekStartOf } from "./time";
+import { clockSpan, hourLabel, weekStartOf } from "./time";
 
 // Everything someone has on, in one list: hangouts from every group they're
 // in and events they host or are invited to, soonest first. The calendar
@@ -58,7 +58,7 @@ export function agendaFor(
         kind: "event",
         date: event.date,
         start: event.startTime,
-        time: `${clockLabel(event.startTime)}–${clockLabel(event.endTime)}`,
+        time: clockSpan(event.startTime, event.endTime),
         title: event.title,
         where: event.location,
         href: `/e/${event.shareId}`,

@@ -6,6 +6,7 @@ import { flash } from "../../lib/flash";
 import { readEventForm } from "../../lib/eventForm";
 import { notify } from "../../lib/notify";
 import { currentPerson } from "../../lib/identity";
+import { todayIn } from "../../lib/time";
 
 /** Host an event: public (anyone with the link, listed on Explore) or
  *  private (only the people invited). Invites go to friends and to whole
@@ -15,7 +16,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   if (!me) return redirect("/events/new", 303);
 
   const form = await request.formData();
-  const read = readEventForm(form);
+  const read = readEventForm(form, { today: todayIn(me.timezone) });
   if ("error" in read) return redirect(`/events/new?error=${read.error}`, 303);
   const title = read.fields.title;
 

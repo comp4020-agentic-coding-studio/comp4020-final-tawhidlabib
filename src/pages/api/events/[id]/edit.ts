@@ -6,6 +6,7 @@ import { flash } from "../../../../lib/flash";
 import { currentPerson } from "../../../../lib/identity";
 import { publish } from "../../../../lib/live";
 import { notify } from "../../../../lib/notify";
+import { todayIn } from "../../../../lib/time";
 
 /** The host changes their event. A higher spot limit moves people in from
  *  the waitlist (ADR 6), and guests are told what changed. */
@@ -15,7 +16,8 @@ export const POST: APIRoute = async ({ params, request, cookies, redirect }) => 
   const me = currentPerson(cookies);
   if (!me || me.id !== event.hostId) return refuse(cookies, "edited", eventRef(event), "not the host", 403, "Only the host can edit");
 
-  const read = readEventForm(await request.formData());
+  // an event whose day has gone keeps its date; it can't be moved out of range
+  const read = readEventForm(await request.formData(), { today: todayIn(event.timezone), keep: event.date });
   if ("error" in read) return redirect(`/e/${event.shareId}/edit?error=${read.error}`, 303);
   const updated = updateEvent(event.id, read.fields);
   const promoted = refill(updated);

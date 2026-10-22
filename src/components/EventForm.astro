@@ -4,6 +4,7 @@ import { COVERS } from "../lib/covers";
 import type { Event } from "../lib/events";
 import type { Group } from "../lib/db";
 import type { Person } from "../lib/people";
+import { lastEventDate } from "../lib/eventForm";
 import { addDays } from "../lib/time";
 import Icon from "./Icon.astro";
 
@@ -57,7 +58,7 @@ const cover = event?.cover ?? "sunset";
     <div class="row-3">
       <label class="field">
         Date
-        <input type="date" name="date" required min={event ? undefined : today} value={event?.date ?? addDays(today, 7)} data-date />
+        <input type="date" name="date" required min={event ? undefined : today} max={event ? undefined : lastEventDate(today)} value={event?.date ?? addDays(today, 7)} data-date />
       </label>
       <label class="field">
         Starts
@@ -111,7 +112,8 @@ const cover = event?.cover ?? "sunset";
       </label>
     </div>
     <p class="muted fine">
-      Times are in {timezone}. With a spot limit, once it's full people join a waitlist and move in
+      Times are in {timezone}. An end before the start runs into the next day. With a spot limit,
+      once it's full people join a waitlist and move in
       automatically, first come first served, when someone drops out.
     </p>
   </div>
@@ -226,7 +228,8 @@ const cover = event?.cover ?? "sunset";
         day: "numeric",
         month: "long",
       });
-      previewWhen.textContent = `${day} · ${start?.value ?? ""}–${end?.value ?? ""}`;
+      const overnight = !!start?.value && !!end?.value && end.value < start.value;
+      previewWhen.textContent = `${day} · ${start?.value ?? ""}–${end?.value ?? ""}${overnight ? " (next day)" : ""}`;
     }
   }
   for (const input of [title, date, start, end]) input?.addEventListener("input", update);
