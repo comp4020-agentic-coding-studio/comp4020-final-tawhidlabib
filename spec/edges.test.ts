@@ -1,6 +1,7 @@
 import { describe, expect, inject, it } from "vitest";
 import { Person, probe, signedUp, textOf } from "./people";
 import { readEventForm } from "../src/lib/eventForm.ts";
+import { tidy } from "../src/lib/names.ts";
 import { clockSpan, endDate } from "../src/lib/time.ts";
 
 // The edges the audit found the app falling off (docs/hd-audit-2026-10-19.md
@@ -227,7 +228,7 @@ describe("an event's date", () => {
 describe("names that look the same are the same name", () => {
   // "Café" typed on a Mac (NFC) and pasted from elsewhere (NFD), with a
   // zero-width space, or in full-width letters: one name, four byte strings
-  const looks = ["Café", "Café", "Café​", "Ｃａｆé", "Café "];
+  const looks = ["Caf\u00e9", "Cafe\u0301", "Caf\u00e9\u200b", "\uff23\uff41\uff46\u00e9", "Caf\u00e9\u00a0"];
 
   it("someone joining under a lookalike of a taken name is told it's taken", async () => {
     const { ana, id } = await group();
@@ -244,18 +245,35 @@ describe("names that look the same are the same name", () => {
 
   it("the name shown is tidied too: no invisible characters, full-width letters folded", async () => {
     const { ana, id } = await group();
-    const name = `Ｂｅｎ​ ${process.hrtime.bigint()}`;
+    const name = `\uff22\uff45\uff4e\u200b ${process.hrtime.bigint()}`;
     const ben = new Person(baseUrl, name);
     await ben.post(`/api/groups/${id}/join`, { name });
     const html = (await ana.get(`/g/${id}`)).html;
     expect(html).toContain(`Ben ${name.split(" ")[1]}`);
-    expect(html).not.toContain("​");
+    expect(html).not.toContain("\u{200B}");
+  });
+
+  it("emoji built from joiners and tags survive the tidying", () => {
+    // field() tidies every title and poll option too. "Woman technologist" is
+    // woman + joiner + laptop, the flag of England is a black flag + tag
+    // characters, "heart on fire" is heart + VS16 + joiner + fire: those
+    // invisible parts must stay. A stray joiner or tag elsewhere goes.
+    const keep = [
+      "Coding \u{1F469}\u{200D}\u{1F4BB}",
+      "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F} fans",
+      "Hi \u{1F44D}\u{1F3FD}",
+      "\u{2764}\u{FE0F}\u{200D}\u{1F525} night",
+    ];
+    for (const text of keep) expect(tidy(text), JSON.stringify(text)).toBe(text);
+    expect(tidy("Ana\u{200D}")).toBe("Ana");
+    expect(tidy("Ana\u{E0041}")).toBe("Ana");
+    expect(tidy("\u{202E}Ana\u{FEFF}")).toBe("Ana");
   });
 
   it("a name that is only invisible characters is no name", async () => {
     const { id } = await group();
     const ghost = new Person(baseUrl);
-    const res = await ghost.post(`/api/groups/${id}/join`, { name: "​‍⁠" });
+    const res = await ghost.post(`/api/groups/${id}/join`, { name: "\u200b\u200d\u2060" });
     expect(res.headers.get("location")).toBe(`/g/${id}?error=name-missing`);
   });
 });
@@ -263,7 +281,7 @@ describe("names that look the same are the same name", () => {
 describe("renaming yourself", () => {
   it("a blank or whitespace-only name says to pick one, and keeps the old name", async () => {
     const ana = await signedUp(baseUrl, "Ana");
-    for (const name of ["   ", "​", ""]) {
+    for (const name of ["   ", "\u200b", ""]) {
       const res = await ana.post("/api/me", { name, back: "/me" });
       expect(res.headers.get("location"), JSON.stringify(name)).toBe("/me?error=name-missing");
     }
