@@ -211,6 +211,17 @@ The accessibility floor (`spec/quality-floor.test.ts`) runs in jsdom, without a
 browser: contrast and overlap rules are off, so a green axe pass is a floor and
 not a clean bill of health.
 
+- **axe in real Chrome still needs telling to look.** With its defaults it
+  read this app as 0 contrast failures while the heat counts sat at
+  4.41:1: text over a decorative pseudo-element (the header blur, a
+  button's sheen) is "incomplete", one-character text is skipped, and
+  aria-hidden text isn't checked. `spec/a11y.test.ts` passes
+  `ignorePseudo` and `ignoreLength` per run (`axe.configure` replaces the
+  check's options and silently drops its thresholds), and checks contrast
+  again with aria-hidden taken off. A new page goes in its list too (as
+  well as `spec/routes.ts`): that is what holds its focus ring, what its
+  fixed bars cover, and its colours, light and dark.
+
 JSDOM's selector engine doesn't match emoji outside the basic plane (🎉, 🙌)
 in attribute selectors: `[value="🎉"]` finds nothing, and the test reads a
 count of zero while the app is right. Find the element in code and compare
