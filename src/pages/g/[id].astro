@@ -11,6 +11,7 @@ import { ERRORS } from "../../lib/forms";
 import { type Relationship, relationship } from "../../lib/friends";
 import { hasAnswered } from "../../lib/blind";
 import { currentMember } from "../../lib/identity";
+import { photosOn, ratingOn } from "../../lib/memories";
 import { adminIdOf, isArchived } from "../../lib/manage";
 import { peopleByIds } from "../../lib/people";
 import { recommend, tradeoff } from "../../lib/recommend";
@@ -137,10 +138,23 @@ const archived = group ? isArchived(group) : false;
 const markedThisWeek = me ? [...free.values()].some((s) => s.has(me.id)) : false;
 const unanswered = hangouts.find((h) => !h.myAnswer);
 const goingTo = hangouts.find((h) => h.myAnswer === "in");
+// "How was it?": a hangout you were in during the last week, whose day has
+// come, that you haven't yet rated or added a photo to.
+const recent = addDays(today, -7);
+const howWas =
+  me?.personId
+    ? past.find(({ plan, going }) => {
+        if (!going.includes(me.id) || plan.date < recent) return false;
+        const target = { kind: "hangout", id: plan.id } as const;
+        return ratingOn(target, me.personId ?? undefined).mine === undefined && !photosOn(target).some((p) => p.uploaderId === me.personId);
+      })
+    : undefined;
 const next = archived
   ? ({ kind: "archived" } as const)
   : unanswered
   ? ({ kind: "rsvp", h: unanswered } as const)
+  : howWas
+  ? ({ kind: "memories", plan: howWas.plan } as const)
   : members.length === 1
     ? ({ kind: "invite" } as const)
     : !markedThisWeek
@@ -351,6 +365,21 @@ const signInUrl = person ? new URL(`/me/sign-in/${person.token}`, Astro.url).hre
                 Can't make it
               </button>
             </form>
+          </>
+        ) : next.kind === "memories" ? (
+          <>
+            <div class="what">
+              <span class="label">
+                <Icon name="sparkles" size={14} /> How was it?
+              </span>
+              <strong>How was {next.plan.title}? Add photos or a rating.</strong>
+            </div>
+            <a class="button" href="#plans">
+              Add memories
+              <span class="icon-arrow">
+                <Icon name="arrow" size={18} />
+              </span>
+            </a>
           </>
         ) : next.kind === "invite" ? (
           <>

@@ -112,7 +112,7 @@ const filterHref = (w: string) =>
     <h2 id="explore-h">Explore</h2>
     <form method="get" action="/events#explore" class="search">
       <label class="vh" for="q">Search public events</label>
-      <input type="search" name="q" id="q" value={search} placeholder="Search by name or place" />
+      <input type="search" name="q" id="q" maxlength="60" value={search} placeholder="Search by name or place" />
       {when !== "all" && <input type="hidden" name="when" value={when} />}
       <button type="submit" class="button small">Search</button>
     </form>
