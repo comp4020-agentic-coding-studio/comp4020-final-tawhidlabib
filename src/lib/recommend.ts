@@ -1,4 +1,4 @@
-import { FIRST_HOUR, LAST_HOUR, slotKey } from "./time";
+import { FIRST_HOUR, LAST_HOUR, slotKey, spanLabel } from "./time";
 
 export type Recommendation = {
   date: string;
@@ -66,4 +66,18 @@ export function recommend(
         a.start - b.start,
     )
     .slice(0, limit);
+}
+
+/**
+ * One line for when the top card isn't the whole story. Ranking puts the
+ * stretch that suits the most people first, so any longer stretch in the list
+ * suits fewer; say so, instead of leaving the group to guess why the best
+ * time is shorter than the one below it. Null when nothing longer is offered.
+ */
+export function tradeoff(recs: Recommendation[], memberCount: number): string | null {
+  const [top, ...rest] = recs;
+  if (!top || !rest.some((r) => r.end - r.start > top.end - top.start)) return null;
+  const hours = top.end - top.start;
+  const suits = top.people.length === memberCount ? `all ${memberCount}` : `${top.people.length} of ${memberCount}`;
+  return `${spanLabel(top.date, top.start, top.end)} suits ${suits}, but only for ${hours} ${hours === 1 ? "hour" : "hours"}.`;
 }

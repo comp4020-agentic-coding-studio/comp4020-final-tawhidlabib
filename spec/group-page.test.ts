@@ -117,3 +117,36 @@ describe("keep your spot", () => {
     expect((await ana.get(`${path}?week=${WEEK}`)).doc.querySelector(".keep-spot"), "Ana still gets hers").not.toBeNull();
   });
 });
+
+describe("the recommendation explains its trade-off, and the propose forms fold away", () => {
+  it("says the best time is short when a longer one suits fewer; an unanswered member sees none of it", async () => {
+    const { ana, ben, cat, path, id } = await groupOfThree();
+    // all three share Tue 6–7pm; only Ana and Ben share Wed 12–5pm
+    for (const p of [ana, ben, cat]) await p.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`] });
+    const wed = ["12", "13", "14", "15", "16"].map((h) => `2030-01-09T${h}`);
+    for (const p of [ana, ben]) await p.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`, ...wed] });
+    const { doc } = await ana.get(`${path}?week=${WEEK}`);
+    expect(textOf(doc, "#best-body .tradeoff")).toMatch(/suits all 3, but only for 1 hour\./);
+    // Dan joins and hasn't answered: the blind grid shows him no cards, so no line either
+    const dan = new Person(baseUrl, probe("Dan"));
+    await dan.post(`/api/groups/${id}/join`, { name: dan.name });
+    const blind = await dan.get(`${path}?week=${WEEK}`);
+    expect(blind.doc.querySelector(".tradeoff"), "nothing derived from others' hours").toBeNull();
+    expect(blind.html).not.toMatch(/but only for/);
+  });
+
+  it("keeps the propose form open on the best card and behind a disclosure on the others", async () => {
+    const { ana, ben, path, id } = await groupOfThree();
+    for (const p of [ana, ben]) {
+      await p.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`, `${TUE}T19`, "2030-01-09T10"] });
+    }
+    const cards = [...(await ana.get(`${path}?week=${WEEK}`)).doc.querySelectorAll("#best-body .card")];
+    expect(cards.length).toBeGreaterThan(1);
+    expect(cards[0].querySelector("form.propose"), "form on the best card").not.toBeNull();
+    expect(cards[0].querySelector("details"), "not folded").toBeNull();
+    for (const card of cards.slice(1)) {
+      expect(card.querySelector("details.propose-more form.propose"), "folded on the others").not.toBeNull();
+      expect(card.querySelector("details > summary")?.textContent).toMatch(/Propose this time/);
+    }
+  });
+});

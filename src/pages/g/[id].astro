@@ -13,7 +13,7 @@ import { hasAnswered } from "../../lib/blind";
 import { currentMember } from "../../lib/identity";
 import { adminIdOf, isArchived } from "../../lib/manage";
 import { peopleByIds } from "../../lib/people";
-import { recommend } from "../../lib/recommend";
+import { recommend, tradeoff } from "../../lib/recommend";
 import { openThread } from "../../lib/talk";
 import {
   addDays,
@@ -107,6 +107,8 @@ const best =
   group && me
     ? recommend(members.length, free, dates, (date, hour) => hasStarted(date, hour, group.timezone))
     : [];
+
+const tradeoffNote = tradeoff(best, members.length);
 
 const plans = group && me ? upcomingHangouts(group.id, today) : [];
 const before = group && me ? pastHangouts(group.id, today) : [];
@@ -644,7 +646,9 @@ const signInUrl = person ? new URL(`/me/sign-in/${person.token}`, Astro.url).hre
                     <span>{rec.end - rec.start} {rec.end - rec.start === 1 ? "hour" : "hours"}</span>
                     <span>{hourLabel(LAST_HOUR + 1)}</span>
                   </div>
-                  <form method="post" action={`/api/groups/${group.id}/hangouts`} class="propose">
+                  {i === 0 && tradeoffNote && <p class="tradeoff">{tradeoffNote}</p>}
+                  {i === 0 ? (
+                    <form method="post" action={`/api/groups/${group.id}/hangouts`} class="propose">
                     <input type="hidden" name="date" value={rec.date} />
                     <label class="field" for={`start-${i}`}>
                       From
@@ -680,6 +684,47 @@ const signInUrl = person ? new URL(`/me/sign-in/${person.token}`, Astro.url).hre
                       Propose
                     </button>
                   </form>
+                  ) : (
+                    <details class="propose-more">
+                      <summary>Propose this time</summary>
+                      <form method="post" action={`/api/groups/${group.id}/hangouts`} class="propose">
+                    <input type="hidden" name="date" value={rec.date} />
+                    <label class="field" for={`start-${i}`}>
+                      From
+                      <select name="start" id={`start-${i}`}>
+                        {range(rec.start, rec.end).map((h) => (
+                          <option value={h} selected={h === rec.start}>
+                            {hourLabel(h)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label class="field" for={`end-${i}`}>
+                      Until
+                      <select name="end" id={`end-${i}`}>
+                        {range(rec.start + 1, rec.end + 1).map((h) => (
+                          <option value={h} selected={h === rec.end}>
+                            {hourLabel(h)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label class="field title-field" for={`title-${i}`}>
+                      What's the plan?
+                      <input
+                        type="text"
+                        name="title"
+                        id={`title-${i}`}
+                        maxlength="80"
+                        placeholder="Dinner, a walk, board games…"
+                      />
+                    </label>
+                    <button type="submit" class="button" disabled={archived}>
+                      Propose
+                    </button>
+                  </form>
+                    </details>
+                  )}
                 </div>
               );
             })}

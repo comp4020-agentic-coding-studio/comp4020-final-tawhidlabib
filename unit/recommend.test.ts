@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { recommend } from "../src/lib/recommend";
+import { recommend, tradeoff } from "../src/lib/recommend";
 import { FIRST_HOUR, LAST_HOUR, slotKey } from "../src/lib/time";
 
 // recommend() picks the stretches the best-times cards offer. These call it
@@ -144,5 +144,37 @@ describe("recommend()", () => {
   it("lists who can come in id order", () => {
     const free = week([7, MON, 9, 11], [3, MON, 9, 11], [5, MON, 9, 11]);
     expect(recommend(3, free, [MON], never)[0].people).toEqual([3, 5, 7]);
+  });
+});
+
+describe("tradeoff()", () => {
+  // recommend() ranks by how many can come first, so the top card is the
+  // widest; when a longer stretch exists that suits fewer, say the top one is
+  // short rather than leave the group to find out.
+  it("says the best time suits the most people but only for a short while", () => {
+    const free = week(
+      [1, TUE, 18, 19],
+      [2, TUE, 18, 19],
+      [3, TUE, 18, 19],
+      [1, WED, 12, 17],
+      [2, WED, 12, 17],
+    );
+    const recs = recommend(3, free, [TUE, WED], never);
+    expect(tradeoff(recs, 3)).toBe("Tue 8 Jan, 6pm–7pm suits all 3, but only for 1 hour.");
+  });
+
+  it("counts 'n of m' when the top leaves someone out, and pluralises hours", () => {
+    const recs = [
+      { date: TUE, start: 18, end: 20, people: [1, 2] },
+      { date: WED, start: 12, end: 17, people: [1] },
+    ];
+    expect(tradeoff(recs, 3)).toBe("Tue 8 Jan, 6pm–8pm suits 2 of 3, but only for 2 hours.");
+  });
+
+  it("is silent when the top is also the longest, or when there is nothing to compare", () => {
+    const free = week([1, TUE, 12, 17], [2, TUE, 12, 17], [1, WED, 18, 19], [2, WED, 18, 19]);
+    expect(tradeoff(recommend(2, free, [TUE, WED], never), 2)).toBeNull();
+    expect(tradeoff([], 3)).toBeNull();
+    expect(tradeoff([{ date: TUE, start: 18, end: 19, people: [1, 2] }], 2)).toBeNull();
   });
 });

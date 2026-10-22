@@ -4783,3 +4783,20 @@ form[aria-busy="true"] {
   align-items: center;
   gap: 0.6rem;
 }
+
+.tradeoff {
+  margin: 0.2rem 0 0.6rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.propose-more > summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent);
+  padding: 0.3rem 0;
+}
+
+.propose-more[open] > summary {
+  margin-bottom: 0.5rem;
+}
