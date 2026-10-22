@@ -13,6 +13,7 @@
     "check:evidence": "node scripts/check-evidence.ts",
     "lint": "biome lint --error-on-warnings .",
     "test": "vitest run",
+    "test:unit": "vitest run --project unit",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

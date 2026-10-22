@@ -1,5 +1,5 @@
 // `pnpm lint`: Biome's recommended rules over the code we write (src/,
-// spec/, scripts/), checked and never rewritten.
+// spec/, unit/, scripts/), checked and never rewritten.
 //
 // The formatter is OFF for now, and on purpose: several branches are open on
 // src/ at once, and a formatting pass touches every line of every file, so
@@ -13,7 +13,7 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": { "includes": ["src/**", "spec/**", "scripts/**"] },
+  "files": { "includes": ["src/**", "spec/**", "unit/**", "scripts/**"] },
   "formatter": { "enabled": false },
   // assist sorts imports and keys: a rewrite, like the formatter
   "assist": { "enabled": false },
