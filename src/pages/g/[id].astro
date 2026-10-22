@@ -23,14 +23,13 @@ import {
   HOURS,
   hasStarted,
   hourLabel,
-  isDate,
   LAST_HOUR,
   relativeDay,
   slotKey,
   spanLabel,
   todayIn,
   weekDates,
-  weekStartOf,
+  weekParam,
 } from "../../lib/time";
 
 const group = getGroup(Astro.params.id ?? "");
@@ -45,7 +44,7 @@ const flashed = Astro.locals.flash;
 // The week on show: ?week= when it names a Monday, otherwise this week.
 const asked = Astro.url.searchParams.get("week") ?? "";
 const thisWeek = group ? currentWeekStart(group.timezone) : "";
-const week = isDate(asked) && weekStartOf(asked) === asked ? asked : thisWeek;
+const week = group ? weekParam(asked, group.timezone) : "";
 const dates = group ? weekDates(week) : [];
 const today = group ? todayIn(group.timezone) : "";
 

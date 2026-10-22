@@ -10,9 +10,9 @@ import {
   dayLabel,
   DEFAULT_TIMEZONE,
   isDate,
-  isMonth,
   monthGrid,
   monthLabel,
+  monthParam,
   todayIn,
 } from "../lib/time";
 
@@ -22,7 +22,7 @@ const signedOut = !person && groupsFor(undefined, cookie).length === 0;
 const today = todayIn(person?.timezone ?? DEFAULT_TIMEZONE);
 
 const askedMonth = Astro.url.searchParams.get("month") ?? "";
-const month = isMonth(askedMonth) ? askedMonth : today.slice(0, 7);
+const month = monthParam(askedMonth, today);
 const grid = monthGrid(month);
 const items = signedOut ? [] : agendaFor(person, cookie, grid[0], grid.at(-1));
 const onDay = (date: string) => items.filter((i) => i.date === date);

@@ -88,6 +88,25 @@ export function weekDates(weekStart: string): string[] {
   return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 }
 
+/** How far from this week a week can be and still be shown or saved: ten
+ *  years either way, as a nudge already allows. Past that, a date runs off
+ *  the end of what Date and Intl can read (year 9999), and nobody plans
+ *  there anyway. */
+export const WEEKS_IN_REACH = 520;
+
+/** Whether a date is a Monday within reach of this week. */
+export function isWeekInReach(week: string, tz: string, now = new Date()): boolean {
+  if (!isDate(week) || weekStartOf(week) !== week) return false;
+  const thisWeek = currentWeekStart(tz, now);
+  return week >= addDays(thisWeek, -7 * WEEKS_IN_REACH) && week <= addDays(thisWeek, 7 * WEEKS_IN_REACH);
+}
+
+/** The week a `?week=` asks for, when it names a Monday in reach; this week
+ *  otherwise. */
+export function weekParam(asked: string, tz: string, now = new Date()): string {
+  return isWeekInReach(asked, tz, now) ? asked : currentWeekStart(tz, now);
+}
+
 /** Whether an hour slot has already begun, so it's no use recommending. */
 export function hasStarted(date: string, hour: number, tz: string, now = new Date()): boolean {
   return wallTimeToUtc(date, hour, tz).getTime() <= now.getTime();
@@ -156,6 +175,16 @@ export function addMonths(month: string, n: number): string {
   const [y, m] = month.split("-").map(Number);
   const t = new Date(Date.UTC(y, m - 1 + n, 1));
   return t.toISOString().slice(0, 7);
+}
+
+/** The month a `?month=` asks for, when it's within ten years of today's;
+ *  today's otherwise. Year 0 has to be kept out: addDays writes the day
+ *  before it as "-000001-12-31", which sorts below every real date, and
+ *  monthGrid's loop never reaches its end. */
+export function monthParam(asked: string, today: string): string {
+  const month = today.slice(0, 7);
+  if (!isMonth(asked)) return month;
+  return asked >= addMonths(month, -12 * 10) && asked <= addMonths(month, 12 * 10) ? asked : month;
 }
 
 /** "2030-01" → "January 2030". */
