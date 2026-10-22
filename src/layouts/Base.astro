@@ -9,7 +9,7 @@ import { unansweredCount } from "../lib/events";
 import { FLASHES } from "../lib/flash";
 import { pendingCount } from "../lib/friends";
 import { unreadCount } from "../lib/notify";
-import { MODES, THEMES, themeOf } from "../lib/theme";
+import { themeOf } from "../lib/theme";
 import { DEFAULT_TIMEZONE, todayIn } from "../lib/time";
 
 interface Props {
@@ -28,7 +28,6 @@ const DESCRIPTION =
 const canonical = new URL(privateLink ? "/" : Astro.url.pathname + Astro.url.search, Astro.url).href;
 const cardTitle = privateLink ? "Your Hangout sign-in link" : title;
 const { theme, mode } = themeOf(Astro.cookies);
-const back = Astro.url.pathname + Astro.url.search;
 const toast = Astro.locals.flash ? FLASHES[Astro.locals.flash] : undefined;
 const person = Astro.locals.person;
 const unread = person ? unreadCount(person.id) : 0;
@@ -144,51 +143,6 @@ const NAV = [
             </a>
           )
         }
-        <details class="theme-picker">
-          <summary>
-            <span class="current-dot" aria-hidden="true"></span>
-            <span class="theme-word">Theme</span>
-          </summary>
-          <form method="post" action="/api/theme" class="theme-menu">
-            <input type="hidden" name="back" value={back} />
-            <fieldset>
-              <legend>Colour</legend>
-              <div class="swatches">
-                {
-                  THEMES.map((t) => (
-                    <button
-                      type="submit"
-                      name="theme"
-                      value={t.id}
-                      data-swatch={t.id}
-                      aria-pressed={t.id === theme ? "true" : "false"}
-                    >
-                      <span class="dot" aria-hidden="true" />
-                      {t.label}
-                    </button>
-                  ))
-                }
-              </div>
-            </fieldset>
-            <fieldset>
-              <legend>Mode</legend>
-              <div class="modes">
-                {
-                  MODES.map((m) => (
-                    <button
-                      type="submit"
-                      name="mode"
-                      value={m.id}
-                      aria-pressed={m.id === mode ? "true" : "false"}
-                    >
-                      {m.label}
-                    </button>
-                  ))
-                }
-              </div>
-            </fieldset>
-          </form>
-        </details>
       </div>
     </header>
     {
@@ -218,32 +172,6 @@ const NAV = [
 
 <script>
   import "../scripts/live";
-
-  // The picker works as a plain form; with JS, a choice applies instantly
-  // instead of reloading the page.
-  const picker = document.querySelector<HTMLDetailsElement>("details.theme-picker");
-  const menu = picker?.querySelector<HTMLFormElement>("form.theme-menu");
-  menu?.addEventListener("submit", (event) => {
-    const button = event.submitter as HTMLButtonElement | null;
-    if (!button || (button.name !== "theme" && button.name !== "mode")) return;
-    event.preventDefault();
-    document.documentElement.dataset[button.name] = button.value;
-    const secure = location.protocol === "https:" ? "; secure" : "";
-    document.cookie = `${button.name}=${button.value}; path=/; max-age=31536000; samesite=lax${secure}`;
-    for (const b of menu.querySelectorAll<HTMLButtonElement>(`button[name="${button.name}"]`)) {
-      b.setAttribute("aria-pressed", String(b === button));
-    }
-  });
-  // Close on Escape or a click elsewhere, like any menu.
-  document.addEventListener("click", (event) => {
-    if (picker?.open && !picker.contains(event.target as Node)) picker.open = false;
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && picker?.open) {
-      picker.open = false;
-      picker.querySelector("summary")?.focus();
-    }
-  });
 
   // ─── the toast a form action left, and confetti for the happy ones ─────
   const toast = document.querySelector<HTMLElement>(".toast");

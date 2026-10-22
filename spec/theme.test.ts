@@ -1,10 +1,12 @@
 import { JSDOM } from "jsdom";
 import { describe, expect, inject, it } from "vitest";
 
-// The promise the theme picker makes: pick a colour (or light/dark) on any
-// page, and the whole site comes back in it --- in this browser, on every
-// page, without JavaScript. Held by what the server sends, so it doesn't
-// depend on a script having run.
+// The promise the theme picker makes: pick a colour (or light/dark) on /me,
+// and the whole site comes back in it --- in this browser, on every page,
+// without JavaScript. Held by what the server sends, so it doesn't depend on
+// a script having run. (It lived in every page's header until the gold
+// round moved it to /me's "Look"; spec/first-impressions.test.ts holds that
+// the header no longer has it.)
 
 const baseUrl = inject("baseUrl");
 const THEMES = ["sunset", "ocean", "forest", "grape", "rose"];
@@ -29,8 +31,8 @@ async function root(cookie = "") {
 }
 
 describe("the theme picker", () => {
-  it("offers every colour, and light and dark, on every page", async () => {
-    for (const path of ["/", "/readme/"]) {
+  it("offers every colour, and light and dark, on /me", async () => {
+    for (const path of ["/me"]) {
       const res = await fetch(new URL(path, baseUrl));
       const doc = new JSDOM(await res.text()).window.document;
       for (const theme of THEMES) {

@@ -1,6 +1,7 @@
 ---
 import Avatar from "../components/Avatar.astro";
 import Icon from "../components/Icon.astro";
+import Look from "../components/Look.astro";
 import Onboard from "../components/Onboard.astro";
 import Base from "../layouts/Base.astro";
 import { ERRORS } from "../lib/forms";
@@ -47,7 +48,12 @@ const blocked = person ? peopleByIds([...blockedBy(person.id)]) : [];
 
   {
     !person ? (
-      <Onboard back="/me" />
+      <div class="stack">
+        <Onboard back="/me" />
+        <div class="look-alone">
+          <Look />
+        </div>
+      </div>
     ) : (
       <div class="tiles stagger">
         <section class="card stack" aria-labelledby="name-h" style="--i: 0">
@@ -158,6 +164,8 @@ const blocked = person ? peopleByIds([...blockedBy(person.id)]) : [];
           <a href="/friends">See your friends →</a>
         </section>
 
+        <Look i={2} />
+
         {blocked.length > 0 && (
           <section class="card stack" aria-labelledby="blocked-h" style="--i: 3">
             <h2 id="blocked-h">Blocked</h2>
@@ -250,3 +258,10 @@ const blocked = person ? peopleByIds([...blockedBy(person.id)]) : [];
     )
   }
 </Base>
+
+<style>
+  /* without a profile, the picker sits under the name form, as wide */
+  .look-alone {
+    max-width: 34rem;
+  }
+</style>
