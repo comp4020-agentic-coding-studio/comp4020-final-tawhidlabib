@@ -16,9 +16,11 @@ export const POST: APIRoute = async ({ request, cookies, redirect, url }) => {
   const form = await request.formData();
   const back = safeBack(form.get("back"));
   const name = field(form.get("name"), 40);
-  if (!name) return redirect(back, 303);
-
   const person = currentPerson(cookies);
+  // a blank name (spaces, or only invisible characters) is no name: say so on
+  // /me, where the name box is, rather than quietly keeping the old one
+  if (!name) return redirect(person ? "/me?error=name-missing" : back, 303);
+
   if (person) {
     renamePerson(person.id, name);
     logActivity({ who: personLabel(person), action: "updated profile", target: `p${person.id}`, outcome: "ok", detail: `name now "${name}"` });

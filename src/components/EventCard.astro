@@ -1,6 +1,6 @@
 ---
 import type { Event, Response } from "../lib/events";
-import { clockLabel, dayLabel, relativeDay } from "../lib/time";
+import { clockSpan, dayLabel, relativeDay } from "../lib/time";
 import Icon from "./Icon.astro";
 
 interface Props {
@@ -40,7 +40,7 @@ const ANSWER = {
   <div class="ev-body">
     <p class="ev-title">{event.title}</p>
     <p class="who">
-      {dayLabel(event.date)} · {clockLabel(event.startTime)}–{clockLabel(event.endTime)}
+      {dayLabel(event.date)} · {clockSpan(event.startTime, event.endTime)}
       {event.location && ` · ${event.location}`}
     </p>
     <div class="ev-meta">

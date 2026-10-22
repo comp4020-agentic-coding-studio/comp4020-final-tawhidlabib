@@ -1,5 +1,5 @@
 import type { Event, Group, Hangout } from "./schema";
-import { clockToUtc, wallTimeToUtc } from "./time";
+import { clockToUtc, endDate, wallTimeToUtc } from "./time";
 
 // Getting a hangout into someone's calendar without signing them in to
 // anything: a pre-filled Google Calendar event they save with one click, and
@@ -34,7 +34,7 @@ export function eventEvent(event: Event, origin: string): CalendarEvent {
     uid: `event-${event.shareId}@hangout`,
     title: event.title,
     start: clockToUtc(event.date, event.startTime, event.timezone),
-    end: clockToUtc(event.date, event.endTime, event.timezone),
+    end: clockToUtc(endDate(event.date, event.startTime, event.endTime), event.endTime, event.timezone),
     description: [event.location && `At ${event.location}.`, event.details, "On Hangout."]
       .filter(Boolean)
       .join("\n"),
