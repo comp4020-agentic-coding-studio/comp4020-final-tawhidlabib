@@ -609,8 +609,12 @@ describe.skipIf(!chromePath)("accessible, in a real browser", () => {
     await page.fill('input[name="name"]', "Ana");
     await page.click('form[action="/api/groups"] button[type=submit]');
     await page.waitForSelector(".confetti");
+    // once the page-to-page cross-fade is over (its snapshot covers
+    // everything while it runs), and while the confetti is still falling
+    await page.waitForTimeout(600);
+    expect(await page.locator(".confetti").count(), "confetti still falling").toBe(1);
     const taps = await page.evaluate(() => {
-      const target = document.querySelector<HTMLElement>("main .button") as HTMLElement;
+      const target = document.querySelector<HTMLElement>("main .button:not(.ghost)") as HTMLElement;
       const r = target.getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return {
