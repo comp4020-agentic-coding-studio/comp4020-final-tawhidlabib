@@ -92,6 +92,9 @@ const namesOf = (ids: number[]) =>
     .map((id) => (id === me?.id ? "you" : nameOf.get(id)))
     .filter(Boolean)
     .join(", ");
+/** Who a stretch doesn't suit: the README promises the recommendation says
+ *  who it leaves out, not only who it's for. */
+const leftOut = (ids: number[]) => namesOf(members.map((m) => m.id).filter((id) => !ids.includes(id)));
 const range = (from: number, to: number) => Array.from({ length: to - from }, (_, i) => from + i);
 /** "Tue 8 Jan" → ["Tue", "8"], for the date tiles and grid headers. */
 const dayParts = (date: string) => dayLabel(date).split(" ");
@@ -589,6 +592,9 @@ const TABS = ["week", "best", "plans", "people"];
                           ? "Everyone's free"
                           : `${rec.people.length} of ${members.length} free`}
                         : {namesOf(rec.people)}
+                        {rec.people.length < members.length && (
+                          <span class="left-out"> · not {leftOut(rec.people)}</span>
+                        )}
                       </p>
                     </div>
                     {i === 0 && (
@@ -602,7 +608,7 @@ const TABS = ["week", "best", "plans", "people"];
                   </div>
                   <div class="daybar-labels" aria-hidden="true">
                     <span>{hourLabel(FIRST_HOUR)}</span>
-                    <span>{rec.end - rec.start} hours</span>
+                    <span>{rec.end - rec.start} {rec.end - rec.start === 1 ? "hour" : "hours"}</span>
                     <span>{hourLabel(LAST_HOUR + 1)}</span>
                   </div>
                   <form method="post" action={`/api/groups/${group.id}/hangouts`} class="propose">
@@ -793,7 +799,7 @@ const TABS = ["week", "best", "plans", "people"];
             <p class="muted fine">
               Hours each person has marked free. Hover or focus a day to see when.
             </p>
-            <div class="table-scroll">
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Everyone's week, scrolls sideways">
               <table class="everyone">
                 <caption class="vh">
                   Hours each member marked free, week of {dayLabel(week)}
@@ -990,7 +996,11 @@ const TABS = ["week", "best", "plans", "people"];
                   Rename
                 </button>
               </form>
-              <form method="post" action={`/api/groups/${group.id}/manage`}>
+              <form
+                method="post"
+                action={`/api/groups/${group.id}/manage`}
+                data-confirm={archived ? undefined : `Archive ${group.name}? Nobody can add hours or plans until you unarchive it.`}
+              >
                 <input type="hidden" name="action" value={archived ? "unarchive" : "archive"} />
                 <button type="submit" class="button small ghost">
                   <Icon name="lock" size={15} /> {archived ? "Unarchive the group" : "Archive the group (read-only)"}

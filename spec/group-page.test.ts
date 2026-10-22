@@ -1,0 +1,91 @@
+import { describe, expect, inject, it } from "vitest";
+import { Person, probe, textOf } from "./people";
+
+// The group page keeps the README's promises: a best time says who it
+// leaves out, as well as who it suits (README point 2), and only to someone
+// who has answered for that week (ADR 10).
+
+const baseUrl = inject("baseUrl");
+const WEEK = "2030-01-07"; // a Monday
+const TUE = "2030-01-08";
+
+async function groupOfThree() {
+  const ana = new Person(baseUrl, probe("Ana"));
+  const res = await ana.post("/api/groups", { group: probe("Leftout crew"), name: ana.name, timezone: "Australia/Sydney" });
+  const path = res.headers.get("location") ?? "";
+  const id = path.split("/").pop() ?? "";
+  const ben = new Person(baseUrl, probe("Ben"));
+  await ben.post(`/api/groups/${id}/join`, { name: ben.name });
+  const cat = new Person(baseUrl, probe("Cat"));
+  await cat.post(`/api/groups/${id}/join`, { name: cat.name });
+  return { ana, ben, cat, path, id };
+}
+
+describe("a best time says who it leaves out", () => {
+  it("names the people it doesn't suit, beside the people it does", async () => {
+    const { ana, ben, cat, path, id } = await groupOfThree();
+    // Ana and Ben share Tuesday 6–9pm; Cat answers with a different hour
+    for (const p of [ana, ben]) {
+      await p.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`, `${TUE}T19`, `${TUE}T20`] });
+    }
+    await cat.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T10`] });
+    const best = textOf((await ana.get(`${path}?week=${WEEK}`)).doc, "#best-body .best-card .who");
+    expect(best, "who it suits").toContain(ben.name);
+    expect(best, "and who it leaves out").toMatch(new RegExp(`not ${cat.name}`));
+  });
+
+  it("says everyone's free when nobody is left out", async () => {
+    const { ana, ben, cat, path, id } = await groupOfThree();
+    for (const p of [ana, ben, cat]) {
+      await p.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`, `${TUE}T19`] });
+    }
+    const best = textOf((await ana.get(`${path}?week=${WEEK}`)).doc, "#best-body .best-card .who");
+    expect(best).toMatch(/everyone's free/i);
+    expect(best).not.toMatch(/\bnot\b/);
+  });
+
+  it("someone who hasn't answered sees no names at all, in or out", async () => {
+    const { ana, ben, cat, path, id } = await groupOfThree();
+    for (const p of [ana, ben]) {
+      await p.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`, `${TUE}T19`] });
+    }
+    const { html } = await cat.get(`${path}?week=${WEEK}`);
+    expect(html, "Cat hasn't answered: the blind grid holds").not.toMatch(/\bnot (you|Ana|Ben)/);
+    expect(html).not.toContain(`not ${cat.name}`);
+  });
+
+  it("a one-hour stretch says one hour", async () => {
+    const { ana, ben, path, id } = await groupOfThree();
+    for (const p of [ana, ben]) {
+      await p.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`] });
+    }
+    const { html } = await ana.get(`${path}?week=${WEEK}`);
+    expect(html).not.toMatch(/>1 hours</);
+    expect(html).toMatch(/>1 hour</);
+  });
+});
+
+describe("the everyone's-week table scrolls from the keyboard", () => {
+  it("is a named, focusable region", async () => {
+    const { ana, ben, path, id } = await groupOfThree();
+    for (const p of [ana, ben]) {
+      await p.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`] });
+    }
+    const region = (await ana.get(`${path}?week=${WEEK}`)).doc.querySelector(".table-scroll");
+    expect(region?.getAttribute("tabindex")).toBe("0");
+    expect(region?.getAttribute("role")).toBe("region");
+    expect(region?.getAttribute("aria-label") ?? "").toMatch(/everyone's week/i);
+  });
+});
+
+describe("archiving asks first", () => {
+  it("the archive button confirms before it locks the group; unarchiving doesn't need to", async () => {
+    const { ana, path, id } = await groupOfThree();
+    const form = (await ana.get(path)).doc.querySelector('form:has(input[name="action"][value="archive"])');
+    expect(form, "the admin sees an archive form").not.toBeNull();
+    expect(form?.getAttribute("data-confirm") ?? "", "it asks first").toMatch(/archive/i);
+    await ana.post(`/api/groups/${id}/manage`, { action: "archive" });
+    const back = (await ana.get(path)).doc.querySelector('form:has(input[name="action"][value="unarchive"])');
+    expect(back, "and it can be undone").not.toBeNull();
+  });
+});
