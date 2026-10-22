@@ -28,14 +28,15 @@ earns its place only by moving a plan on:
    an `.ics` file.
 5. **It's live.** Hours, replies and RSVPs appear as they happen, and a full
    event's last spot goes to the first tap
-   ([ADR 6](docs/adr/0006-the-last-spot.md)).
+   ([ADR 6](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/docs/adr/0006-the-last-spot.md)).
 6. **It holds up** on a phone, from a keyboard, on a bad connection, and
    without JavaScript.
 
 ## Why not the alternatives
 
 When2meet shows everyone's paint as you paint yours, then stops at the
-overlap. Doodle starts from one organiser's guesses. The group chat never
+overlap. Doodle starts from one organiser's guesses, and hides answers only
+on a paid plan, forever, even from those who answered. The group chat never
 stops. Hangout asks first, shows second, and ends with a plan.
 
 ### The blind grid
@@ -44,19 +45,16 @@ In open Doodle polls people approve what already looks popular, to seem
 cooperative, rather than when they're really free
 ([Zou, Meir & Parkes, 2015](https://dash.harvard.edu/handle/1/33009592)).
 How people answer also follows social norms
-([Reinecke et al., 2013](https://dash.lib.harvard.edu/handle/1/12561360)).
+([Reinecke et al., 2013](https://dash.harvard.edu/handle/1/12561360)).
 An open grid gets a group's performed week; a blind one gets its real week
-([ADR 10](docs/adr/0010-the-blind-grid.md)).
-
-### Generic, but situated
+([ADR 10](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/docs/adr/0010-the-blind-grid.md)).
 
 Robin Sloan's
-[An app can be a home-cooked meal](https://www.robinsloan.com/notes/home-cooked-app/)
-praises an app "no one else will ever use", and Clay Shirky's
-[Situated Software](https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware.html)
-software "designed for use by a specific social group". Both argue against
-building for any small group. Hangout is generic, but each group's copy is
-its own link, names and week.
+[home-cooked app](https://www.robinsloan.com/notes/home-cooked-app/) is
+one "no one else will ever use"; Clay Shirky's
+[situated software](https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware.html)
+is "designed for use by a specific social group". Hangout is generic, but
+each group's copy is its own link, names and week.
 
 ## What I chose not to build
 
@@ -64,10 +62,13 @@ its own link, names and week.
   unverified app offers only to test users. Links do the job.
 - **A chat.** Comments live on a plan; Hangout ends the group chat rather
   than becoming one.
+- **A feed, followers or discovery.** Friends exist only to invite to
+  one-off events; Explore lists only events their hosts made public; block
+  and mute exist because those two let strangers reach you.
 
 The cost of no passwords: whoever holds your sign-in link is you. Who
 may see and change what is checked on the server
-([ADR 11](docs/adr/0011-who-may-see-and-change-what.md)).
+([ADR 11](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/docs/adr/0011-who-may-see-and-change-what.md)).
 
 ## What's enforced, and what's judged
 
@@ -85,7 +86,7 @@ may see and change what is checked on the server
 Judged: whether Hangout beats the group chat, whether blind answers are
 more honest, and how fast a newcomer gets in (measured floor: two people,
 link to calendar, 12 actions). Sessions with real groups:
-[docs/judging.md](docs/judging.md).
+[docs/judging.md](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/docs/judging.md).
 
 Every source is real, checked against the original; only the front page's
 demo group is made up.
