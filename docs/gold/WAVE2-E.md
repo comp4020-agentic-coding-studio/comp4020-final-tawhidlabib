@@ -11,3 +11,11 @@ ITEMS (docs/hd-audit-2026-10-19.md #4, #7, #18, #19, "Could do"; evidence 02,03,
 9. "How was it?" next-step: the day after a hangout, the next-step card prompts "How was <title>? Add photos or a rating" linking to the plan's memories. Test with a past plan (fixtures make past plans by proposing 2026-01-10 — see spec/memories.test.ts).
 10. Confirm before archiving the group (g/[id].astro:~997) using the existing data-confirm pattern.
 Red tests first in spec/group-page.test.ts (+ real-Chrome ones in spec/holds-up.test.ts if they're interaction tests — append, don't edit existing tests).
+
+MARKUP NOTES FROM C (a11y, merged into gold):
+- `<div class="table-scroll">` needs `tabindex="0" role="region" aria-label="Everyone's week, scrolls sideways"` (WCAG 2.1.1).
+- Any new icon-only link/button needs an aria-label. `.link-button` is now ≥24px tall.
+- spec/a11y.test.ts (real Chrome, axe with contrast on, Tab-through focus-not-obscured + ring ≥3:1, 320px reflow) covers the group page: every change you make must keep it green — run it. New UI you add (trade-off line, save-link card, How-was-it card, 1920 layout) must pass it at both viewports.
+- styles.css is now C's merged work: add only what you need, near related rules; use the existing tokens (--focus, --danger, --heat-*).
+STATE: gold has A, B, C, D, F merged (563 tests; check = typecheck + lint + test). Biome lint runs in `pnpm check` with --error-on-warnings: unused imports fail it.
+KNOWN FLAKE (not yours): spec/platform.test.ts "on SIGINT…" failed once in 4 full runs; passes alone. If you see it, note it; don't chase it.
