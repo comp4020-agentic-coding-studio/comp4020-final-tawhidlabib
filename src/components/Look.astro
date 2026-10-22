@@ -161,5 +161,10 @@ const { theme, mode } = themeOf(Astro.cookies);
     for (const b of form.querySelectorAll<HTMLButtonElement>(`button[name="${button.name}"]`)) {
       b.setAttribute("aria-pressed", String(b === button));
     }
+    // the browser's bar follows, as Base.astro would draw it for this mode
+    if (button.name !== "mode") return;
+    const bars = [...document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"][data-own]')];
+    const own = (scheme: string) => bars.find((m) => m.media.includes(scheme))?.dataset.own ?? "";
+    for (const meta of bars) meta.content = button.value === "system" ? (meta.dataset.own ?? "") : own(button.value);
   });
 </script>
