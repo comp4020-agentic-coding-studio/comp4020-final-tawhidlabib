@@ -89,3 +89,31 @@ describe("archiving asks first", () => {
     expect(back, "and it can be undone").not.toBeNull();
   });
 });
+
+describe("keep your spot", () => {
+  it("is offered after joining, copies the private link, dismisses with a cookie, and stays dismissed", async () => {
+    const { ana, ben, path, id } = await groupOfThree();
+    // Ben has only just joined: his first page load carries the one-shot flash
+    const first = (await ben.get(path)).doc.querySelector(".keep-spot");
+    expect(first, "shown after joining").not.toBeNull();
+    expect(first?.textContent).toMatch(/Keep your spot/);
+    expect(first?.querySelector("[data-copy]")?.getAttribute("data-copy") ?? "", "copies his private sign-in link").toMatch(
+      /\/me\/sign-in\//,
+    );
+    expect(first?.querySelector('a[href="/me"]'), "links to /me").not.toBeNull();
+    // after his first save it's still there, until he dismisses it
+    await ben.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`] });
+    expect((await ben.get(`${path}?week=${WEEK}`)).doc.querySelector(".keep-spot")).not.toBeNull();
+    // someone who hasn't saved or just joined doesn't get it
+    expect((await ana.get(path)).doc.querySelector(".keep-spot"), "not before the first save").toBeNull();
+    // dismiss: a plain form POST
+    const form = (await ben.get(path)).doc.querySelector('.keep-spot form[action="/api/keep-spot"]');
+    expect(form, "dismiss works without JS").not.toBeNull();
+    const res = await ben.post("/api/keep-spot", { back: path });
+    expect(res.status).toBe(303);
+    expect((await ben.get(`${path}?week=${WEEK}`)).doc.querySelector(".keep-spot"), "gone for good").toBeNull();
+    // and it's about this browser, not everyone
+    await ana.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`] });
+    expect((await ana.get(`${path}?week=${WEEK}`)).doc.querySelector(".keep-spot"), "Ana still gets hers").not.toBeNull();
+  });
+});
