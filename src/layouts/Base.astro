@@ -28,6 +28,11 @@ const DESCRIPTION =
 const canonical = new URL(privateLink ? "/" : Astro.url.pathname + Astro.url.search, Astro.url).href;
 const cardTitle = privateLink ? "Your Hangout sign-in link" : title;
 const { theme, mode } = themeOf(Astro.cookies);
+// The card's picture (public/og.png, 1200×630: the logo, "Find the overlap"
+// and a week with its best time ringed), drawn large above the title. Its
+// URL is absolute because the chat app fetches it from elsewhere. A sign-in
+// link's card stays the small text-only summary: it's yours, not an invite.
+const ogImage = privateLink ? undefined : new URL("/og.png", Astro.url).href;
 // The browser's own bar (a phone's status bar, a tab strip) takes the page's
 // background, light or dark (--bg in styles.css, the same in every theme).
 // A mode picked on /me wins over the system's, as it does for the page;
@@ -83,7 +88,21 @@ const NAV = [
     <meta property="og:title" content={cardTitle} />
     <meta property="og:description" content={DESCRIPTION} />
     <meta property="og:url" content={canonical} />
-    <meta name="twitter:card" content="summary" />
+    {
+      ogImage && (
+        <>
+          <meta property="og:image" content={ogImage} />
+          <meta property="og:image:type" content="image/png" />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+          <meta
+            property="og:image:alt"
+            content="Hangout's logo, the words “Find the overlap”, and a week of free hours with Thursday 6 to 9pm ringed as the time everyone shares."
+          />
+        </>
+      )
+    }
+    <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
     {privateLink && <meta name="robots" content="noindex, nofollow" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content={bar.light} data-own={BAR.light} />
