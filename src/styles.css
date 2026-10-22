@@ -4760,3 +4760,26 @@ form[aria-busy="true"] {
     transform: rotate(360deg);
   }
 }
+
+.keep-spot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem 1.1rem;
+  margin-bottom: 1.4rem;
+}
+
+.keep-spot .what {
+  flex: 1 1 16rem;
+}
+
+.keep-spot p {
+  margin: 0.15rem 0 0;
+}
+
+.keep-spot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}

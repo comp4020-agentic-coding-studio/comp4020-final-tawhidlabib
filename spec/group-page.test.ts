@@ -107,7 +107,7 @@ describe("keep your spot", () => {
     // someone who hasn't saved or just joined doesn't get it
     expect((await ana.get(path)).doc.querySelector(".keep-spot"), "not before the first save").toBeNull();
     // dismiss: a plain form POST
-    const form = (await ben.get(path)).doc.querySelector('.keep-spot form[action="/api/keep-spot"]');
+    const form = (await ben.get(`${path}?week=${WEEK}`)).doc.querySelector('.keep-spot form[action="/api/keep-spot"]');
     expect(form, "dismiss works without JS").not.toBeNull();
     const res = await ben.post("/api/keep-spot", { back: path });
     expect(res.status).toBe(303);

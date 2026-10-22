@@ -172,6 +172,14 @@ const level = (n: number) => (n === 0 ? 0 : n <= 2 ? 1 : n <= 4 ? 2 : n <= 7 ? 3
 const peopleBack = `/g/${group?.id}?week=${week}#people`;
 
 const TABS = ["week", "best", "plans", "people"];
+
+// "Keep your spot": a profile is made silently on joining, so after joining
+// or a first save say once that the private sign-in link is the way back in
+// on another device. Dismissal is a cookie (no DB), set by a plain form.
+const person = Astro.locals.person;
+const keepSpot =
+  !!me && !!person && !archived && Astro.cookies.get("keep-spot")?.value !== "done" && (flashed === "joined" || answered);
+const signInUrl = person ? new URL(`/me/sign-in/${person.token}`, Astro.url).href : "";
 ---
 
 {
@@ -420,6 +428,31 @@ const TABS = ["week", "best", "plans", "people"];
           </>
         )}
       </section>
+
+      {
+        keepSpot && (
+          <section class="card keep-spot" aria-labelledby="keep-spot-h">
+            <div class="what">
+              <strong id="keep-spot-h">Keep your spot</strong>
+              <p class="muted">Save your private sign-in link so you can get back in on another device.</p>
+            </div>
+            <div class="keep-spot-actions">
+              <button type="button" class="button small" data-copy={signInUrl} hidden>
+                <Icon name="copy" size={16} /> Copy
+              </button>
+              <a class="button small ghost" href="/me">
+                Open my link
+              </a>
+              <form method="post" action="/api/keep-spot">
+                <input type="hidden" name="back" value={`/g/${group.id}${week === thisWeek ? "" : `?week=${week}`}`} />
+                <button type="submit" class="link-button">
+                  Dismiss
+                </button>
+              </form>
+            </div>
+          </section>
+        )
+      }
 
       <nav class="tabs" aria-label="Group sections" data-tabs>
         <a href="#week" data-tab="week">
