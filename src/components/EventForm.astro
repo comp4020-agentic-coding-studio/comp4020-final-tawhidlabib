@@ -112,7 +112,8 @@ const cover = event?.cover ?? "sunset";
       </label>
     </div>
     <p class="muted fine">
-      Times are in {timezone}. With a spot limit, once it's full people join a waitlist and move in
+      Times are in {timezone}. An end before the start runs into the next day. With a spot limit,
+      once it's full people join a waitlist and move in
       automatically, first come first served, when someone drops out.
     </p>
   </div>
@@ -227,7 +228,8 @@ const cover = event?.cover ?? "sunset";
         day: "numeric",
         month: "long",
       });
-      previewWhen.textContent = `${day} · ${start?.value ?? ""}–${end?.value ?? ""}`;
+      const overnight = !!start?.value && !!end?.value && end.value < start.value;
+      previewWhen.textContent = `${day} · ${start?.value ?? ""}–${end?.value ?? ""}${overnight ? " (next day)" : ""}`;
     }
   }
   for (const input of [title, date, start, end]) input?.addEventListener("input", update);
