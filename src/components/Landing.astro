@@ -28,8 +28,9 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
         Find the <span class="gradient-text">overlap.</span><br />Then actually hang out.
       </h1>
       <p class="lede">
-        One link for the group. Everyone taps the hours they're free. Hangout finds the
-        longest stretch that works for the most of you, and puts it in your calendar.
+        One link for the group. You mark your week before you see anyone else's, so everyone
+        says when they're really free. Hangout finds the longest stretch most of you share,
+        and puts it in your calendar.
       </p>
       <div class="cta-row">
         <a class="button large" href="#start">
@@ -51,7 +52,7 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
       <div class="reassure">
         <span><Icon name="check" size={16} /> No sign-up</span>
         <span><Icon name="check" size={16} /> Works on any phone</span>
-        <span><Icon name="check" size={16} /> Google & Apple calendars</span>
+        <span><Icon name="check" size={16} /> Any calendar</span>
       </div>
     </div>
     <HeroDemo />
@@ -152,7 +153,12 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
       </div>
       <div class="card winner">
         <h3><Icon name="sparkles" size={18} /> Hangout</h3>
-        <p class="muted">One link. Everyone taps their week. The overlap finds itself.</p>
+        <ol class="how-it-gets-there">
+          <li><b>One link</b> in the chat. Joining costs a name.</li>
+          <li><b>Everyone marks their week</b> before they see anyone else's.</li>
+          <li><b>The overlap finds itself:</b> the longest stretch most of you share.</li>
+          <li><b>"I'm in"</b> puts it in your calendar.</li>
+        </ol>
         <div class="result">
           <strong>Thu 6–9pm · everyone's in</strong>
           <span class="muted">Already in four calendars.</span>
@@ -214,3 +220,51 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
     document.getElementById("timezone").value = Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch {}
 </script>
+
+<style>
+  /* the three trust ticks always share their rows equally: three across,
+     or one under another on a narrow phone, never two and one left alone */
+  .reassure {
+    display: grid;
+    grid-template-columns: repeat(3, max-content);
+  }
+
+  @media (max-width: 28rem) {
+    .reassure {
+      grid-template-columns: max-content;
+    }
+  }
+
+  /* how Hangout gets to its plan, set against the chat's 41 messages */
+  .how-it-gets-there {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0.8rem 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: how;
+  }
+
+  .how-it-gets-there li {
+    position: relative;
+    padding-left: 2rem;
+    font-size: 0.95rem;
+    counter-increment: how;
+  }
+
+  .how-it-gets-there li::before {
+    content: counter(how);
+    position: absolute;
+    left: 0;
+    top: 0.05rem;
+    display: grid;
+    place-items: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+</style>
