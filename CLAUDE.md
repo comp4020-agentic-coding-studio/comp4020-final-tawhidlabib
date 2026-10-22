@@ -88,6 +88,14 @@ green the checks:
   in `spec/holds-up.test.ts`.
 - **Joining costs a name.** Never add a step between an invite link and
   marking an hour.
+- **Hours belong to one week, never a template.** Availability is stored
+  against real dates, a submitted week is the whole answer for that week,
+  and a week far from now falls back to this one (`weekParam()`). Nothing
+  copies forward on its own: "Copy last week" is a button someone presses.
+- **Every plan ends in a calendar.** Saying you're in a hangout or going to
+  an event offers a Google Calendar link and an `.ics` file, with times
+  right across a daylight-saving change and an overnight end. A new kind of
+  plan gets both, and a test of its `.ics`.
 
 ## Live updates, and what changes state
 
