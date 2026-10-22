@@ -175,3 +175,16 @@ describe("how was it?", () => {
     expect((await card(ben))?.textContent).not.toContain(old);
   });
 });
+
+describe("best times beside the grid on wide screens", () => {
+  it("lists them in #week-best for someone who has answered, and for nobody else", async () => {
+    const { ana, ben, cat, path, id } = await groupOfThree();
+    for (const p of [ana, ben]) await p.post(`/api/groups/${id}/availability`, { week: WEEK, slot: [`${TUE}T18`, `${TUE}T19`] });
+    const side = (await ana.get(`${path}?week=${WEEK}`)).doc.querySelector("#week-best");
+    expect(side?.textContent, "the top time is beside the grid").toMatch(/Tue 8 Jan, 6pm–8pm/);
+    expect(side?.getAttribute("data-live"), "and stays live").toMatch(/^group:/);
+    const blind = await cat.get(`${path}?week=${WEEK}`);
+    expect(blind.doc.querySelector("#week-best aside"), "Cat hasn't answered: nothing derived from others").toBeNull();
+    expect(blind.doc.querySelector("#week-best")?.textContent?.trim()).toBe("");
+  });
+});

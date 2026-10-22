@@ -543,6 +543,7 @@ const signInUrl = person ? new URL(`/me/sign-in/${person.token}`, Astro.url).hre
             </span>
           </p>
         )}
+        <div class="week-layout">
         <form method="post" action={`/api/groups/${group.id}/availability`}>
           <input type="hidden" name="week" value={week} />
           <div class="card grid-card" id="week-grid" data-live={`group:${group.id}`} data-live-grid>
@@ -617,6 +618,27 @@ const signInUrl = person ? new URL(`/me/sign-in/${person.token}`, Astro.url).hre
             </button>
           </div>
         </form>
+        <div class="week-best-slot" id="week-best" data-live={`group:${group.id}`}>
+          {best.length > 0 && (
+            <aside class="week-best" aria-labelledby="week-best-h">
+              <h3 id="week-best-h">Best times</h3>
+              <ol>
+                {best.map((rec) => (
+                  <li>
+                    <a href="#best">
+                      <b>{spanLabel(rec.date, rec.start, rec.end)}</b>
+                      <span class="muted">
+                        {rec.people.length === members.length ? "Everyone's free" : `${rec.people.length} of ${members.length} free`}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+              {tradeoffNote && <p class="tradeoff">{tradeoffNote}</p>}
+            </aside>
+          )}
+        </div>
+        </div>
       </section>
 
       <section id="best" class="panel" aria-labelledby="best-heading">
