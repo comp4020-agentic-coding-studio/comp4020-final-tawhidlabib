@@ -722,13 +722,44 @@ restore runbook.
   - a confirm before archiving;
   - calendar entries named by plan and group.
   Each was red first.
-- **Still open, recorded honestly:** the 1920 two-column layout, your own
-  second device updating live, a "save your sign-in link" prompt, the
-  recommendation's trade-off line, and a "How was it?" card.
+- **Left open at the time** (done in prompt 32): the 1920 two-column
+  layout, your own second device updating live, a "save your sign-in link"
+  prompt, the recommendation's trade-off line, and a "How was it?" card.
 - The README (dead links fixed, Doodle checked against Doodle's own help
   pages, point 7, 600 words), `PROCESS.md` (rewritten per the audit's
   plan, 21 citations), `CLAUDE.md` (rules for README points 3 and 4) and
   this file were brought up to date.
+
+### Prompt 32 · Thu 22 Oct · finish what wasn't done
+
+> please assign 1 sonnet 5.5 agent to complete the work that was not done
+> and then update the documentation where necessary.
+
+**Result**
+- **One Sonnet agent** worked through the open list in priority order. The
+  lead reviewed and merged it:
+  - **your own second device updates live,** with a guard so a tab's
+    unsaved taps are never overwritten;
+  - **"Keep your spot":** a one-time card prompting new members to save
+    their sign-in link, dismissible without JavaScript;
+  - **the recommendation explains its trade-off,** e.g. "suits all 3, but
+    only for 1 hour", from a pure helper with unit tests;
+  - **the propose forms fold** on all but the best card;
+  - **"How was it?"** the day after a hangout you were in;
+  - **best times beside the grid at 1920,** with the phone layout
+    unchanged;
+  - **the Explore search box has a length limit;**
+  - **the flaky shutdown test** now waits by the clock and stops as soon
+    as its server dies. It passed 5 full runs, but the original flake
+    never reproduced, so it isn't proven cured.
+- **The lead checked the blind grid held.** The new side card and
+  trade-off line only appear when there are best times, and someone who
+  hasn't answered has none, because the page reads only their own hours.
+- **What the agent was honest about:** the 1920 test was written after the
+  change, not red first. It also introduced a server error for a missing
+  group, which the full gate caught and it fixed before reporting.
+- **Still rough:** at 1920 the header stays at the old width while the
+  group page widens, so they don't line up.
 
 ---
 
@@ -807,12 +838,12 @@ These are worth reviewing before citing them:
 - **Invite links in the logs:** the first logging pass leaked them; caught
   in review, with a red test first (prompt 21).
 
-### By the numbers (as of 22 Oct)
+### By the numbers (as of 22 Oct, after prompt 32)
 
-- 31 prompts
-- 188 commits since the template's first commit
+- 32 prompts
+- 198 commits since the template's first commit
 - 11 ADRs
-- 39 test files and 571 checks, run by `pnpm check` with typecheck and
+- 39 test files and 581 checks, run by `pnpm check` with typecheck and
   lint. 35 run against the app over HTTP, with real-Chrome tests in
   `spec/holds-up.test.ts` and `spec/a11y.test.ts`, and 4 are unit tests
   of the pure logic.

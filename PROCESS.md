@@ -88,6 +88,10 @@ I measured rather than trusted a green suite:
 I also rehearsed crit 10 by reading only the log while two people used the
 app. That's how I found a refused edit reading as if it had happened
 ([`1c56cf9`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/1c56cf9)).
+A fix gets a test for what it might break as well as what it mends. Making
+your other device live also had to leave a tab's unsaved taps alone, so
+that guard went in with the red test
+([`d239c56`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/d239c56)).
 
 ## Failures, fixed in the harness
 
