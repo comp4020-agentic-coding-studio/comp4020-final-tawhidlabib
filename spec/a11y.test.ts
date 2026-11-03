@@ -397,10 +397,13 @@ async function sweep() {
     });
   }
 
-  // the week grid in the other four themes, and /me (its links and Look card)
-  // for contrast
+  // the week grid in the other four themes, /me (its links and Look card)
+  // for contrast, and /welcome for contrast at both viewports: its README
+  // section is the README, so its kickers, cards and links are read in
+  // whatever theme someone has picked
   const grid = world.pages.find((p) => p.label === "/g/[id]#week") as Visit;
   const me = world.pages.find((p) => p.label === "/me, with Look") as Visit;
+  const welcome = world.pages.find((p) => p.label === "/welcome") as Visit;
   for (const theme of THEMES.filter((t) => t !== "sunset")) {
     for (const { viewport, mode } of combos) {
       jobs.push(async () => {
@@ -415,6 +418,8 @@ async function sweep() {
           await open(ctx, page, me, theme, mode);
           await runAxe(page, me.label, combo, true);
         }
+        await open(ctx, page, welcome, theme, mode);
+        await runAxe(page, welcome.label, combo, true);
         await ctx.close();
       });
     }
