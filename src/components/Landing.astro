@@ -6,6 +6,7 @@ import { groupsFor } from "../lib/identity";
 import { DEFAULT_TIMEZONE } from "../lib/time";
 import HeroDemo from "./HeroDemo.astro";
 import Icon from "./Icon.astro";
+import ReadmeSection from "./ReadmeSection.astro";
 
 // The landing page: what Hangout is, how it works, and a form to start a
 // group. It's the home page before you have a profile, and the logo always
@@ -213,6 +214,8 @@ const error = ERRORS[Astro.url.searchParams.get("error") ?? ""];
       </div>
     </form>
   </section>
+
+  <ReadmeSection />
 
 <script is:inline>
   // The group's hours are in its creator's timezone; without JS it's Sydney.

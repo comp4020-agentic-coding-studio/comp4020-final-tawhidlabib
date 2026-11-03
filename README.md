@@ -1,18 +1,19 @@
 # Hangout
 
+## The landing page is my README
+
+My README submission is Hangout's landing page, and my tutor, Bill,
+approved this.
+[Read it on the landing page](https://comp4020-final-tawhidlabib.fly.dev/welcome#readme):
+its last section carries everything below, designed as part of the app.
+This file is the same argument as plain text.
+
+## What good means here
+
 Most group plans die in the group chat: forty messages of "I'm free
 Thursday-ish", and nobody ever says "so, Thursday at 7". Hangout carries a
 plan through its whole life instead, from "we should hang out" to
-remembering it. Someone sends a link; everyone taps the hours
-they're free this week, **before seeing anyone else's**; Hangout finds the
-longest stretch most of you share; you say you're in, and it's in your
-calendar.
-
-Try it at
-[comp4020-final-tawhidlabib.fly.dev](https://comp4020-final-tawhidlabib.fly.dev/)
-in two browser profiles.
-
-## What good means here
+remembering it.
 
 Good is beating the group chat at each step of a plan's life. A feature
 earns its place by moving a plan on:
