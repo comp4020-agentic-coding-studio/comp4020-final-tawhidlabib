@@ -761,6 +761,41 @@ restore runbook.
 - **Still rough:** at 1920 the header stays at the old width while the
   group page widens, so they don't line up.
 
+### Prompt 33 · Tue 3 Nov · PROCESS.md, around my process
+
+> I would like you to assign 1 opus 5.5 agent on xhigh to go through all of
+> my prompt-history document and compare it to the process.md document. I
+> want the agent to be marking the process.md document and fix it so that
+> it hits a HD standard. The process document should be focused on the
+> process that I went through and not the one that the AI agents have gone
+> through. [...] I want the result of this outcome to be a process.md file
+> that is hitting HD standard
+
+**My calls** (asked before writing):
+- **Agents as tools I directed (own):** first person, built around my
+  decisions, with agents only as the instrument.
+- **Own the choice (own):** where I took a recommendation, say why I took
+  it.
+- **A draft in my voice (own):** plain first person, close to how I write
+  my prompts, for me to adjust.
+
+**Result**
+- One Opus agent marked the old `PROCESS.md` at D–Cr (about 74). It
+  narrated agents as the actors, left out many of my "own" calls (building
+  everything for crit 8, deploying before the session, the last-spot rule,
+  the budget pause), and cited two numbers to commits that don't contain
+  them.
+- Rewritten around my calls, each tied to its prompt number and a commit:
+  39 cited commits, all resolving, and 1,083 words.
+  ([`ed7e85f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/ed7e85f))
+- The lead checked the claims it was least sure of against git and this
+  file: eight milestones in one evening (27 commits, 21:35–22:50 on 7 Oct),
+  52 ms, the migration-number collision, the port-only rule, and the
+  audit's three claims that didn't reproduce. All held.
+- **Left for me to check before submitting:** that ADR 6's reason for the
+  last-spot rule is mine, and that prompt 18's reasoning reads the way I'd
+  put it.
+
 ---
 
 ## For the final PROCESS.md
@@ -840,7 +875,7 @@ These are worth reviewing before citing them:
 
 ### By the numbers (as of 22 Oct, after prompt 32)
 
-- 32 prompts
+- 33 prompts
 - 198 commits since the template's first commit
 - 11 ADRs
 - 39 test files and 581 checks, run by `pnpm check` with typecheck and
