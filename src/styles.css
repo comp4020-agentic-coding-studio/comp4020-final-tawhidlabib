@@ -843,10 +843,17 @@ select:focus {
   }
 }
 
-/* sections that ease in as they scroll into view, where the browser can */
+/* sections that ease in as they scroll into view, where the browser can.
+   Longhands, not the `animation` shorthand: the build's minifier folded
+   the shorthand and the timeline into `animation:linear both reveal
+   view()`, which Chrome drops whole, so nothing ever faded. Written
+   apart, nothing can move view() into the duration's place; the timeline
+   and its range come after, as the shorthand would reset them. */
 @supports (animation-timeline: view()) {
   .reveal {
-    animation: reveal linear both;
+    animation-name: reveal;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
     animation-timeline: view();
     animation-range: entry 0% cover 28%;
   }
