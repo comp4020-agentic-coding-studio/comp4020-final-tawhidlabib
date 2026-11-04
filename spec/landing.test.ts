@@ -32,6 +32,27 @@ const README = readFileSync("README.md", "utf8");
 const REPO = "https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/";
 const DEPLOYED = "comp4020-final-tawhidlabib.fly.dev";
 
+// README.md holds no text version of the landing page (the student chose
+// this; their tutor agreed), so what the landing page must carry is fixed
+// here: the four sources (their exact links), the two quotes word for word
+// (checked against the pages they come from), and the checks spec/ holds.
+const SOURCES = [
+  "https://dash.harvard.edu/handle/1/33009592", // Zou, Meir & Parkes, 2015
+  "https://dash.harvard.edu/handle/1/12561360", // Reinecke et al., 2013
+  "https://www.robinsloan.com/notes/home-cooked-app/",
+  "https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware.html",
+];
+const QUOTES = ["no one else will ever use", "designed for use by a specific social group"];
+const ENFORCED = [
+  "a stranger with the link joins",
+  "the top recommendation is the longest shared stretch",
+  "daylight saving",
+  "before marking their own",
+  "nobody reads or changes another",
+  "within a second",
+  "exactly one wins",
+  "in real Chrome",
+];
 const squash = (s: string): string => s.replace(/\s+/g, " ").trim();
 // markdown to its words: link targets, code ticks and emphasis dropped
 const plain = (md: string): string => md.replace(/\]\([^)]*\)/g, "]").replace(/[`*[\]]/g, "");
@@ -52,30 +73,6 @@ function under(md: string, heading: RegExp, deep = false): string {
 const sections = (md: string) =>
   [...md.matchAll(/^ {0,3}##\s+(.+?)\s*#*\s*$/gm)].map((m) => ({ heading: plain(m[1]), body: under(md, new RegExp(`^ {0,3}##\\s+${m[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), true) }));
 
-/** A block's list items ("- " or "1. "), each with its wrapped lines joined. */
-function items(block: string): string[] {
-  const found: string[] = [];
-  for (const line of block.split(/\r?\n/)) {
-    const start = line.match(/^ {0,3}(?:[-*]|\d+\.)\s+(.*)$/);
-    if (start) found.push(start[1]);
-    else if (/^\s{2,}\S/.test(line) && found.length) found[found.length - 1] += ` ${line.trim()}`;
-  }
-  return found;
-}
-
-/** The outside sources README.md cites: web links that are neither this app nor its own repo. */
-const sources = (md: string): string[] =>
-  [...new Set([...md.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map((m) => m[1]))].filter((u) => {
-    const host = new URL(u).host;
-    return host !== DEPLOYED && !host.endsWith("github.com");
-  });
-
-/** Words quoted from a source: a "quote" within a few words after a source's link. */
-const quotes = (md: string): string[] =>
-  [...md.matchAll(/\]\((https?:\/\/[^)\s]+)\)[^"“\]]{0,40}?["“]([^"”]+)["”]/g)]
-    .filter((m) => !new URL(m[1]).host.endsWith("github.com"))
-    .map((m) => squash(m[2]));
-
 /** The first link under a heading, if it points at a landing section: its id. */
 const landingAnchor = (body: string): string | undefined => {
   const first = body.split(/\r?\n/).find((l) => l.trim() !== "") ?? "";
@@ -90,8 +87,8 @@ async function landing() {
   return { doc, story: story as Element, text: squash(story?.textContent ?? "") };
 }
 
-describe("README.md, the plain-text copy", () => {
-  it("opens, straight after # Hangout, by naming Bill, linking the landing page, and offering itself as the alternative", () => {
+describe("README.md, which points to the landing page", () => {
+  it("opens, straight after # Hangout, by saying the landing page is the README, that Bill agreed, and linking it", () => {
     const lines = README.split(/\r?\n/);
     const title = lines.findIndex((l) => /^#\s/.test(l));
     expect(lines[title], "README.md keeps its # Hangout title").toMatch(/^#\s+Hangout\s*$/);
@@ -100,7 +97,7 @@ describe("README.md, the plain-text copy", () => {
     expect(plain(opening)).toMatch(/\bBill\b/);
     expect(plain(opening)).toMatch(/landing page as my README/i);
     expect(opening).toContain(`(https://${DEPLOYED}/welcome#readme)`);
-    expect(plain(opening), "and offers the plain text below instead").toMatch(/plain text below/i);
+    expect(plain(opening), "and says it holds no text version").toMatch(/no text version/i);
   });
 
   it("keeps the headings the course expects, in order, each opening with a link to the landing section that stands in for it", async () => {
@@ -156,27 +153,21 @@ describe("the landing page's README sections", () => {
     expect(story.querySelectorAll(".pill, .toc").length, "no pills or contents pills").toBe(0);
   });
 
-  it("link every source README.md cites, and quote each source's words exactly", async () => {
+  it("link all four sources, and quote Sloan and Shirky word for word", async () => {
     const { story, text } = await landing();
-    const links = sources(README);
-    expect(links.length, "README.md cites its four sources (Zou, Reinecke, Sloan, Shirky)").toBeGreaterThanOrEqual(4);
     const hrefs = [...story.querySelectorAll("a")].map((a) => a.getAttribute("href"));
-    for (const url of links) expect(hrefs, `the landing page doesn't link ${url}`).toContain(url);
-    const words = quotes(README);
-    expect(words.length, "README.md quotes Sloan and Shirky").toBeGreaterThanOrEqual(2);
-    for (const q of words) expect(text, `the landing page doesn't quote "${q}" word for word`).toContain(q);
+    for (const url of SOURCES) expect(hrefs, `the landing page doesn't link ${url}`).toContain(url);
+    for (const q of QUOTES) expect(text, `the landing page doesn't quote "${q}" word for word`).toContain(q);
   });
 
-  it("list every check README.md says spec/ enforces, each linking the spec that holds it", async () => {
+  it("list every check spec/ enforces, each linking the spec that holds it", async () => {
     const { story } = await landing();
-    const enforced = items(under(README, /^ {0,3}##\s.*enforced.*judged/i));
-    expect(enforced.length, "README.md lists what spec/ enforces").toBeGreaterThanOrEqual(6);
     const rows = [...story.querySelectorAll("li")];
-    for (const check of enforced) {
-      const row = rows.find((li) => normalise(li.textContent ?? "").includes(normalise(plain(check))));
-      expect(row, `the landing page doesn't list "${plain(check)}"`).toBeTruthy();
+    for (const check of ENFORCED) {
+      const row = rows.find((li) => normalise(li.textContent ?? "").includes(normalise(check)));
+      expect(row, `the landing page doesn't list "${check}"`).toBeTruthy();
       const specs = [...(row?.querySelectorAll(`a[href^="${REPO}spec/"]`) ?? [])].map((a) => a.getAttribute("href") ?? "");
-      expect(specs.length, `"${plain(check)}" links no spec`).toBeGreaterThan(0);
+      expect(specs.length, `"${check}" links no spec`).toBeGreaterThan(0);
       for (const href of specs) expect(existsSync(href.slice(REPO.length)), `${href} is not a file in this repo`).toBe(true);
     }
     expect(story.querySelector(`a[href="${REPO}docs/judging.md"]`), "the judged claims link how they're judged").not.toBeNull();
@@ -184,16 +175,16 @@ describe("the landing page's README sections", () => {
 });
 
 describe("the blind grid's Why?", () => {
-  it("still lands on README.md's heading at /readme/", async () => {
+  it("lands on the landing section that explains the blind grid", async () => {
     const ana = new Person(baseUrl, "Ana");
     const made = await ana.post("/api/groups", { group: "Why crew", name: "Ana", timezone: "Australia/Sydney" });
     const { doc } = await ana.get(made.headers.get("location") ?? "/g/none");
-    const why = doc.querySelector('#blind-note a[href="/readme/#the-blind-grid"]');
-    expect(why, "an unanswered week explains itself").not.toBeNull();
-    const readme = (await new Person(baseUrl).get("/readme/")).doc;
-    const target = readme.querySelector("article.readme #the-blind-grid");
-    expect(target?.tagName).toMatch(/^H[23]$/);
-    expect(target?.textContent).toMatch(/the blind grid/i);
+    const why = doc.querySelector('#blind-note a[href="/welcome#honest-week"]');
+    expect(why, "an unanswered week explains itself, on the landing page").not.toBeNull();
+    const { doc: page } = await landing();
+    const target = page.getElementById("honest-week");
+    expect(target?.closest("#readme"), "it's one of the README's sections").not.toBeNull();
+    expect(target?.textContent).toMatch(/blind grid/i);
   });
 });
 
