@@ -7,7 +7,7 @@ read as well: it was written for the landing page.
 
 ## What good means here
 
-→ [On the landing page: Good means beating the group chat, every step](https://comp4020-final-tawhidlabib.fly.dev/welcome#every-step)
+→ [On the landing page: From "we should hang out" to remembering it](https://comp4020-final-tawhidlabib.fly.dev/welcome#every-step)
 
 Most plans die in the group chat. Good is beating it at each step of a
 plan's life, from "we should hang out" to remembering it. A feature earns
@@ -31,7 +31,7 @@ its place by moving a plan on:
 
 ## What I read and looked at
 
-→ [On the landing page: Why your honest week matters](https://comp4020-final-tawhidlabib.fly.dev/welcome#honest-week)
+→ [On the landing page: Why Hangout beats the other ways](https://comp4020-final-tawhidlabib.fly.dev/welcome#honest-week)
 
 When2meet shows everyone's paint as you paint yours, then stops at the
 overlap. Doodle starts from one organiser's guesses, and hides answers only
