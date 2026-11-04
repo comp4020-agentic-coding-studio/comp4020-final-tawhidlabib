@@ -1,0 +1,308 @@
+---
+import Icon from "../Icon.astro";
+
+// What's enforced, and what's judged: on one side the checks spec/ runs
+// against the running app, each ticking in as it scrolls into view, with
+// the spec files that hold it; on the other what only people can judge,
+// and how each is judged (docs/judging.md). With motion reduced every
+// tick is simply there.
+
+const REPO = "https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/";
+
+// each enforced claim (README.md's words), and the spec files that hold it
+const enforced: { text: string; specs: string[]; idea?: boolean }[] = [
+  { text: "a stranger with the link joins; hours survive a restart", specs: ["crit-8"] },
+  { text: "the top recommendation is the longest shared stretch, naming who it misses", specs: ["crit-8", "group-page"] },
+  { text: "calendar times survive daylight saving", specs: ["crit-8", "edges"] },
+  { text: "nobody sees the group's week before marking their own", specs: ["blind"], idea: true },
+  {
+    text: "nobody reads or changes another's things; every change is logged by who",
+    specs: ["coverage", "security", "activity"],
+  },
+  { text: "a change reaches other open pages within a second", specs: ["live"] },
+  { text: "of simultaneous taps on a last spot, exactly one wins", specs: ["waitlist"] },
+  { text: "keyboard, resize, slow or dropped connection and accessibility, in real Chrome", specs: ["holds-up", "a11y"] },
+];
+
+// each judged claim, and how docs/judging.md judges it
+const judged: { icon: "chat" | "lock" | "clock"; claim: string; how: string; idea?: boolean }[] = [
+  { icon: "chat", claim: "Does it beat the group chat?", how: "A real group plans a real hangout here: a plan, in fewer messages." },
+  {
+    icon: "lock",
+    claim: "Are blind answers more honest?",
+    how: "Afterwards, each person is asked if they marked their real week.",
+    idea: true,
+  },
+  {
+    icon: "clock",
+    claim: "How fast does a newcomer get in?",
+    how: "Timed, unhelped, on their own phone. The floor: link to calendar for two in 12 actions.",
+  },
+];
+---
+
+<section class="section reveal" id="how-we-know" aria-labelledby="how-we-know-title">
+  <div class="chapter-head">
+    <span class="kicker">What's enforced, and what's judged</span>
+    <h2 id="how-we-know-title">How we know <span class="gradient-text">it works</span></h2>
+  </div>
+
+  <div class="claims">
+    <div class="card claims-card machine rise">
+      <div class="claims-head">
+        <span class="icon-bubble" aria-hidden="true"><Icon name="check" size={22} /></span>
+        <div>
+          <h3>Enforced, every push</h3>
+          <p class="muted">spec/ checks these against the running app.</p>
+        </div>
+      </div>
+      <ul class="checks">
+        {
+          enforced.map((e) => (
+            <li class:list={{ idea: e.idea }}>
+              <span class="tick" aria-hidden="true">
+                <Icon name={e.idea ? "lock" : "check"} size={14} />
+              </span>
+              <span>
+                {e.text}
+                <span class="specs">
+                  {e.specs.map((s) => (
+                    <a href={`${REPO}spec/${s}.test.ts`}>{s}.test.ts</a>
+                  ))}
+                </span>
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="card claims-card people rise" style="--i: 1">
+      <div class="claims-head">
+        <span class="faces" aria-hidden="true">
+          <span class="avatar" style="--hue: 18">A</span>
+          <span class="avatar" style="--hue: 210">B</span>
+          <span class="avatar" style="--hue: 150">C</span>
+        </span>
+        <div>
+          <h3>Judged, with real groups</h3>
+          <p class="muted">What no test can say.</p>
+        </div>
+      </div>
+      <ul class="judged">
+        {
+          judged.map((j, i) => (
+            <li class:list={["rise", { idea: j.idea }]} style={`--i: ${i + 1}`}>
+              <span class="icon-bubble small" aria-hidden="true">
+                <Icon name={j.icon} size={16} />
+              </span>
+              <span>
+                <b>{j.claim}</b>
+                <span class="muted">{j.how}</span>
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="how">
+        How each is judged, and what passes:{" "}
+        <a href={`${REPO}docs/judging.md`}>docs/judging.md <Icon name="arrow" size={16} /></a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .claims {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+  }
+
+  @media (min-width: 52rem) {
+    .claims {
+      grid-template-columns: 1.15fr 1fr;
+    }
+  }
+
+  .claims-card {
+    padding: 1.4rem;
+  }
+
+  .claims-head {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .claims-head .icon-bubble {
+    flex: none;
+    margin: 0;
+  }
+
+  .claims-head h3,
+  .claims-head p {
+    margin: 0;
+  }
+
+  .claims-head p {
+    font-size: 0.9rem;
+  }
+
+  .checks,
+  .judged {
+    display: grid;
+    gap: 0.8rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .checks li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+    font-size: 0.95rem;
+  }
+
+  /* each check's tick: a gradient dot like the page's icon bubbles */
+  .tick {
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-top: 0.05rem;
+    border-radius: 50%;
+    background: var(--gradient);
+    color: var(--on-accent);
+    box-shadow: var(--glow);
+  }
+
+  /* the check's path is about 20 units long: one dash draws it */
+  .checks li:not(.idea) .tick {
+    stroke-dasharray: 22;
+  }
+
+  /* the one idea's own check */
+  /* the one idea's own check: ringed, on the card's surface (its spec
+     link on --accent-soft read 4.33:1 in forest light) */
+  .checks li.idea {
+    margin: 0 -0.6rem;
+    padding: 0.55rem 0.6rem;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid color-mix(in oklab, var(--accent) 45%, var(--line));
+  }
+
+  .specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.9rem;
+  }
+
+  .specs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  .faces {
+    display: flex;
+    flex: none;
+  }
+
+  .faces .avatar {
+    border-color: var(--surface);
+  }
+
+  .faces .avatar + .avatar {
+    margin-left: -0.6rem;
+  }
+
+  .judged li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.8rem;
+    align-items: start;
+    padding: 0.85rem 0.9rem;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+  }
+
+  .judged li.idea {
+    background:
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      var(--gradient) border-box;
+    border: 2px solid transparent;
+    box-shadow: var(--glow);
+  }
+
+  .judged .icon-bubble.small {
+    width: 2.1rem;
+    height: 2.1rem;
+    margin: 0;
+    border-radius: 0.7rem;
+  }
+
+  .judged b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.04rem;
+    letter-spacing: -0.01em;
+  }
+
+  .judged .muted {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.92rem;
+  }
+
+  .how {
+    margin: 1.1rem 0 0;
+    font-size: 0.95rem;
+  }
+
+  .how a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* Each check ticks in as its row scrolls up the screen: the dot pops,
+     then the tick draws. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .tick {
+        animation-name: tick-in;
+        animation-timing-function: var(--spring);
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: cover 1rem cover 9rem;
+      }
+    }
+  }
+
+  @keyframes tick-in {
+    0% {
+      transform: scale(0.3);
+      background: var(--surface-2);
+      box-shadow: none;
+      stroke-dashoffset: 22;
+    }
+    45% {
+      transform: scale(1);
+      stroke-dashoffset: 22;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+</style>

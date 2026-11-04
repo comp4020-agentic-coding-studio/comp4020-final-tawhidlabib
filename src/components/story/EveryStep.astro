@@ -1,0 +1,358 @@
+---
+import Icon from "../Icon.astro";
+
+// What good means, told as a plan's life: four moments from "we should
+// hang out" to remembering it, each with what the group chat says there
+// and the points (README.md's seven) that beat it. A rail runs down the
+// stages and fills as you scroll; each stage's node lights as the fill
+// reaches it. With motion reduced it's all filled and lit from the start.
+
+const ADR6 = "https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/docs/adr/0006-the-last-spot.md";
+
+// each point: a title, its words, and (for some) a link mid-sentence
+// between `text` and `tail`; `idea` marks the one idea
+type Move = { title: string; text: string; link?: [string, string]; tail?: string; idea?: boolean };
+
+const stages: { icon: "userPlus" | "grid" | "calendar" | "heart"; said: string; name: string; moves: Move[] }[] = [
+  {
+    icon: "userPlus",
+    said: "we should hang out!",
+    name: "Everyone gets in",
+    moves: [
+      {
+        title: "Joining costs a name.",
+        text: "No passwords, no app: the friend who hates signing up still joins. A private link signs you in elsewhere.",
+      },
+    ],
+  },
+  {
+    icon: "grid",
+    said: "ok but when??",
+    name: "Finding a time",
+    moves: [
+      {
+        title: "It gets honest answers.",
+        text: "You mark your week before you see the group's (",
+        link: ["the blind grid", "#honest-week"],
+        tail: "). Then Hangout recommends the longest shared stretch, naming who it leaves out.",
+        idea: true,
+      },
+      { title: "This week, not a template.", text: "Hours belong to one week." },
+    ],
+  },
+  {
+    icon: "calendar",
+    said: "see you thursday!",
+    name: "Showing up",
+    moves: [
+      { title: "It ends in a calendar.", text: "“I'm in” gives you a Google Calendar link and an .ics file." },
+      {
+        title: "It's live.",
+        text: "Changes appear at once, and a full event's last spot goes to the first tap (",
+        link: ["ADR 6", ADR6],
+        tail: ").",
+      },
+      { title: "It holds up.", text: "On a phone, a keyboard, a bad connection, without JavaScript." },
+    ],
+  },
+  {
+    icon: "heart",
+    said: "that was so good",
+    name: "Remembering it",
+    moves: [{ title: "It's remembered.", text: "Afterwards, whoever went adds photos and a rating." }],
+  },
+];
+---
+
+<section class="section reveal" id="every-step" aria-labelledby="every-step-title">
+  <div class="chapter-head">
+    <span class="kicker">What good means</span>
+    <h2 id="every-step-title">
+      Good means beating the group chat, <span class="gradient-text">every step</span>
+    </h2>
+    <p class="lead">
+      Most plans die in the group chat. Hangout carries one from &ldquo;we should hang out&rdquo;
+      to remembering it, and a feature earns its place by moving a plan on.
+    </p>
+  </div>
+
+  <ol class="stages">
+    {
+      stages.map((s, n) => (
+        <li class="stage">
+          <span class="node" aria-hidden="true">
+            <Icon name={s.icon} size={20} />
+          </span>
+          {n < stages.length - 1 && (
+            <span class="seg" aria-hidden="true">
+              <i />
+            </span>
+          )}
+          <div class="stage-head rise">
+            <span class="said" aria-hidden="true">
+              {s.said}
+            </span>
+            <h3>{s.name}</h3>
+          </div>
+          <ul class="moves">
+            {s.moves.map((m, i) => (
+              <li class:list={["rise", { wide: m.idea }]} style={`--i: ${i + 1}`}>
+                <div class:list={["card lift move", { idea: m.idea }]}>
+                  {m.idea && (
+                    <span class="idea-mark">
+                      <Icon name="lock" size={13} /> The big idea
+                    </span>
+                  )}
+                  <p>
+                    <b>{m.title}</b> {m.text}
+                    {m.link && (
+                      <>
+                        <a href={m.link[1]}>{m.link[0]}</a>
+                        {m.tail}
+                      </>
+                    )}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  .stages {
+    --node: 2.6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* node | (what the chat says, the stage) over its points, on a phone;
+     node | stage | points, side by side, on a wide screen */
+  .stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--node) minmax(0, 1fr);
+    column-gap: 1rem;
+    row-gap: 0.9rem;
+    padding-bottom: 2.6rem;
+  }
+
+  .stage:last-child {
+    padding-bottom: 0;
+  }
+
+  .node {
+    position: relative;
+    z-index: 1;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    display: grid;
+    place-items: center;
+    width: var(--node);
+    height: var(--node);
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--on-accent);
+    view-timeline-name: --node;
+  }
+
+  .node :global(.icon) {
+    position: relative;
+  }
+
+  /* the lit node: the page's gradient bubble, on a layer that can fade in */
+  .node::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: 50%;
+    background: var(--gradient);
+    box-shadow: var(--glow);
+  }
+
+  /* the rail from this node down to the next one */
+  .seg {
+    position: absolute;
+    left: calc(var(--node) / 2 - 1.5px);
+    top: calc(var(--node) + 0.45rem);
+    bottom: 0.45rem;
+    width: 3px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: var(--line);
+    view-timeline-name: --seg;
+  }
+
+  .seg i {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(var(--accent), var(--accent-2));
+    transform-origin: top;
+  }
+
+  .stage-head {
+    grid-column: 2;
+    padding-top: 0.15rem;
+  }
+
+  /* what the group chat says at this point: one of its bubbles */
+  .said {
+    display: inline-block;
+    padding: 0.35rem 0.8rem;
+    border-radius: 1rem 1rem 1rem 0.3rem;
+    background: var(--surface-2);
+    font-size: 0.85rem;
+  }
+
+  .stage-head h3 {
+    margin: 0.6rem 0 0;
+    font-size: clamp(1.15rem, 2.4vw, 1.35rem);
+  }
+
+  .moves {
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.8rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .move {
+    height: 100%;
+    padding: 1.15rem 1.25rem;
+  }
+
+  .move p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .move b {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 1.06rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* the one idea: framed as the page frames Hangout against the chat */
+  .move.idea {
+    background:
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      var(--gradient) border-box;
+    border: 2px solid transparent;
+    box-shadow: var(--glow);
+  }
+
+  .move.idea:hover {
+    border-color: transparent;
+  }
+
+  .idea-mark {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 40rem) {
+    .moves {
+      grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    }
+    .moves > .wide {
+      grid-column: span 2;
+    }
+  }
+
+  @media (min-width: 56rem) {
+    .stages {
+      --node: 3rem;
+    }
+    .stage {
+      grid-template-columns: var(--node) 12.5rem minmax(0, 1fr);
+      column-gap: 1.4rem;
+    }
+    .node {
+      grid-row: 1;
+    }
+    .moves {
+      grid-column: 3;
+      grid-row: 1;
+      grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+    }
+  }
+
+  /* As you scroll: each stretch of rail fills while it crosses the middle
+     of the screen, and a node lights as the fill gets to it. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .node {
+        animation-name: story-node;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --node;
+        animation-range: cover calc(50vh - 5rem) cover 50vh;
+      }
+      .node::before {
+        animation-name: story-lit;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --node;
+        animation-range: cover calc(50vh - 5rem) cover 50vh;
+      }
+      .node :global(.icon) {
+        animation-name: story-icon;
+        animation-timing-function: var(--spring);
+        animation-fill-mode: both;
+        animation-timeline: --node;
+        animation-range: cover calc(50vh - 5rem) cover 50vh;
+      }
+      .seg i {
+        animation-name: story-fill;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --seg;
+        animation-range: cover 50vh cover calc(100% - 50vh);
+      }
+    }
+  }
+
+  @keyframes story-node {
+    from {
+      color: var(--muted);
+    }
+  }
+
+  @keyframes story-icon {
+    from {
+      transform: scale(0.7);
+    }
+  }
+
+  @keyframes story-lit {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes story-fill {
+    from {
+      transform: scaleY(0);
+    }
+  }
+</style>

@@ -1,0 +1,751 @@
+---
+import Icon from "../Icon.astro";
+
+// What I read and looked at, as the argument for the blind grid: the same
+// four friends planning the same evenings twice, side by side, in the
+// hero demo's heat. In the open grid (When2meet's way) each sees the
+// others' marks as they mark, and piles onto the hour that already looks
+// popular; in the blind grid (Hangout's) nobody sees the group's week
+// until they've given their own, so it comes out as it really is. Then
+// the research that says why, with its sources. Pure CSS on a 10s loop,
+// like the hero; with motion reduced both rest on their finished picture.
+
+const REPO = "https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/";
+const days = ["Thu", "Fri", "Sat", "Sun"];
+const hours = ["5pm", "6pm", "7pm", "8pm"];
+// how many of the four marked each hour, by row (hour) then column (day)
+// the open grid: Thursday 7pm marked first, then by everyone who saw it
+const performed = [
+  [0, 1, 2, 0],
+  [1, 1, 2, 1],
+  [4, 1, 1, 0],
+  [1, 0, 1, 0],
+];
+// the blind grid: the same four, marking their real week
+const real = [
+  [0, 1, 4, 1],
+  [1, 2, 4, 2],
+  [2, 1, 3, 1],
+  [1, 0, 2, 0],
+];
+// your own hours (Ana's), ringed in the blind grid while the rest is hidden
+const yours = ["2,0", "0,2", "1,2"];
+const friends = [
+  ["A", 18],
+  ["B", 210],
+  ["C", 150],
+  ["D", 280],
+] as const;
+// each mark in the open grid lands with one of the four friends (1-4)
+const wave = (r: number, c: number) => ((r * 3 + c) % 4) + 1;
+---
+
+<section class="section reveal" id="honest-week" aria-labelledby="honest-week-title">
+  <div class="chapter-head">
+    <span class="kicker">What I read and looked at</span>
+    <h2 id="honest-week-title">Why your <span class="gradient-text">honest week</span> matters</h2>
+    <p class="lead">The same four friends, planning the same evenings, two ways.</p>
+  </div>
+
+  <div class="duel">
+    <div class="rise">
+      <div class="card lift side open">
+        <h3><Icon name="grid" size={18} /> When2meet: an open grid</h3>
+        <p class="muted">Shows everyone's paint as you paint yours, then stops at the overlap.</p>
+        <p class="vh">
+          In the open grid, each friend sees Thursday 7pm already marked and marks it too, so it
+          looks like everyone's free then, though two of them aren't.
+        </p>
+        <div class="board" aria-hidden="true">
+          <span class="banner"><Icon name="users" size={14} /> Everyone's marks show as you mark</span>
+          <div class="grid">
+            {days.map((d, c) => <b style={`grid-row: 1; grid-column: ${c + 2}`}>{d}</b>)}
+            {
+              hours.map((h, r) => (
+                <>
+                  <em style={`grid-row: ${r + 2}; grid-column: 1`}>{h}</em>
+                  {performed[r].map((level, c) => (
+                    <i
+                      data-heat={level}
+                      data-wave={wave(r, c)}
+                      class:list={{ herd: r === 2 && c === 0 }}
+                      style={`grid-row: ${r + 2}; grid-column: ${c + 2}`}
+                    />
+                  ))}
+                </>
+              ))
+            }
+            <span class="ring dubious" style="grid-row: 4; grid-column: 2"></span>
+          </div>
+          <span class="faces">
+            {friends.map(([n, hue], i) => <span class="avatar" data-wave={i + 1} style={`--hue: ${hue}`}>{n}</span>)}
+          </span>
+          <span class="verdict-chip">
+            <span class="waiting">Marking as they watch…</span>
+            <span class="outcome">
+              <strong>Thu 7pm · everyone said yes</strong>
+              <span>Two of them weren't free.</span>
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="rise" style="--i: 1">
+      <div class="card lift side blind">
+        <h3><Icon name="lock" size={18} /> Hangout: a blind grid</h3>
+        <p class="muted">Asks first, shows second, and ends with a plan.</p>
+        <p class="vh">
+          In the blind grid, nobody sees the group's week until they've marked their own, so each
+          friend marks when they're really free, and Saturday 5 to 7pm comes out as the time all
+          four share.
+        </p>
+        <div class="board" aria-hidden="true">
+          <span class="banners">
+            <span class="banner locked"><Icon name="lock" size={14} /> Hidden until you mark yours</span>
+            <span class="banner answered"><Icon name="check" size={14} /> You've answered: here's everyone</span>
+          </span>
+          <div class="grid">
+            {days.map((d, c) => <b style={`grid-row: 1; grid-column: ${c + 2}`}>{d}</b>)}
+            {
+              hours.map((h, r) => (
+                <>
+                  <em style={`grid-row: ${r + 2}; grid-column: 1`}>{h}</em>
+                  {real[r].map((level, c) => {
+                    const mine = yours.indexOf(`${r},${c}`);
+                    return (
+                      <i
+                        data-heat={level}
+                        data-mine={mine >= 0 ? "" : undefined}
+                        style={`grid-row: ${r + 2}; grid-column: ${c + 2}; --d: ${c * 60 + r * 30}ms; --t: ${0.4 + Math.max(0, mine) * 0.4}s`}
+                      />
+                    );
+                  })}
+                </>
+              ))
+            }
+            <span class="ring best" style="grid-row: 2 / 4; grid-column: 4"></span>
+          </div>
+          <span class="faces">
+            {friends.map(([n, hue], i) => <span class="avatar" data-wave={i + 1} style={`--hue: ${hue}`}>{n}</span>)}
+          </span>
+          <span class="verdict-chip win">
+            <span class="waiting">Each marking their own week…</span>
+            <span class="outcome">
+              <strong>Sat 5–7pm · everyone's free</strong>
+              <span>And it's in four calendars.</span>
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="doodle rise">
+    <span class="icon-bubble small" aria-hidden="true"><Icon name="clock" size={16} /></span>
+    <span>
+      <b>Doodle</b> starts from one organiser's guesses, and hides answers only on a paid plan, forever,
+      even from those who answered.
+    </span>
+  </p>
+
+  <div class="verdict rise">
+    <p>An open grid gets a group's performed week; a blind one, <span class="gradient-text">its real week.</span></p>
+    <a href={`${REPO}docs/adr/0010-the-blind-grid.md`}>How the blind grid works (ADR 10)</a>
+  </div>
+
+  <div class="research">
+    <div class="card finding rise">
+      <a class="source" href="https://dash.harvard.edu/handle/1/33009592">Zou, Meir &amp; Parkes, 2015</a>
+      <p>
+        In open Doodle polls people approve what already looks popular, to seem cooperative, rather
+        than when they're really free.
+      </p>
+    </div>
+    <div class="card finding rise" style="--i: 1">
+      <a class="source" href="https://dash.harvard.edu/handle/1/12561360">Reinecke et al., 2013</a>
+      <p>How people answer also follows social norms.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .duel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 44rem) {
+    .duel {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .side {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.4rem;
+  }
+
+  .side h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .side h3 :global(.icon) {
+    color: var(--accent);
+  }
+
+  .side > p {
+    margin: 0 0 1rem;
+  }
+
+  /* Hangout's side, framed as the page frames it against the group chat */
+  .side.blind {
+    background:
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      var(--gradient) border-box;
+    border: 2px solid transparent;
+    box-shadow: var(--glow);
+  }
+
+  .side.blind:hover {
+    border-color: transparent;
+  }
+
+  .board {
+    display: grid;
+    gap: 0.7rem;
+    margin-top: auto;
+    padding: 0.9rem;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+
+  .banners {
+    display: grid;
+  }
+
+  .banner {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.6rem;
+    background: var(--accent-soft);
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1.3;
+  }
+
+  .banner :global(.icon) {
+    color: var(--accent);
+  }
+
+  /* at rest (and with motion reduced): answered */
+  .banner.locked {
+    visibility: hidden;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 2.6rem repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .grid b,
+  .grid em {
+    font-size: 0.7rem;
+    font-style: normal;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .grid em {
+    align-self: center;
+    padding-right: 0.3rem;
+    text-align: right;
+  }
+
+  .grid i {
+    position: relative;
+    height: 1.5rem;
+    border-radius: 0.35rem;
+    background: var(--surface-2);
+  }
+
+  .grid i[data-heat="1"] {
+    --fill: var(--heat-1);
+  }
+  .grid i[data-heat="2"] {
+    --fill: var(--heat-2);
+  }
+  .grid i[data-heat="3"] {
+    --fill: var(--heat-3);
+  }
+  .grid i[data-heat="4"] {
+    --fill: var(--heat-4);
+  }
+  .grid i:not([data-heat="0"]) {
+    background: var(--fill);
+  }
+
+  /* the open grid's marks: each on a layer that arrives with its friend */
+  .open .grid i[data-wave]:not([data-heat="0"]):not(.herd) {
+    background: var(--surface-2);
+  }
+
+  .open .grid i[data-wave]:not([data-heat="0"]):not(.herd)::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--fill);
+  }
+
+  /* your own hours: the app's ring and dot */
+  .grid i[data-mine] {
+    box-shadow:
+      inset 0 0 0 2px var(--accent),
+      inset 0 0 0 3.5px var(--surface);
+  }
+
+  .grid i[data-mine]::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 0.3rem;
+    height: 0.3rem;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .ring {
+    margin: -3px;
+    border-radius: 0.5rem;
+    pointer-events: none;
+  }
+
+  .ring.best {
+    border: 2.5px solid var(--accent);
+    box-shadow:
+      0 0 0 4px var(--accent-ring),
+      var(--glow);
+  }
+
+  /* what the open grid calls best: it only looks like everyone */
+  .ring.dubious {
+    border: 2.5px dashed var(--muted);
+  }
+
+  .faces {
+    display: flex;
+    align-items: center;
+  }
+
+  .faces .avatar {
+    width: 1.8rem;
+    height: 1.8rem;
+    border-color: var(--surface);
+    font-size: 0.7rem;
+  }
+
+  .faces .avatar + .avatar {
+    margin-left: -0.45rem;
+  }
+
+  .verdict-chip {
+    display: grid;
+    align-items: center;
+    min-height: 4.2rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  /* before the result, and the result, in one place; at rest the result */
+  .waiting,
+  .outcome {
+    grid-area: 1 / 1;
+  }
+
+  .waiting {
+    visibility: hidden;
+    font-style: italic;
+  }
+
+  .outcome {
+    display: grid;
+    gap: 0.1rem;
+  }
+
+  .verdict-chip strong {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    color: var(--text);
+  }
+
+  .verdict-chip.win {
+    background: var(--accent-soft);
+  }
+
+  .doodle {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    max-width: 44rem;
+    margin: 1.4rem 0 0;
+    color: var(--muted);
+  }
+
+  .doodle b {
+    color: var(--text);
+  }
+
+  .icon-bubble.small {
+    flex: none;
+    width: 2.2rem;
+    height: 2.2rem;
+    margin: 0;
+    border-radius: 0.7rem;
+  }
+
+  /* the argument in one line, as big as a heading */
+  .verdict {
+    max-width: 46rem;
+    margin: 2.6rem 0 2rem;
+  }
+
+  .verdict p {
+    margin: 0 0 0.7rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.35rem, 3.4vw, 2rem);
+    font-weight: 750;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .verdict a {
+    display: inline-block;
+    padding: 0.2rem 0;
+    font-weight: 700;
+  }
+
+  .research {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 44rem) {
+    .research {
+      grid-template-columns: 1.3fr 1fr;
+    }
+  }
+
+  /* a finding, under its source: words from README.md, not the papers' own */
+  .finding {
+    position: relative;
+    padding: 1.3rem 1.4rem 1.3rem 1.65rem;
+    overflow: hidden;
+  }
+
+  .finding::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--gradient);
+  }
+
+  .source {
+    display: inline-block;
+    padding: 0.15rem 0;
+    font-size: 0.85rem;
+    font-weight: 800;
+  }
+
+  .finding p {
+    margin: 0.4rem 0 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.08rem, 2.2vw, 1.25rem);
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  /* One 10s loop for both boards, in step. The four friends arrive one by
+     one (at 8, 16, 24 and 32%) and stay to the end. In the open grid each
+     friend's marks land as they arrive, and Thursday 7pm climbs with every
+     one; it's called best at 44%. In the blind grid only your own hours
+     show until 42%, then the group's week fades in and Saturday is ringed.
+     All back to the start at the end. */
+  @media (prefers-reduced-motion: no-preference) {
+    .faces [data-wave="1"],
+    .open .grid i[data-wave="1"]::before {
+      animation: wave-1 10s var(--spring) infinite both;
+    }
+    .faces [data-wave="2"],
+    .open .grid i[data-wave="2"]::before {
+      animation: wave-2 10s var(--spring) infinite both;
+    }
+    .faces [data-wave="3"],
+    .open .grid i[data-wave="3"]::before {
+      animation: wave-3 10s var(--spring) infinite both;
+    }
+    .faces [data-wave="4"],
+    .open .grid i[data-wave="4"]::before {
+      animation: wave-4 10s var(--spring) infinite both;
+    }
+    .open .grid i.herd {
+      animation: duel-herd 10s var(--ease) infinite both;
+    }
+    .ring.dubious,
+    .ring.best,
+    .outcome {
+      animation: duel-result 10s var(--spring) infinite both;
+    }
+    .banner.locked,
+    .waiting {
+      animation: duel-locked 10s infinite both;
+    }
+    .banner.answered {
+      animation: duel-answered 10s infinite both;
+    }
+    .blind .grid i:not([data-heat="0"]) {
+      animation: duel-reveal 10s var(--ease) var(--d) infinite both;
+    }
+    .blind .grid i[data-mine] {
+      animation:
+        duel-reveal 10s var(--ease) var(--d) infinite both,
+        duel-tick 10s var(--spring) var(--t) infinite both;
+    }
+    .blind .grid i[data-mine]::after {
+      animation: duel-dot 10s var(--spring) var(--t) infinite both;
+    }
+  }
+
+  @keyframes wave-1 {
+    0%,
+    6% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    9%,
+    90% {
+      opacity: 1;
+      transform: none;
+    }
+    95%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes wave-2 {
+    0%,
+    14% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    17%,
+    90% {
+      opacity: 1;
+      transform: none;
+    }
+    95%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes wave-3 {
+    0%,
+    22% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    25%,
+    90% {
+      opacity: 1;
+      transform: none;
+    }
+    95%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes wave-4 {
+    0%,
+    30% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    33%,
+    90% {
+      opacity: 1;
+      transform: none;
+    }
+    95%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Thursday 7pm: a little heavier as each friend piles on */
+  @keyframes duel-herd {
+    0%,
+    7% {
+      background: var(--surface-2);
+    }
+    9%,
+    15% {
+      background: var(--heat-1);
+    }
+    17%,
+    23% {
+      background: var(--heat-2);
+    }
+    25%,
+    31% {
+      background: var(--heat-3);
+      transform: none;
+    }
+    34% {
+      background: var(--heat-4);
+      transform: scale(1.12);
+    }
+    37%,
+    90% {
+      background: var(--heat-4);
+      transform: none;
+    }
+    95%,
+    100% {
+      background: var(--surface-2);
+    }
+  }
+
+  @keyframes duel-result {
+    0%,
+    44% {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+    48% {
+      opacity: 1;
+      transform: scale(1.03);
+    }
+    51%,
+    90% {
+      opacity: 1;
+      transform: none;
+    }
+    95%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes duel-locked {
+    0%,
+    40% {
+      visibility: visible;
+      opacity: 1;
+    }
+    43%,
+    95% {
+      visibility: hidden;
+      opacity: 0;
+    }
+    99%,
+    100% {
+      visibility: visible;
+      opacity: 1;
+    }
+  }
+
+  @keyframes duel-answered {
+    0%,
+    42% {
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    45%,
+    93% {
+      visibility: visible;
+      opacity: 1;
+      transform: none;
+    }
+    97%,
+    100% {
+      visibility: hidden;
+      opacity: 0;
+    }
+  }
+
+  @keyframes duel-reveal {
+    0%,
+    42% {
+      background: var(--surface-2);
+    }
+    47%,
+    91% {
+      background: var(--fill);
+    }
+    96%,
+    100% {
+      background: var(--surface-2);
+    }
+  }
+
+  @keyframes duel-tick {
+    0%,
+    3% {
+      box-shadow: none;
+      transform: scale(1);
+    }
+    5% {
+      transform: scale(1.12);
+    }
+    7%,
+    84% {
+      box-shadow:
+        inset 0 0 0 2px var(--accent),
+        inset 0 0 0 3.5px var(--surface);
+      transform: none;
+    }
+    88%,
+    100% {
+      box-shadow: none;
+    }
+  }
+
+  @keyframes duel-dot {
+    0%,
+    3% {
+      transform: scale(0);
+    }
+    7%,
+    84% {
+      transform: scale(1);
+    }
+    88%,
+    100% {
+      transform: scale(0);
+    }
+  }
+</style>

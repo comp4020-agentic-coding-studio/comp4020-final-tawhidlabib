@@ -1,749 +1,111 @@
 ---
 import Icon from "./Icon.astro";
+import EveryStep from "./story/EveryStep.astro";
+import HonestWeek from "./story/HonestWeek.astro";
+import HowWeKnow from "./story/HowWeKnow.astro";
+import LeftOut from "./story/LeftOut.astro";
 
-// The landing page's last section: my README. My tutor, Bill, agreed the
-// landing page can be my README submission, so this carries README.md's
-// whole argument (what good means, what I read, what I left out, what's
-// enforced and what's judged), set in the page's own cards rather than as
-// rendered markdown. /readme/ still publishes README.md as plain text.
-// spec/landing.test.ts holds the two together: every heading, point,
-// source, quote and enforced check in README.md has to be here too.
+// After "Start a group", the landing page goes on telling Hangout's story,
+// and that story is my README: my tutor, Bill, agreed the landing page can
+// be it. Four sections, each standing in for one of README.md's headings
+// (README.md links each one by its id):
+//   #every-step   what good means: a plan's life, beating the chat each step
+//   #honest-week  what I read and looked at: the blind grid, and why
+//   #left-out     what I chose not to build, and what that costs
+//   #how-we-know  what's enforced, and what's judged (and how)
+// Then a footnote that says so and offers the plain text at /readme/.
+// spec/landing.test.ts holds the two copies together.
 //
-// The one idea, giving your week before you see the group's, is marked
-// wherever it's carried: the point, the research, the check and the
-// judgement. Nothing here fades in: it's there to be read.
-
-const REPO = "https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/";
-const ADR = (file: string) => `${REPO}docs/adr/${file}`;
-
-// each point: its icon, title and words, and (for some) a link mid-sentence
-// between `text` and `tail`; `idea` marks the one idea
-const points = [
-  {
-    icon: "userPlus",
-    title: "Joining costs a name.",
-    text: "No passwords, no app: the friend who hates signing up still joins. A private link signs you in elsewhere.",
-  },
-  {
-    icon: "lock",
-    title: "It gets honest answers.",
-    text: "You mark your week before you see the group's (",
-    link: ["the blind grid", "#the-blind-grid"],
-    tail: "). Then Hangout recommends the longest shared stretch, and says who it leaves out.",
-    idea: true,
-  },
-  { icon: "clock", title: "This week, not a template.", text: "Hours belong to one week." },
-  {
-    icon: "calendar",
-    title: "It ends in a calendar.",
-    text: "“I'm in” gives you a Google Calendar link and an .ics file.",
-  },
-  {
-    icon: "bell",
-    title: "It's live.",
-    text: "Hours, replies and RSVPs appear as they happen, and a full event's last spot goes to the first tap (",
-    link: ["ADR 6", ADR("0006-the-last-spot.md")],
-    tail: ").",
-  },
-  {
-    icon: "check",
-    title: "It holds up",
-    text: "On a phone, from a keyboard, on a bad connection, and without JavaScript.",
-  },
-  {
-    icon: "heart",
-    title: "It's remembered.",
-    text: "Once the day comes, the people who went add photos and a rating to the plan.",
-  },
-] as const;
-
-const alternatives = [
-  { icon: "grid", name: "When2meet", text: "Shows everyone's paint as you paint yours, then stops at the overlap." },
-  {
-    icon: "clock",
-    name: "Doodle",
-    text: "Starts from one organiser's guesses, and hides answers only on a paid plan, forever, even from those who answered.",
-  },
-  { icon: "chat", name: "The group chat", text: "Never stops." },
-] as const;
-
-const notBuilt = [
-  {
-    icon: "lock",
-    title: "Passwords and Google sign-in.",
-    text: "Calendar writes need OAuth, which an unverified app offers only to test users.",
-  },
-  {
-    icon: "chat",
-    title: "A chat.",
-    text: "Comments live on a plan; Hangout ends the group chat rather than becoming one.",
-  },
-  {
-    icon: "globe",
-    title: "A feed, followers or discovery.",
-    text: "Friends exist only to invite to one-off events; Explore lists only events their hosts made public; block and mute exist because those two let strangers reach you.",
-  },
-] as const;
-
-// each enforced claim, and the spec files that hold it
-const enforced: { text: string; specs: string[]; idea?: boolean }[] = [
-  { text: "a stranger with the link joins; hours survive a restart", specs: ["crit-8"] },
-  {
-    text: "the top recommendation is the longest shared stretch, naming who it misses",
-    specs: ["crit-8", "group-page"],
-  },
-  { text: "calendar times survive daylight saving", specs: ["crit-8", "edges"] },
-  { text: "nobody sees the group's week before marking their own", specs: ["blind"], idea: true },
-  {
-    text: "nobody reads or changes another's things; every change is logged by who",
-    specs: ["coverage", "security", "activity"],
-  },
-  { text: "a change reaches other open pages within a second", specs: ["live"] },
-  { text: "of simultaneous taps on a last spot, exactly one wins", specs: ["waitlist"] },
-  {
-    text: "keyboard, resize, slow or dropped connection and accessibility, in real Chrome",
-    specs: ["holds-up", "a11y"],
-  },
-];
-
-// each judged claim, and how docs/judging.md judges it
-const judged: { claim: string; how: string; idea?: boolean }[] = [
-  {
-    claim: "Whether Hangout beats the group chat",
-    how: "A real group plans a real hangout here, not in the chat: a plan, in less time and fewer messages.",
-  },
-  {
-    claim: "Whether blind answers are more honest",
-    how: "Afterwards, each person says whether they marked their real hours, and whether seeing the group's would have changed them.",
-    idea: true,
-  },
-  {
-    claim: "How fast a newcomer gets in",
-    how: "Timed from invite link to first hour, on their own phone, unhelped. Measured floor: link to calendar for two people in 12 actions.",
-  },
-];
-
-const parts = [
-  ["#readme-good", "What good means"],
-  ["#readme-alternatives", "The alternatives"],
-  ["#the-blind-grid", "The blind grid"],
-  ["#readme-not-built", "Not built"],
-  ["#readme-claims", "Enforced and judged"],
-];
+// The sections and their cards ease in as they scroll into view, like the
+// rest of the page, but every entrance here has finished well before its
+// words reach the middle of the screen, so nothing fades while it's read.
+// With motion reduced nothing moves: every visual rests on its last frame.
 ---
 
-<section class="section readme-part" id="readme" aria-labelledby="readme-title">
-  <div class="intro">
-    <span class="kicker">The README</span>
-    <h2 id="readme-title">This landing page is my README</h2>
-    <p class="muted">
-      My tutor, Bill, approved it as my README submission: README.md's whole argument, as part of
-      the app. Its one idea, giving your week before you see the group's, is marked{" "}
-      <Icon name="lock" size={14} /> wherever it's carried.
-    </p>
-    <div class="intro-row">
-      <span class="pill"><Icon name="check" size={14} /> Approved by my tutor, Bill</span>
-      <a class="plain-link" href="/readme/">Read it as plain text <Icon name="arrow" size={16} /></a>
-    </div>
-    <nav class="toc" aria-label="In this README">
-      <ul>
-        {parts.map(([href, label]) => <li><a href={href}>{label}</a></li>)}
-      </ul>
-    </nav>
-  </div>
+<div id="readme" class="story">
+  <EveryStep />
+  <HonestWeek />
+  <LeftOut />
+  <HowWeKnow />
 
-  <div class="part" id="readme-good">
-    <div class="section-head">
-      <span class="kicker">The argument</span>
-      <h2>What good means here</h2>
-      <p class="muted">
-        Most group plans die in the group chat: forty messages of &ldquo;I'm free
-        Thursday-ish&rdquo;, and nobody ever says &ldquo;so, Thursday at 7&rdquo;. Good is
-        beating the group chat at each step of a plan's life, from &ldquo;we should hang
-        out&rdquo; to remembering it. A feature earns its place by moving a plan on:
-      </p>
-    </div>
-    <ol class="points">
-      {
-        points.map((p, i) => {
-          const idea = "idea" in p && p.idea;
-          return (
-            <li class:list={["card lift", { idea }]}>
-              <span class="num" aria-hidden="true">{i + 1}</span>
-              <div class="icon-bubble"><Icon name={p.icon} size={22} /></div>
-              {idea && <span class="pill idea-tag"><Icon name="lock" size={12} /> The idea</span>}
-              <h3>{p.title}</h3>
-              <p class="muted">
-                {p.text}
-                {"link" in p && (
-                  <>
-                    <a href={p.link[1]}>{p.link[0]}</a>
-                    {p.tail}
-                  </>
-                )}
-              </p>
-            </li>
-          );
-        })
-      }
-    </ol>
-  </div>
-
-  <div class="part" id="readme-alternatives">
-    <div class="section-head">
-      <span class="kicker">What I looked at</span>
-      <h2>Why not the alternatives</h2>
-    </div>
-    <ul class="alts">
-      {
-        alternatives.map((a) => (
-          <li class="card">
-            <h3><Icon name={a.icon} size={18} /> {a.name}</h3>
-            <p class="muted">{a.text}</p>
-          </li>
-        ))
-      }
-      <li class="card best">
-        <h3><Icon name="sparkles" size={18} /> Hangout</h3>
-        <p><b>Asks first, shows second, and ends with a plan.</b></p>
-      </li>
-    </ul>
-
-    <h3 class="sub" id="the-blind-grid">The blind grid</h3>
-    <ul class="findings">
-      <li class="card">
-        <span class="pill"><Icon name="users" size={12} /> What I read</span>
-        <p class="claim">
-          In open Doodle polls people approve what already looks popular, to seem cooperative,
-          rather than when they're really free.
-        </p>
-        <a href="https://dash.harvard.edu/handle/1/33009592">Zou, Meir &amp; Parkes, 2015</a>
-      </li>
-      <li class="card">
-        <span class="pill"><Icon name="users" size={12} /> What I read</span>
-        <p class="claim">How people answer also follows social norms.</p>
-        <a href="https://dash.harvard.edu/handle/1/12561360">Reinecke et al., 2013</a>
-      </li>
-    </ul>
-    <div class="card verdict">
-      <p>
-        <span class="side">
-          <Icon name="grid" size={20} />
-          <span>An open grid gets <strong>a group's performed week;</strong></span>
-        </span>
-        <span class="side blind">
-          <Icon name="lock" size={20} />
-          <span>a blind one, <strong>its real week.</strong></span>
-        </span>
-      </p>
-      <a href={ADR("0010-the-blind-grid.md")}>ADR 10: how the blind grid works</a>
-    </div>
-
-    <ul class="quotes">
-      <li class="card">
-        <p class="lead-in">
-          Robin Sloan's <a href="https://www.robinsloan.com/notes/home-cooked-app/">home-cooked app</a> is one
-        </p>
-        <blockquote cite="https://www.robinsloan.com/notes/home-cooked-app/">
-          &ldquo;no one else will ever use&rdquo;
-        </blockquote>
-      </li>
-      <li class="card">
-        <p class="lead-in">
-          Clay Shirky's <a href="https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware.html">situated software</a> is
-        </p>
-        <blockquote cite="https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware.html">
-          &ldquo;designed for use by a specific social group&rdquo;
-        </blockquote>
-      </li>
-    </ul>
-    <p class="so"><b>Hangout is generic, but each group's copy is its own.</b></p>
-  </div>
-
-  <div class="part" id="readme-not-built">
-    <div class="section-head">
-      <span class="kicker">Scope</span>
-      <h2>What I chose not to build</h2>
-    </div>
-    <ul class="not-built">
-      {
-        notBuilt.map((n) => (
-          <li class="card">
-            <span class="pill not"><Icon name="x" size={12} /> Not built</span>
-            <div class="icon-bubble"><Icon name={n.icon} size={22} /></div>
-            <h3>{n.title}</h3>
-            <p class="muted">{n.text}</p>
-          </li>
-        ))
-      }
-    </ul>
-    <div class="card cost">
-      <div class="icon-bubble small"><Icon name="lock" size={18} /></div>
-      <p>
-        <b>The cost of no passwords:</b> whoever holds your sign-in link is you. Access is checked
-        on the server (<a href={ADR("0011-who-may-see-and-change-what.md")}>ADR 11</a>).
-      </p>
-    </div>
-  </div>
-
-  <div class="part" id="readme-claims">
-    <div class="section-head">
-      <span class="kicker">How I know</span>
-      <h2>What's enforced, and what's judged</h2>
-    </div>
-    <div class="claims">
-      <div class="card enforced">
-        <div class="claims-head">
-          <div class="icon-bubble small"><Icon name="check" size={18} /></div>
-          <div>
-            <h3>Enforced by spec/</h3>
-            <p class="muted">Against the running app; red blocks the deploy.</p>
-          </div>
-        </div>
-        <ul>
-          {
-            enforced.map((e) => (
-              <li class:list={{ idea: e.idea }}>
-                <Icon name={e.idea ? "lock" : "check"} size={16} />
-                <span>
-                  {e.text}
-                  <span class="specs">
-                    {e.specs.map((s) => (
-                      <a href={`${REPO}spec/${s}.test.ts`}>{s}.test.ts</a>
-                    ))}
-                  </span>
-                </span>
-              </li>
-            ))
-          }
-        </ul>
-      </div>
-      <div class="card judged">
-        <div class="claims-head">
-          <div class="icon-bubble small"><Icon name="users" size={18} /></div>
-          <div>
-            <h3>Judged, with real people</h3>
-            <p class="muted">What no test can say, and how it's judged.</p>
-          </div>
-        </div>
-        <ul>
-          {
-            judged.map((j) => (
-              <li class:list={{ idea: j.idea }}>
-                <Icon name={j.idea ? "lock" : "clock"} size={16} />
-                <span>
-                  <b>{j.claim}.</b> <span class="muted">{j.how}</span>
-                </span>
-              </li>
-            ))
-          }
-        </ul>
-        <p class="judging">
-          Sessions with real groups, and what passes:{" "}
-          <a href={`${REPO}docs/judging.md`}>docs/judging.md</a>
-        </p>
-      </div>
-    </div>
-    <p class="muted footnote">
-      Every source is real and checked; only the demo group and the chat above are made up.
-    </p>
-  </div>
-</section>
+  <p class="footnote rise">
+    <span class="icon-bubble" aria-hidden="true"><Icon name="sparkles" size={18} /></span>
+    <span>
+      These sections are also my README for the course, approved by my tutor, Bill. Every source
+      is real and checked; the demo groups and chats are made up. Prefer plain text?{" "}
+      <a href="/readme/">Read it here <Icon name="arrow" size={16} /></a>
+    </span>
+  </p>
+</div>
 
 <style>
-  /* the README: the page's own sections, cards and kickers, one part
-     after another at the same rhythm as How it works and Beat the group
-     chat; every grid falls to one column on a phone */
-  .readme-part {
-    padding-top: 1rem;
+  /* each chapter of the story gets more room than the sections above it */
+  .story > :global(section) {
+    margin-bottom: clamp(4rem, 9vw, 6.5rem);
   }
 
-  .intro h2 {
-    font-size: clamp(1.7rem, 4.5vw, 2.4rem);
-    margin-bottom: 0.9rem;
+  .story :global(.chapter-head) {
+    max-width: 40rem;
+    margin-bottom: 1.8rem;
   }
 
-  .intro > p {
-    max-width: 38rem;
-    font-size: clamp(1rem, 2vw, 1.1rem);
-  }
-
-  .intro-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.6rem 1.2rem;
-    margin: 1.1rem 0 1.4rem;
-  }
-
-  .plain-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    min-height: 2rem;
-    font-weight: 700;
-  }
-
-  .toc ul {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .toc a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.25rem;
-    padding: 0 0.9rem;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    box-shadow: var(--shadow-sm);
-    color: var(--text);
-    font-size: 0.9rem;
-    font-weight: 650;
-    text-decoration: none;
-    transition: border-color 0.2s;
-  }
-
-  .toc a:hover {
-    border-color: var(--accent);
-  }
-
-  .part {
-    margin-top: 3.5rem;
-  }
-
-  /* lists laid out as card grids */
-  .points,
-  .alts,
-  .findings,
-  .quotes,
-  .not-built {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .points .card,
-  .not-built .card {
-    padding: 1.4rem;
-  }
-
-  /* a big numeral is still text: 3:1 on the card, as How it works has it */
-  .num {
-    float: right;
-    font-family: var(--font-display);
-    font-size: 2.2rem;
+  .story :global(.chapter-head h2) {
+    margin-bottom: 0.8rem;
+    font-size: clamp(1.6rem, 4.2vw, 2.4rem);
     font-weight: 800;
-    line-height: 1;
-    color: color-mix(in oklab, var(--accent) 75%, var(--surface));
   }
 
-  .points p,
-  .not-built p,
-  .alts p {
+  .story :global(.lead) {
     margin: 0;
-  }
-
-  /* the one idea, wherever it's carried: framed the way the page frames
-     Hangout against the group chat */
-  .idea.card,
-  .best,
-  .verdict {
-    background:
-      linear-gradient(var(--surface), var(--surface)) padding-box,
-      var(--gradient) border-box;
-    border: 2px solid transparent;
-    box-shadow: var(--glow);
-  }
-
-  .idea.card.lift:hover {
-    border-color: transparent;
-  }
-
-  .idea-tag {
-    margin-bottom: 0.6rem;
-  }
-
-  /* 3 across: 1 | 2 2 / 3 | 4 | 5 / 6 6 | 7, the idea wide at the top */
-  @media (min-width: 40rem) {
-    .points {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .points > li:last-child {
-      grid-column: 1 / -1;
-    }
-    .alts,
-    .findings,
-    .quotes {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .not-built {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .not-built > li:last-child {
-      grid-column: 1 / -1;
-    }
-  }
-
-  @media (min-width: 56rem) {
-    .points {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .points > li:nth-child(2),
-    .points > li:nth-child(6) {
-      grid-column: span 2;
-    }
-    .points > li:last-child {
-      grid-column: auto;
-    }
-    .alts {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    .not-built {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .not-built > li:last-child {
-      grid-column: auto;
-    }
-  }
-
-  .alts .card {
-    padding: 1.2rem;
-  }
-
-  .alts h3 {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-  }
-
-  .alts h3 :global(.icon) {
-    color: var(--accent);
-  }
-
-  .sub {
-    margin: 2.5rem 0 1rem;
-    font-size: clamp(1.2rem, 2.6vw, 1.45rem);
-  }
-
-  .findings .card {
-    display: grid;
-    align-content: start;
-    justify-items: start;
-    gap: 0.7rem;
-    padding: 1.4rem;
-  }
-
-  .claim {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(1.1rem, 2.2vw, 1.3rem);
-    font-weight: 650;
-    line-height: 1.3;
-    letter-spacing: -0.01em;
-  }
-
-  .findings a {
-    font-weight: 700;
-  }
-
-  .verdict {
-    margin-top: 1rem;
-    padding: 1.4rem;
-  }
-
-  .verdict p {
-    display: grid;
-    gap: 0.8rem 1.5rem;
-    margin: 0 0 0.9rem;
-  }
-
-  @media (min-width: 40rem) {
-    .verdict p {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .side {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-    padding: 0.9rem 1rem;
-    border-radius: var(--radius-sm);
-    background: var(--surface-2);
-    font-size: 1.02rem;
-  }
-
-  .side.blind {
-    background: var(--accent-soft);
-  }
-
-  .side :global(.icon) {
-    margin-top: 0.15rem;
-  }
-
-  .side.blind :global(.icon) {
-    color: var(--accent);
-  }
-
-  .side strong {
-    display: block;
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    line-height: 1.2;
-  }
-
-  .quotes {
-    margin-top: 1rem;
-  }
-
-  .quotes .card {
-    padding: 1.4rem;
-  }
-
-  .lead-in {
-    margin: 0 0 0.4rem;
     color: var(--muted);
-  }
-
-  .quotes blockquote {
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(1.2rem, 2.6vw, 1.5rem);
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.015em;
-  }
-
-  .so {
-    margin: 1rem 0 0;
-    font-size: 1.05rem;
-  }
-
-  .not-built .not {
-    float: right;
-  }
-
-  .cost {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 1rem;
-    padding: 1.1rem 1.4rem;
-  }
-
-  .cost p {
-    margin: 0;
-  }
-
-  .claims {
-    display: grid;
-    gap: 1rem;
-  }
-
-  @media (min-width: 44rem) {
-    .claims {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .claims .card {
-    padding: 1.4rem;
-  }
-
-  .claims-head {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    margin-bottom: 1rem;
-  }
-
-  .claims-head h3,
-  .claims-head p {
-    margin: 0;
-  }
-
-  .claims-head p {
-    font-size: 0.9rem;
-  }
-
-  .claims ul {
-    display: grid;
-    gap: 0.75rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .claims li {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.6rem;
-    align-items: start;
-    font-size: 0.95rem;
-  }
-
-  .claims li > :global(.icon) {
-    margin-top: 0.2rem;
-    color: var(--accent);
-  }
-
-  /* the one idea's own check, and its judgement */
-  .claims li.idea {
-    margin: 0 -0.6rem;
-    padding: 0.55rem 0.6rem;
-    border-radius: var(--radius-sm);
-    border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--line));
-  }
-
-  .specs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin-top: 0.35rem;
-  }
-
-  .specs a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 1.75rem;
-    padding: 0 0.6rem;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .specs a:hover {
-    border-color: var(--accent);
-    text-decoration: underline;
-  }
-
-  .judging {
-    margin: 1.1rem 0 0;
-    padding-top: 1rem;
-    border-top: 1px solid var(--line);
-    font-size: 0.95rem;
-  }
-
-  .judging a {
-    font-weight: 700;
+    font-size: clamp(1.02rem, 2vw, 1.15rem);
   }
 
   .footnote {
-    margin: 1.4rem 0 0;
-    font-size: 0.9rem;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    max-width: 44rem;
+    margin: 0 auto;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .footnote .icon-bubble {
+    flex: none;
+    width: 2.4rem;
+    height: 2.4rem;
+    margin: 0;
+    border-radius: 0.8rem;
+  }
+
+  .footnote a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* As they scroll in: each chapter fades and rises (the page's .reveal)
+     over its first 14rem on screen, not over 28% of its height, which in
+     a long chapter was still going when its first words were read. Its
+     cards rise in after it, staggered by --i, each done within ~15rem. */
+  @supports (animation-timeline: view()) {
+    #readme > :global(.reveal) {
+      animation-range: cover 0px cover 14rem;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .story :global(.rise) {
+        animation-name: rise;
+        animation-timing-function: var(--ease);
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: cover calc(var(--i, 0) * 1.5rem) cover calc(10rem + var(--i, 0) * 1.5rem);
+      }
+    }
   }
 </style>

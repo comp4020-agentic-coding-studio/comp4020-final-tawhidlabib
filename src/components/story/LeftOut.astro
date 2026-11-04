@@ -1,0 +1,288 @@
+---
+import Icon from "../Icon.astro";
+
+// What I chose not to build, and why: Hangout is software for one group of
+// friends at a time (Sloan's home-cooked app, Shirky's situated software),
+// so what an app for everyone would have, it doesn't. Each thing left out
+// is drawn as the familiar control it would have been, struck through as
+// it scrolls in, with why it isn't here. Then what leaving out passwords
+// costs. With motion reduced the strikes are simply there.
+
+const ADR11 =
+  "https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/blob/main/docs/adr/0011-who-may-see-and-change-what.md";
+
+const left = [
+  {
+    icon: "lock",
+    looks: "Sign in with Google",
+    title: "Passwords and Google sign-in.",
+    text: "Calendar writes need OAuth, which an unverified app offers only to test users.",
+  },
+  {
+    icon: "chat",
+    looks: "Message the group",
+    title: "A chat.",
+    text: "Comments live on a plan; Hangout ends the group chat rather than becoming one.",
+  },
+  {
+    icon: "globe",
+    looks: "Follow · Discover",
+    title: "A feed, followers or discovery.",
+    text: "Friends exist only to invite to one-off events; Explore lists only events their hosts made public; block and mute exist because those let strangers reach you.",
+  },
+] as const;
+---
+
+<section class="section reveal" id="left-out" aria-labelledby="left-out-title">
+  <div class="chapter-head">
+    <span class="kicker">What I chose not to build</span>
+    <h2 id="left-out-title">Built for <span class="gradient-text">your friends,</span> not everyone</h2>
+  </div>
+
+  <div class="voices">
+    <figure class="card voice rise">
+      <blockquote cite="https://www.robinsloan.com/notes/home-cooked-app/">
+        <p>&ldquo;no one else will ever use&rdquo;</p>
+      </blockquote>
+      <figcaption>
+        Robin Sloan's <a href="https://www.robinsloan.com/notes/home-cooked-app/">home-cooked app</a>
+      </figcaption>
+    </figure>
+    <figure class="card voice rise" style="--i: 1">
+      <blockquote cite="https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware.html">
+        <p>&ldquo;designed for use by a specific social group&rdquo;</p>
+      </blockquote>
+      <figcaption>
+        Clay Shirky's <a href="https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware.html">situated software</a>
+      </figcaption>
+    </figure>
+  </div>
+
+  <p class="so rise">Hangout is generic, but each group's copy is its own. So it leaves out:</p>
+
+  <ul class="left">
+    {
+      left.map((l, i) => (
+        <li class="rise" style={`--i: ${i}`}>
+          <div class="card lift gone">
+            <span class="ghost" aria-hidden="true">
+              <Icon name={l.icon} size={16} />
+              <s>{l.looks}</s>
+              <span class="nope">
+                <Icon name="x" size={14} />
+              </span>
+            </span>
+            <p>
+              <b>{l.title}</b> {l.text}
+            </p>
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+
+  <div class="cost rise">
+    <span class="icon-bubble" aria-hidden="true"><Icon name="link" size={22} /></span>
+    <p>
+      <b>The cost of no passwords:</b> whoever holds your sign-in link is you. Access is checked
+      server-side (<a href={ADR11}>ADR 11</a>).
+    </p>
+  </div>
+</section>
+
+<style>
+  .voices {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 44rem) {
+    .voices {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .voice {
+    position: relative;
+    margin: 0;
+    padding: 1.6rem 1.6rem 1.4rem;
+    overflow: hidden;
+  }
+
+  /* a big opening quote mark in the gradient, behind the words: drawn,
+     not text, so it's never read out or measured as faint words */
+  .voice::before {
+    content: "\201C";
+    position: absolute;
+    top: -1.6rem;
+    right: 0.9rem;
+    font-family: var(--font-display);
+    font-size: 8rem;
+    font-weight: 800;
+    line-height: 1;
+    background: var(--gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    opacity: 0.22;
+  }
+
+  .voice blockquote {
+    position: relative;
+    margin: 0;
+  }
+
+  .voice blockquote p {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.45rem, 3.4vw, 2rem);
+    font-weight: 750;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+
+  .voice figcaption {
+    margin-top: 0.9rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .voice figcaption a {
+    font-weight: 700;
+  }
+
+  .so {
+    margin: 2rem 0 1rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 2.4vw, 1.35rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .left {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 44rem) {
+    .left {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .gone {
+    height: 100%;
+    padding: 1.3rem;
+  }
+
+  /* the control an app for everyone would have put here, struck out */
+  .ghost {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    max-width: 100%;
+    margin-bottom: 0.9rem;
+    padding: 0.5rem 0.95rem;
+    border-radius: 999px;
+    border: 1.5px dashed var(--line);
+    color: var(--muted);
+    font-size: 0.88rem;
+    font-weight: 650;
+  }
+
+  .ghost s {
+    text-decoration: none;
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 55% / 100% 2px;
+  }
+
+  .nope {
+    position: absolute;
+    top: -0.55rem;
+    right: -0.55rem;
+    display: grid;
+    place-items: center;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 50%;
+    background: var(--gradient);
+    color: var(--on-accent);
+    box-shadow: var(--glow);
+  }
+
+  .gone p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .gone b {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 1.06rem;
+    letter-spacing: -0.01em;
+  }
+
+  .cost {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.4rem;
+    padding: 1.1rem 1.3rem;
+    border-radius: var(--radius);
+    /* the card's own surface, not the soft accent: an accent link on
+       --accent-soft is 4.33:1 in forest light */
+    border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--line));
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .cost .icon-bubble {
+    flex: none;
+    margin: 0;
+  }
+
+  .cost p {
+    margin: 0;
+  }
+
+  /* As each card scrolls in, the line strikes across what it would have
+     been, and the cross pops on. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .ghost s {
+        animation-name: strike;
+        animation-timing-function: var(--ease);
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: entry 40% cover 30%;
+      }
+      .nope {
+        animation-name: nope;
+        animation-timing-function: var(--spring);
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: entry 70% cover 32%;
+      }
+    }
+  }
+
+  @keyframes strike {
+    from {
+      background-size: 0% 2px;
+    }
+  }
+
+  @keyframes nope {
+    from {
+      transform: scale(0);
+    }
+  }
+</style>
