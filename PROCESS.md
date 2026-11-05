@@ -13,6 +13,7 @@ hangout shorter" (prompt 3,
 [`4f83271...2889130`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/4f83271...2889130)).
 On 7 Oct I had eight milestones built in one evening
 ([`6671f9f...b616093`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/6671f9f...b616093)).
+I find this method to be effective, especially with design, as AI is incredibly good at creating minimum viable products. It often produces what looks like an amazing response to the initial prompt with many issues outside of the basic use case.
 
 I make the product calls and delegate the building. When the agent said
 Hangout should lose features (prompt 17), I asked "can't we just edit the
