@@ -796,6 +796,93 @@ restore runbook.
   last-spot rule is mine, and that prompt 18's reasoning reads the way I'd
   put it.
 
+### Prompt 34 · Tue 3 Nov · the landing page as my README
+
+> My tutor said I can use the landing page created for "Hangout" to be my
+> readme submission for the assignment. Please assign an opus 5.5 agent on
+> xhigh to ensure that the landing page is a HD level readme submission. I
+> need to ensure all the visuals and animations that are currently on the
+> landing page are kept as I am very happy with it. Please ask me before
+> making any changes [...] say that my tutor, Bill, agreed for me to do this.
+
+**My calls**
+- **Have it proposed first (own).** One Opus agent marked the landing page
+  as a README and drafted changes, editing nothing. As it stood, it was
+  about a Pass as a README: a strong idea, but no sources, no "what I didn't
+  build", and no enforced-versus-judged split.
+- **Keep `/readme/` separate (own).** `README.md` says the landing page is
+  my README, that Bill agreed, and links to it.
+- **A README section designed as part of the app (own),** below "Start a
+  group", with nothing above it changed.
+- **Fix the scroll-in fade (own).** It was designed in, but a CSS minifier
+  dropped it, so the sections never faded in on the live site.
+
+**Result:** the fade fix and a first README section were built and
+previewed for me locally before anything merged.
+
+### Prompt 35 · Wed 4 Nov · make it read like the site
+
+> I want the readme section of the landing page to have all the sections of
+> a HD readme but it should be incorporated into the landing page properly
+> [...] without it just being and looking like an assignment submission. It
+> should have the same standard of animations, UI, and UX as the rest of
+> the landing page and not just the simple, boring pill buttons
+
+**My calls**
+- **A story that scrolls (own):** four landing-style sections, each with its
+  own visual and animation, instead of one block of cards and pills.
+- **Product-style headings on the page, course headings in `README.md`
+  (own),** with a link under each course heading to the section that stands
+  in for it.
+- **Natural headings (own).** I asked for "What good means" to go, and for
+  the comparison to say plainly that Hangout beats the alternatives.
+
+**Result** ([`7ed8c96`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7ed8c96),
+[`62aceee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/62aceee)):
+- a timeline through a plan's life;
+- an animated open grid against a blind one;
+- the features I left out, struck through;
+- a checklist that ticks in;
+- a footnote offering the plain text.
+
+I paused it once for my budget and resumed it the same day.
+
+### Prompt 36 · Wed 4 Nov · links only, and PROCESS.md on my decisions
+
+> For the readme, I want you to make the actual readme file have no text
+> version of the landing page. I just want the landing page to act as the
+> readme with the readme file explictly saying that I was permitted to make
+> this decision and then have links under each of the readme's heading to
+> the specific section of the landing page. [...] rewrite the process
+> document [...] focusing on higher level developmental decisions
+
+**Result**
+- **`README.md` is links only**
+  ([`7e8a72e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7e8a72e)):
+  Bill's agreement, then each course heading with a "Read:" link to its
+  landing section and a line on what's there.
+  - The course's own README tests still pass.
+  - The group page's "Why?" now lands on the landing section.
+  - The tests that compared `README.md`'s text now hold the landing page to
+    fixed values, so they're no weaker.
+- **`PROCESS.md` rewritten around my development decisions**
+  ([`6635e0f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/6635e0f)):
+  - how I work;
+  - the rounds of review teams and what they caught;
+  - the pipeline and tests;
+  - choosing the landing page as my README.
+  It has 46 citations; the lead checked every new one.
+- **CI caught two test-timing problems before deploying:**
+  - A reveal check read a paragraph 30 ms after scrolling, mid-fade on a
+    busy runner. It now waits for the browser to paint, and still fails on
+    genuinely faded text
+    ([`346396c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/346396c)).
+  - Five real-Chrome files starting in parallel overran the 10 s setup
+    limit. Setup now gets a minute; no assertion is looser
+    ([`2c2f977`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/2c2f977)).
+  - Neither failure deployed anything. Then CI went green and the landing
+    page went live.
+
 ---
 
 ## For the final PROCESS.md
@@ -873,12 +960,12 @@ These are worth reviewing before citing them:
 - **Invite links in the logs:** the first logging pass leaked them; caught
   in review, with a red test first (prompt 21).
 
-### By the numbers (as of 22 Oct, after prompt 32)
+### By the numbers (as of 5 Nov, after prompt 36)
 
-- 33 prompts
-- 198 commits since the template's first commit
+- 36 prompts
+- 212 commits since the template's first commit
 - 11 ADRs
-- 39 test files and 581 checks, run by `pnpm check` with typecheck and
+- 40 test files and 593 checks, run by `pnpm check` with typecheck and
   lint. 35 run against the app over HTTP, with real-Chrome tests in
   `spec/holds-up.test.ts` and `spec/a11y.test.ts`, and 4 are unit tests
   of the pure logic.
