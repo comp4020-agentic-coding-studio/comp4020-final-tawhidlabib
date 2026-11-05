@@ -302,8 +302,16 @@ describe.skipIf(!chromePath)("the landing page in a real browser", () => {
       const dim: string[] = [];
       for (let i = 0; i < blocks; i++) {
         const el = page.locator("#readme h2, #readme h3, #readme p, #readme li, #readme blockquote").nth(i);
-        await el.evaluate((n) => n.scrollIntoView({ block: "center" }));
-        await page.waitForTimeout(30);
+        // a scroll-driven entrance updates on the frame after the scroll, so
+        // wait for two painted frames, not a fixed time: 30 ms was shorter
+        // than a frame on a busy CI runner, and read a block mid-fade
+        await el.evaluate(
+          (n) =>
+            new Promise<void>((done) => {
+              n.scrollIntoView({ block: "center" });
+              requestAnimationFrame(() => requestAnimationFrame(() => done()));
+            }),
+        );
         const state = await el.evaluate((n) => {
           if (!n.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return "hidden";
           for (let a: Element | null = n; a; a = a.parentElement) {
