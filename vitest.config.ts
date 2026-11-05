@@ -13,6 +13,12 @@ export default defineConfig({
           name: "spec",
           include: ["spec/**/*.test.ts"],
           globalSetup: ["./spec/global-setup.ts"],
+          // Five spec files each launch a real Chrome in beforeAll, in
+          // parallel. On CI's small runner that startup alone can pass the
+          // 10 s default, which failed three files before any test ran
+          // ("Hook timed out in 10000ms"). Setup gets a minute; every
+          // assertion keeps its own limit.
+          hookTimeout: 60_000,
         },
       },
       {
