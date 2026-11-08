@@ -70,5 +70,14 @@ Enter. Note where they get stuck.
 
 ## Results
 
-*(to fill in after each session: date, who (by role, not name), what
-happened, the numbers, and what changed in Hangout because of it)*
+- Date: 21 October 2026
+- Who: four people (P1–P4), each using Hangout themselves
+- All four enjoyed using Hangout, and all four praised the UI and UX
+- All four especially liked the animations, and found them informative
+- P1 didn't like signing in with a private sign-in link; the other three
+  thought it was fine
+- P2 spent time on the events page and enjoyed it, especially the comments
+  and reactions
+- P3 liked that everyone puts in when they're free to hang out, which made
+  planning easier than a group chat
+- What changed in Hangout because of it: (add, or "nothing yet")
