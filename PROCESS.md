@@ -48,58 +48,47 @@ Last, I had agents rewrite the documentation by utilising my prompt history
 
 ## Rounds of review
 
-Up to crit 9 one agent wrote each feature and its test, and twice the test
-could pass without it (prompt 12). For crit 10 I asked for a team
-(prompt 20): one Opus agent briefing and reviewing, Sonnet and Haiku agents
-working. Six read-only audits came first: state integrity, security, live
-updates, front end and accessibility, test quality, and the rubric. Each
-fix then ran in its own worktree, red test first, merged into a branch that
-had to pass before `main`
-([`0f9b10d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/0f9b10d),
-[`0713984`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/0713984)).
+On three occasions, I set up a team of agents to do a comprehensive audit/analysis of the work, each with an Opus lead reviewing
+the findings. I did this because I found that the agent that wrote the code tends to defend its earlier decisions; questioning its design decisions often results in reassurance, whereas reviewer agents tend to be adversarial, finding issues the original agent's green tests had passed.
 
-Then I asked for "1 agent per thing to judge" (prompt 27): eleven
-auditors, one per area from security to UX and UI, judged against the
-rubric and OWASP, WCAG 2.2, Core Web Vitals and Nielsen
-([`4e59253`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/4e59253)).
-I had one developer agent per area fix the findings, red first and
-reviewed before merging (prompt 28). The scope calls stayed mine: keep
-every feature but give each a reason
-([`86b5597`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/86b5597)),
-and leave Fly's machine settings alone
-([`cf89632`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/cf89632)).
-
-This beat one agent checking its own work because review caught what the
-builders' green tests passed. A migration reported as checked would have
-wiped every RSVP in production; reproduced, 3 RSVPs went to 0
-([`12e9694`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/12e9694)).
-The first logging pass leaked invite links
+**Round 1, the crit 10 audit and fix (prompts 20 and 21)** was a good
+outcome. Six audits ran at once, then fixers worked in separate worktrees.
+Review caught a migration a fixer said it had checked, which would have
+deleted every RSVP in production (reproduced, 3 RSVPs went to 0,
+[`12e9694`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/12e9694)),
+and logging that wrote invite links into the logs
 ([`e8026da`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/e8026da)).
-A phone tab bar reported fixed still hid 96 px
-([`bc4f8c3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/bc4f8c3)).
-One calendar link froze the server, so that fix shipped alone, ahead of the
-round (prompt 30,
-[`5e444a6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/5e444a6)).
-The audit's own accessibility scan passed text at 4.41:1, so the new check
-tells axe where to look
-([`f792d0a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f792d0a)).
+One agent checking its own work would have shipped both. The bad part was
+parallel agents colliding: two branches made the same migration number
+([`d2eba78`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/d2eba78)).
 
-The costs were budget and collisions: two branches made the same
-migration number
-([`d2eba78`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/d2eba78)),
-and a broad `pkill` killed other agents' servers, so later briefs stop
-servers by port
-([`3bca8ef`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/3bca8ef)).
-I had claims reproduced before accepting them: five audit claims
-didn't hold up (prompts 20 and 27), and reading crit 10 from the
-log alone showed a refused edit reading as done, so refusals now say
-"tried to"
-([`1c56cf9`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/1c56cf9)).
-I had this file, rewritten each crit
-([`3f08e38`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/3f08e38),
-[`e08fea0`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/e08fea0)),
-marked against the HD band (prompt 33,
-[`ed7e85f`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/ed7e85f)).
+**Round 2, the HD audit (prompt 27)**, only judged. Eleven auditors gave
+me an honest score instead of a guess: about 74/100, a solid D
+([`4e59253`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/4e59253)).
+That was good even though the number was lower than I wanted, because it
+came with a ranked list of what was holding me back. It also showed
+auditors can be wrong: three claims didn't hold up when reproduced, so
+nothing went in the report unchecked.
+
+**Round 3, fixing the report (prompt 28)**, gave each area its own agent,
+red test first. It was mostly good. Security went from no headers and 17
+dependency advisories to all six headers and none
+([`788917b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/788917b)),
+and photos stopped leaking their GPS location
+([`fd8cc47`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/fd8cc47)).
+One agent found a link that froze the whole site, which I shipped alone,
+ahead of the round
+([`d2dc727`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/d2dc727)).
+Another showed round 2's accessibility scan had been too kind, passing
+text at 4.41:1
+([`f792d0a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f792d0a)).
+Less good: one agent I stopped for budget had committed nothing, so a
+single agent finished its work later (prompt 32), and one flaky test was
+never proven cured.
+
+Overall the teams were worth it. The cost was budget and my time
+reviewing every diff, but that review is where most of the catches came
+from.
 
 ## The pipeline and tests
 
