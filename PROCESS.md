@@ -1,13 +1,13 @@
 # Process overview
 
-Every prompt I typed ("prompt N") is in
+Every prompt I typed is in
 [`docs/prompt-history.md`](docs/prompt-history.md), marked "own" for
 my calls and "R" where I took the agent's recommendation.
 
 ## How I approached this project
 
 In my experience, AI agents are good at producing a promising, attractive
-first version, so I used that on purpose. I started Hangout from my
+first version. I started Hangout from my
 general idea (prompt 3), then made bolder requests on top of it: a
 redesigned interface, events, friends, comments and live updates, with
 eight features built in one evening (prompts 6 to 12,
@@ -28,28 +28,25 @@ the app, I stopped building and had all the work thus far checked by a team of a
 agent led, briefed and reviewed, with Sonnet 5.5 and Haiku 4.5 agents
 doing the work. 
 
-After fixing the issues found in the audit, I ran six read-only audits in parallel, from
-security to the rubric, and the lead re-ran every finding before
+Then I ran an audit round where I ran six read-only audits in parallel, from
+security to the assignment marking criteria, and the lead agent re-ran every finding before
 accepting it (prompt 20,
 [`0f9b10d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/0f9b10d)).
 Then eleven auditors judged the whole submission against the HD criteria
 and each area's industry standard: OWASP, WCAG 2.2, Core Web Vitals and
 Nielsen's heuristics (prompt 27,
 [`4e59253`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/4e59253)).
-The lead reproduced every key finding, and three didn't hold up: Memories
-"showing too early" was correct behaviour. I gave each area of that report
+The lead reproduced every key finding, and ensured three incorrect findings did not reach production. I gave each area of the resulting report
 its own agent to fix, red test first and reviewed before merging
-(prompt 28), but the scope calls stayed mine: keep every feature but
-justify each, and leave Fly's machine settings alone
+(prompt 28).
 ([`86b5597`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/86b5597),
 [`cf89632`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/cf89632)).
-Last, I had agents rewrite the documentation by utilising my prompt history
-(prompts 33 and 36).
+Last, I had agents rewrite the documentation by utilising my prompt history (prompts 33 and 36). I found that the agents did not do a good job at illustrating my process in creating the app but it provided me a good foundation to improve upon with my own input.
 
 ## Rounds of review
 
 On three occasions, I set up a team of agents to do a comprehensive audit/analysis of the work, each with an Opus lead reviewing
-the findings. I did this because I found that the agent that wrote the code tends to defend its earlier decisions; questioning its design decisions often results in reassurance, whereas reviewer agents tend to be adversarial, finding issues the original agent's green tests had passed.
+the findings. I did this because I found that the agent that wrote the code tends to defend its earlier decisions; questioning its design decisions often results in reassurance, whereas reviewer agents tend to be adversarial, finding issues the original agent's green tests had passed. A manager agent was useful in fact-checking each sub agent's findings.
 
 **Round 1 (prompts 20 and 21)** was a good
 outcome. Six audits ran at once, then fixers worked in separate worktrees.
@@ -83,6 +80,30 @@ text at 4.41:1
 ([`f792d0a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f792d0a)).
 In this case, assigning separate agents allowed each to focus on security, performance, correctness and edge cases, test coverage, dependency risks, accessibility, maintainability, and so on. Providing each agent a narrow brief results in deeper analysis than “review everything” assigned to one agent.
 
+## The Stack
+
+**Astro, rendered on the server,** means every save is a plain form that
+works even with JavaScript off
+([`7bca623`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7bca623))
+The server decides who is the user and what they may see, in one place.
+
+**SQLite, one file on the Fly volume,** fits because a friend group's data
+is small. A separate database server would add a machine and a network
+hop for no gain, while one file survives redeploys. Its library,
+better-sqlite3, also runs every write in order, one at a time, which makes
+Hangout fair: when two friends tap Going on the last spot at once, exactly
+one gets it, with no locking code of my own
+([`fd9fd67`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/fd9fd67)).
+
+**Real time** uses server-sent events, because updates only flow one way:
+friends save by form and just need to see each other's changes. Each live
+part of a page has a topic; when it changes, the server sends only the
+topic's name, never the data, and each open page re-reads that part
+through the same access rules
+([`5c1013a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/5c1013a)).
+A change reached another screen in 52 ms
+([`61c49a3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/61c49a3)).
+
 ## The pipeline and tests
 
 The template's pipeline
@@ -113,45 +134,14 @@ the crit tags mark
 and
 [`a36b726`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/a36b726).
 
-## The Stack
-
-**Astro, rendered on the server,** means every save is a plain form that
-works even with JavaScript off
-([`7bca623`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7bca623))
-The server decides who is the user and what they may see, in one place.
-
-**SQLite, one file on the Fly volume,** fits because a friend group's data
-is small. A separate database server would add a machine and a network
-hop for no gain, while one file survives redeploys. Its library,
-better-sqlite3, also runs every write in order, one at a time, which makes
-Hangout fair: when two friends tap Going on the last spot at once, exactly
-one gets it, with no locking code of my own
-([`fd9fd67`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/fd9fd67)).
-
-**Real time** uses server-sent events, because updates only flow one way:
-friends save by form and just need to see each other's changes. Each live
-part of a page has a topic; when it changes, the server sends only the
-topic's name, never the data, and each open page re-reads that part
-through the same access rules
-([`5c1013a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/5c1013a)).
-A change reached another screen in 52 ms
-([`61c49a3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/61c49a3)).
-
 ## The landing page is my README
 
-I decided to make the app's landing page act as my README, because I
-realised it would be a much more entertaining way to show off the app and
-more useful to a visitor than a plain text file. My tutor, Bill, agreed,
-and tests hold the page to its sources word for word
-([`b3c7027`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/b3c7027)).
-I threw out the first version because it read like an assignment
-([`f557001`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f557001),
-[`39bf25c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/39bf25c)),
-had it retold as four animated sections, then retitled it so it didn't sound
-like a rubric to regular users.
-([`7ed8c96`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7ed8c96),
-[`62aceee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/62aceee)).
-README.md now says so and links each course heading to its section
+I made the app's landing page my README, because I realised it would be a
+much more entertaining way to show off the app and more useful to a visitor
+than a plain text file. My tutor, Bill, agreed. I threw out the first
+version because it read like an assignment
+([`f557001`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f557001)),
+and README.md now links each course heading to its section
 ([`7e8a72e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7e8a72e)).
 
 ## What I threw away
@@ -172,12 +162,4 @@ that each group's copy is situated, with its own link, names and week,
 while the app stays general. I didn't read the course's small-games
 writing closely enough to place Hangout against it.
 
-## Who wrote what
-
-I typed every prompt and made the calls marked "own". The agents wrote the
-code, tests, commit messages and first drafts of these documents; every
-non-merge commit after the template has a Claude co-author line. Calls
-made without asking me include the rules added after each problem,
-[ADR 9](docs/adr/0009-block-and-mute.md)'s block rules, and accepting
-past-dated plans
-([`a480bc3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/a480bc3)).
+** Note that I used Claude to help me write this process.md file **
