@@ -76,7 +76,7 @@ ahead of the round
 Another showed round 2's accessibility scan had been too kind, passing
 text at 4.41:1
 ([`f792d0a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f792d0a)).
-In this case, assigning separate agents allowed each to focus on security, performance, correctness and edge cases, test coverage, dependency risks, accessibility, maintainability, and so on. Providing each agent a narrow brief results in deeper analysis than “review everything” assigned to one agent.
+In this case, assigning separate agents allowed each to focus on security, performance, correctness and edge cases, test coverage, dependency risks, accessibility, maintainability, and so on. Providing each agent a narrow brief resulted in deeper analysis than “review everything” assigned to one agent.
 
 ## The Stack
 
