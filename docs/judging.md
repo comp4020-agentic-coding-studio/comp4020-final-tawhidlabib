@@ -1,10 +1,9 @@
 # How Hangout's judged claims are judged
 
 The README splits what "good" means into claims `spec/` **enforces** and
-claims that can only be **judged**. This file is how the judged ones get
-judged: what was measured, what's still to be done with real people, and
-what counts as passing. Results go here as they happen, and the README
-summarises them.
+claims that can only be **judged**. This file is how the judged ones were
+judged: what was measured, how the session with real people was run, what
+counts as passing, and what the session found.
 
 ## The claims, and how each is judged
 
@@ -32,7 +31,12 @@ thing, not that people *will*.
 - **Every page at both marking viewports** (390×844 and 1920×1080): no
   sideways scroll. Every keyboard stop is visible, with a focus ring.
 
-## Still to do, with real people (Tawhid)
+## How the session with real people was run
+
+The plan had three sessions. The one that ran is under Results: four
+people, each using Hangout themselves, as a lighter version of Session 1.
+It gathered what people thought rather than timings or message counts, so
+those parts of the plan below weren't measured.
 
 ### Session 1: plan something real
 
@@ -80,4 +84,11 @@ Enter. Note where they get stuck.
   and reactions
 - P3 liked that everyone puts in when they're free to hang out, which made
   planning easier than a group chat
-- What changed in Hangout because of it: (add, or "nothing yet")
+- P3 also liked that the group's availability stays hidden while you put in
+  your own, so it doesn't sway your choice; they believed seeing everyone
+  else's first would have changed what they marked. This backs the blind
+  grid (ADR 10), the "honest answers" claim above.
+- What it showed: the core idea held up with real people. The one change
+  it points to is the sign-in link, which one person in four disliked.
+  Hangout has no passwords by design (README, "What I chose not to
+  build"), so the link stays, as a known cost of that choice.
