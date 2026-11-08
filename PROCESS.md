@@ -33,14 +33,12 @@ security to the assignment marking criteria, and the lead agent re-ran every fin
 accepting it (prompt 20,
 [`0f9b10d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/0f9b10d)).
 Then eleven auditors judged the whole submission against the HD criteria
-and each area's industry standard: OWASP, WCAG 2.2, Core Web Vitals and
-Nielsen's heuristics (prompt 27,
+and each area's industry standard(prompt 27,
 [`4e59253`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/4e59253)).
 The lead reproduced every key finding, and ensured three incorrect findings did not reach production. I gave each area of the resulting report
 its own agent to fix, red test first and reviewed before merging
 (prompt 28).
-([`86b5597`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/86b5597),
-[`cf89632`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/cf89632)).
+
 Last, I had agents rewrite the documentation by utilising my prompt history (prompts 33 and 36). I found that the agents did not do a good job at illustrating my process in creating the app but it provided me a good foundation to improve upon with my own input.
 
 ## Rounds of review
@@ -60,7 +58,7 @@ parallel agents colliding: two branches made the same migration number
 ([`d2eba78`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/d2eba78)).
 
 **Round 2, the HD audit (prompt 27)**, only reviewed the code. Eleven auditors gave
-me a grade against the marking criteria:
+me a grade against the marking criteria.
 ([`4e59253`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/4e59253)).
 This was useful as it provided me a ranked list of what was holding my project back. It also demonstrated the importance of a more powerful agent
 with the role of manager as it identified three claims that didn't hold up when reproduced, so
@@ -123,7 +121,7 @@ and accessibility
 ([`dbd18cf`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/dbd18cf)),
 and unit tests the pure logic
 ([`1d71657`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/1d71657)):
-39 test files and 581 tests by 22 Oct
+40 test files and 593 tests by 22 Oct
 ([`ad8f5a6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/ad8f5a6)).
 For crit 10 every change logs who did what
 ([`5ee5766`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/5ee5766)).
