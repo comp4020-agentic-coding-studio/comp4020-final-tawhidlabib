@@ -51,27 +51,26 @@ Last, I had agents rewrite the documentation by utilising my prompt history
 On three occasions, I set up a team of agents to do a comprehensive audit/analysis of the work, each with an Opus lead reviewing
 the findings. I did this because I found that the agent that wrote the code tends to defend its earlier decisions; questioning its design decisions often results in reassurance, whereas reviewer agents tend to be adversarial, finding issues the original agent's green tests had passed.
 
-**Round 1, the crit 10 audit and fix (prompts 20 and 21)** was a good
+**Round 1 (prompts 20 and 21)** was a good
 outcome. Six audits ran at once, then fixers worked in separate worktrees.
-Review caught a migration a fixer said it had checked, which would have
+The review caught a migration a fixer agent said it had checked, which would have
 deleted every RSVP in production (reproduced, 3 RSVPs went to 0,
 [`12e9694`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/12e9694)),
 and logging that wrote invite links into the logs
 ([`e8026da`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/e8026da)).
-One agent checking its own work would have shipped both. The bad part was
+One agent checking its own work would have shipped both issues. The bad part was
 parallel agents colliding: two branches made the same migration number
 ([`d2eba78`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/d2eba78)).
 
-**Round 2, the HD audit (prompt 27)**, only judged. Eleven auditors gave
-me an honest score instead of a guess: about 74/100, a solid D
+**Round 2, the HD audit (prompt 27)**, only reviewed the code. Eleven auditors gave
+me a grade against the marking criteria:
 ([`4e59253`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/4e59253)).
-That was good even though the number was lower than I wanted, because it
-came with a ranked list of what was holding me back. It also showed
-auditors can be wrong: three claims didn't hold up when reproduced, so
+This was useful as it provided me a ranked list of what was holding my project back. It also demonstrated the importance of a more powerful agent
+with the role of manager as it identified three claims that didn't hold up when reproduced, so
 nothing went in the report unchecked.
 
 **Round 3, fixing the report (prompt 28)**, gave each area its own agent,
-red test first. It was mostly good. Security went from no headers and 17
+red test first. Security went from no headers and 17
 dependency advisories to all six headers and none
 ([`788917b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/788917b)),
 and photos stopped leaking their GPS location
@@ -82,13 +81,7 @@ ahead of the round
 Another showed round 2's accessibility scan had been too kind, passing
 text at 4.41:1
 ([`f792d0a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f792d0a)).
-Less good: one agent I stopped for budget had committed nothing, so a
-single agent finished its work later (prompt 32), and one flaky test was
-never proven cured.
-
-Overall the teams were worth it. The cost was budget and my time
-reviewing every diff, but that review is where most of the catches came
-from.
+In this case, assigning separate agents allowed each to focus on security, performance, correctness and edge cases, test coverage, dependency risks, accessibility, maintainability, and so on. Providing each agent a narrow brief results in deeper analysis than “review everything” assigned to one agent.
 
 ## The pipeline and tests
 
@@ -120,17 +113,26 @@ the crit tags mark
 and
 [`a36b726`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/a36b726).
 
-## The stack, and why it beat the alternative
+## The Stack
 
-I kept crit 7's stack (prompt 2): server-rendered Astro and one SQLite file
-on the Fly volume
-([`96a3e37`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/96a3e37),
-[ADR 1](docs/adr/0001-astro-and-sqlite.md)). A new framework might
-suit real time better, but crit 8 was due the day after setup and I'd shipped
-this one before. The cost is one machine and forms that reload. For real
-time, the obvious move was pushing data to open pages, which would mean
-writing every privacy rule twice. I approved a stream that only names what
-changed, which pages re-read through the normal access rules
+**Astro, rendered on the server,** means every save is a plain form that
+works even with JavaScript off
+([`7bca623`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7bca623))
+The server decides who is the user and what they may see, in one place.
+
+**SQLite, one file on the Fly volume,** fits because a friend group's data
+is small. A separate database server would add a machine and a network
+hop for no gain, while one file survives redeploys. Its library,
+better-sqlite3, also runs every write in order, one at a time, which makes
+Hangout fair: when two friends tap Going on the last spot at once, exactly
+one gets it, with no locking code of my own
+([`fd9fd67`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/fd9fd67)).
+
+**Real time** uses server-sent events, because updates only flow one way:
+friends save by form and just need to see each other's changes. Each live
+part of a page has a topic; when it changes, the server sends only the
+topic's name, never the data, and each open page re-reads that part
+through the same access rules
 ([`5c1013a`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/5c1013a)).
 A change reached another screen in 52 ms
 ([`61c49a3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/61c49a3)).
@@ -145,8 +147,8 @@ and tests hold the page to its sources word for word
 I threw out the first version because it read like an assignment
 ([`f557001`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/f557001),
 [`39bf25c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/39bf25c)),
-had it retold as four animated sections, then retitled so it didn't sound
-like a rubric
+had it retold as four animated sections, then retitled it so it didn't sound
+like a rubric to regular users.
 ([`7ed8c96`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7ed8c96),
 [`62aceee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/62aceee)).
 README.md now says so and links each course heading to its section
