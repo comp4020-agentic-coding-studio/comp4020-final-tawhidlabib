@@ -4,34 +4,47 @@ Every prompt I typed ("prompt N") is in
 [`docs/prompt-history.md`](docs/prompt-history.md), marked "own" for
 my calls and "R" where I took the agent's recommendation.
 
-## How I work
+## How I approached this project
 
-I build a lot fast, then stop and have it checked. For crit 8 the agent
-suggested a smaller scope and I asked for everything, with my own rule for
-picking a time: "do the longest overlap with the ability to make the
-hangout shorter" (prompt 3,
-[`4f83271...2889130`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/4f83271...2889130)).
-On 7 Oct I had eight milestones built in one evening
-([`6671f9f...b616093`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/6671f9f...b616093)).
-I find this method to be effective, especially with design, as AI is incredibly good at creating minimum viable products. It often produces what looks like an amazing response to the initial prompt with many issues outside of the basic use case.
+In my experience, AI agents are good at producing a promising, attractive
+first version, so I used that on purpose. I started Hangout from my
+general idea (prompt 3), then made bolder requests on top of it: a
+redesigned interface, events, friends, comments and live updates, with
+eight features built in one evening (prompts 6 to 12,
+[`6671f9f...b616093`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/compare/6671f9f...b616093)).
 
-I make the product calls and delegate the building. When the agent said
-Hangout should lose features (prompt 17), I asked "can't we just edit the
-readme's definition of good?" (prompt 18), because I thought the bigger app
-was better. The features stayed and "good" became a plan's whole life
+When I asked the agent how to reach a HD (prompt 17), it pushed back: the
+app had outgrown my original idea, so it advised cutting features. I
+thought the new additions had improved the app, so instead I had the README's
+definition of "good" rewritten around everything I'd added
 ([`fd47b33`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/fd47b33)).
-I picked the blind grid from its proposals as a "perfect idea backed by
-research"
+From its proposals I also chose the blind grid, which hides the group's
+week until you've answered
 ([`33d4284`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/33d4284)).
 
-I keep asking whether it's done, HD, and works across devices (prompts 15,
-17, 22, 26); asking found crit 10 merged but never pushed. I paused for my
-weekly budget with nothing half-done on `main` (prompt 29,
-[`3bca8ef`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/3bca8ef)).
-I kept two rules: spec tests start red
-([`e6eb352`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/e6eb352)),
-and every new check is made to fail once
-([`047d3fa`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/047d3fa)).
+Up to then one agent wrote each feature and its own test, and twice a
+test could pass without its feature (prompt 12). So once I was happy with
+the app, I stopped building and had all the work thus far checked by a team of agents. One Opus 5.5
+agent led, briefed and reviewed, with Sonnet 5.5 and Haiku 4.5 agents
+doing the work. 
+
+After fixing the issues found in the audit, I ran six read-only audits in parallel, from
+security to the rubric, and the lead re-ran every finding before
+accepting it (prompt 20,
+[`0f9b10d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/0f9b10d)).
+Then eleven auditors judged the whole submission against the HD criteria
+and each area's industry standard: OWASP, WCAG 2.2, Core Web Vitals and
+Nielsen's heuristics (prompt 27,
+[`4e59253`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/4e59253)).
+The lead reproduced every key finding, and three didn't hold up: Memories
+"showing too early" was correct behaviour. I gave each area of that report
+its own agent to fix, red test first and reviewed before merging
+(prompt 28), but the scope calls stayed mine: keep every feature but
+justify each, and leave Fly's machine settings alone
+([`86b5597`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/86b5597),
+[`cf89632`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/cf89632)).
+Last, I had agents rewrite the documentation by utilising my prompt history
+(prompts 33 and 36).
 
 ## Rounds of review
 
