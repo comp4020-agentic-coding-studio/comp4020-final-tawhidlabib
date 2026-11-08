@@ -33,7 +33,7 @@ security to the assignment marking criteria, and the lead agent re-ran every fin
 accepting it (prompt 20,
 [`0f9b10d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/0f9b10d)).
 Then eleven auditors judged the whole submission against the HD criteria
-and each area's industry standard(prompt 27,
+and each area's industry standard (prompt 27,
 [`4e59253`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/4e59253)).
 The lead reproduced every key finding, and ensured three incorrect findings did not reach production. I gave each area of the resulting report
 its own agent to fix, red test first and reviewed before merging
@@ -82,7 +82,7 @@ In this case, assigning separate agents allowed each to focus on security, perfo
 
 **Astro, rendered on the server,** means every save is a plain form that
 works even with JavaScript off
-([`7bca623`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7bca623))
+([`7bca623`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/7bca623)).
 The server decides who is the user and what they may see, in one place.
 
 **SQLite, one file on the Fly volume,** fits because a friend group's data
@@ -121,7 +121,7 @@ and accessibility
 ([`dbd18cf`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/dbd18cf)),
 and unit tests the pure logic
 ([`1d71657`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/1d71657)):
-40 test files and 593 tests by 22 Oct
+40 test files and 593 tests
 ([`ad8f5a6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/ad8f5a6)).
 For crit 10 every change logs who did what
 ([`5ee5766`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-tawhidlabib/commit/5ee5766)).
@@ -160,4 +160,4 @@ that each group's copy is situated, with its own link, names and week,
 while the app stays general. I didn't read the course's small-games
 writing closely enough to place Hangout against it.
 
-** Note that I used Claude to help me write this process.md file **
+**Note that I used Claude to help me write this process.md file**
